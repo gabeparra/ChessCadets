@@ -43,6 +43,7 @@ PackagingResults/
 .DS_Store
 Thumbs.db
 
+
 # --- Misc ---
 *.log
 *.tmp
