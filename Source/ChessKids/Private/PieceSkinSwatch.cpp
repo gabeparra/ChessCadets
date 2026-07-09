@@ -6,6 +6,8 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/SizeBox.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Blueprint/WidgetTree.h"
 #include "Styling/CoreStyle.h"
 #include "Engine/Texture2D.h"
@@ -42,8 +44,26 @@ TSharedRef<SWidget> UPieceSkinSwatch::RebuildWidget()
 			IS->SetPadding(FMargin(6.f, 8.f, 6.f, 2.f));
 		}
 
+		// Overlay hosts both the texture preview and the flat-color fallback in the
+		// same space — RefreshAppearance toggles which one is visible. Overlay slots
+		// default to top-left/auto-size, so both children need an explicit Fill
+		// alignment or they shrink to a tiny icon instead of filling the 110x110 area.
+		UOverlay* ImageOverlay = WidgetTree->ConstructWidget<UOverlay>();
+		ImageBox->AddChild(ImageOverlay);
+
 		ImageWidget = WidgetTree->ConstructWidget<UImage>();
-		ImageBox->AddChild(ImageWidget);
+		if (UOverlaySlot* ImgSlot = ImageOverlay->AddChildToOverlay(ImageWidget))
+		{
+			ImgSlot->SetHorizontalAlignment(HAlign_Fill);
+			ImgSlot->SetVerticalAlignment(VAlign_Fill);
+		}
+
+		ColorSwatchWidget = WidgetTree->ConstructWidget<UBorder>();
+		if (UOverlaySlot* ColorSlot = ImageOverlay->AddChildToOverlay(ColorSwatchWidget))
+		{
+			ColorSlot->SetHorizontalAlignment(HAlign_Fill);
+			ColorSlot->SetVerticalAlignment(VAlign_Fill);
+		}
 
 		LabelWidget = WidgetTree->ConstructWidget<UTextBlock>();
 		LabelWidget->SetJustification(ETextJustify::Center);
@@ -94,12 +114,25 @@ void UPieceSkinSwatch::RefreshAppearance()
 		{
 			ImageWidget->SetBrushFromTexture(Thumbnail, false);
 			ImageWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+			ImageWidget->SetColorAndOpacity(bUnlocked ? FLinearColor::White : FLinearColor(1.f, 1.f, 1.f, 0.35f));
 		}
 		else
 		{
 			ImageWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
-		ImageWidget->SetColorAndOpacity(bUnlocked ? FLinearColor::White : FLinearColor(1.f, 1.f, 1.f, 0.35f));
+	}
+
+	if (ColorSwatchWidget)
+	{
+		if (!Thumbnail && bUseSwatchColor)
+		{
+			ColorSwatchWidget->SetBrushColor(bUnlocked ? SwatchColor : SwatchColor * FLinearColor(1.f, 1.f, 1.f, 0.35f));
+			ColorSwatchWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			ColorSwatchWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 
 	if (Btn)

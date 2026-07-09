@@ -3,6 +3,7 @@
 #include "ChessPieceSkinRegistry.h"
 #include "ChessKidsGameInstance.h"
 #include "ChessManager.h"
+#include "ChessPiece.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
@@ -129,7 +130,7 @@ void UPieceSkinsMenuWidget::PopulateSkins()
 	auto AddSwatch = [&](FName SkinId, const FText& DisplayName, UTexture2D* Thumbnail, bool bUnlocked)
 	{
 		UPieceSkinSwatch* Swatch = CreateWidget<UPieceSkinSwatch>(this, UPieceSkinSwatch::StaticClass());
-		if (!Swatch) return;
+		if (!Swatch) return Swatch;
 		Swatch->SkinId = SkinId;
 		Swatch->DisplayName = DisplayName;
 		Swatch->Thumbnail = Thumbnail;
@@ -140,10 +141,25 @@ void UPieceSkinsMenuWidget::PopulateSkins()
 		if (UScrollBoxSlot* SwatchSlot = Cast<UScrollBoxSlot>(Swatch->Slot))
 			SwatchSlot->SetPadding(FMargin(6.f, 0.f));
 		Swatch->RefreshAppearance();
+		return Swatch;
 	};
 
-	// Always-unlocked entry that reverts pieces to their own default look.
-	AddSwatch(NAME_None, FText::FromString(TEXT("Default")), nullptr, true);
+	// Always-unlocked entry that reverts pieces to their own default look. Its preview
+	// is a flat swatch of the actual white/black tint for whichever side the player is
+	// playing — there's no static image for the untextured look, so this is the closest
+	// thing to a real thumbnail for it.
+	EChessColor PlayerColor = EChessColor::White;
+	if (AChessManager* Manager = Cast<AChessManager>(UGameplayStatics::GetActorOfClass(this, AChessManager::StaticClass())))
+		PlayerColor = Manager->PlayerColor;
+	else
+		PlayerColor = GI->PlayerColor;   // no arena loaded (e.g. opened from the main menu) — best guess
+
+	if (UPieceSkinSwatch* DefaultSwatch = AddSwatch(NAME_None, FText::FromString(TEXT("Default")), nullptr, true))
+	{
+		DefaultSwatch->bUseSwatchColor = true;
+		DefaultSwatch->SwatchColor = AChessPiece::GetTintColor(PlayerColor);
+		DefaultSwatch->RefreshAppearance();
+	}
 
 	if (UChessPieceSkinRegistry* Registry = GI->PieceSkinRegistry.LoadSynchronous())
 	{
