@@ -432,6 +432,17 @@ void AChessManager::SwapPromotedPiece(const FString& Square, const FString& Piec
 	}
 }
 
+void AChessManager::ApplyPieceSkin(UMaterialInterface* SkinMaterial)
+{
+	for (const TPair<FString, AChessPiece*>& Pair : PieceActors)
+	{
+		if (AChessPiece* Piece = Pair.Value)
+		{
+			Piece->ApplyPieceSkin(SkinMaterial);
+		}
+	}
+}
+
 void AChessManager::SetDifficulty(int32 Level)
 {
 	CurrentDifficulty = FMath::Clamp(Level, 1, 3);

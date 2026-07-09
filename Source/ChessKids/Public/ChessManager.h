@@ -8,6 +8,7 @@
 class AChessBoard;
 class USoundBase;
 class UAudioComponent;
+class UMaterialInterface;
 
 namespace pulse
 {
@@ -119,7 +120,14 @@ public:
 	void RefreshBoard() { SpawnAllPieces(); }
 
 	UFUNCTION(BlueprintCallable, Category = "Chess")
-	void SwapPromotedPiece(const FString& Square, const FString& PieceLetter);  
+	void SwapPromotedPiece(const FString& Square, const FString& PieceLetter);
+
+	// Live-refreshes every spawned piece with the given skin material (or nullptr to
+	// revert to each piece's own default). Persisting the selection is the caller's
+	// job (see UChessKidsGameInstance::SelectPieceSkin) — this only pushes it to
+	// actors already on the board.
+	UFUNCTION(BlueprintCallable, Category = "Chess")
+	void ApplyPieceSkin(UMaterialInterface* SkinMaterial);
 
 private:
 	struct FEngineImpl;

@@ -17,15 +17,14 @@
     },
     {
       "Name": "VisualStudioTools",
-      "Enabled": false,
-      "SupportedTargetPlatforms":[
-      "Win64"
+      "Enabled": true,
+      "SupportedTargetPlatforms": [
+        "Win64"
       ]
     },
     {
       "Name": "HDRIBackdrop",
       "Enabled": true
-
     }
   ],
   "TargetPlatforms": [],
