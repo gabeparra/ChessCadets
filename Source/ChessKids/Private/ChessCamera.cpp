@@ -2,10 +2,13 @@
 
 #include "ChessCamera.h"
 #include "ChessBoard.h"
+#include "ChessManager.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 
 AChessCamera::AChessCamera()
 {
@@ -43,6 +46,21 @@ void AChessCamera::BeginPlay()
 
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (PC) PC->SetViewTargetWithBlend(this, 0.f);
+
+	// Orbit to the human's side once AChessManager::BeginPlay (elsewhere this frame)
+	// has resolved PlayerColor — actor BeginPlay order isn't guaranteed, so defer.
+	TWeakObjectPtr<AChessCamera> WeakThis(this);
+	GetWorld()->GetTimerManager().SetTimerForNextTick([WeakThis]()
+	{
+		AChessCamera* Self = WeakThis.Get();
+		if (!Self) return;
+
+		AChessManager* Manager = Cast<AChessManager>(UGameplayStatics::GetActorOfClass(Self, AChessManager::StaticClass()));
+		if (Manager && Manager->PlayerColor == EChessColor::Black)
+			Self->Yaw = Self->BlackSideYaw;
+
+		Self->ApplyView();
+	});
 }
 
 void AChessCamera::ApplyView()
