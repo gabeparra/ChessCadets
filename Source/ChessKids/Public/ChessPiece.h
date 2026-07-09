@@ -92,6 +92,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chess")
 	void ApplyPieceSkin(UMaterialInterface* SkinMaterial);
 
+	// The white/black "BaseColor" tint applied to every piece's dynamic material
+	// instance. Shared with the UI (e.g. the skins picker's "Default" swatch preview)
+	// so both stay in sync with a single source of truth.
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
+	static FLinearColor GetTintColor(EChessColor Color);
+
 private:
 	void SetupMeshAndMaterial(const FPieceMeshConfig* MeshOverride);
 

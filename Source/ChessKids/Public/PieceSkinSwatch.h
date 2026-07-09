@@ -29,6 +29,15 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Chess|Skin")
 	UTexture2D* Thumbnail = nullptr;
 
+	// Fallback preview when there's no Thumbnail texture — a flat color swatch (e.g.
+	// the "Default" entry uses this to show the piece's actual white/black tint,
+	// since there's no static image for the untextured look).
+	UPROPERTY(BlueprintReadWrite, Category = "Chess|Skin")
+	bool bUseSwatchColor = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Chess|Skin")
+	FLinearColor SwatchColor = FLinearColor::White;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Chess|Skin")
 	bool bUnlocked = true;
 
@@ -58,6 +67,10 @@ protected:
 
 	UPROPERTY()
 	UImage* ImageWidget = nullptr;
+
+	// Shown instead of ImageWidget when bUseSwatchColor is set and there's no Thumbnail.
+	UPROPERTY()
+	UBorder* ColorSwatchWidget = nullptr;
 
 	UPROPERTY()
 	UTextBlock* LabelWidget = nullptr;
