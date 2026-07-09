@@ -6,10 +6,9 @@
 
 class UButton;
 
-// C++ base for WBP_LevelSelect. Story mode is the class ladder: buttons 1-5 walk
-// Pawn -> Knight -> Bishop -> Rook -> Royalty. Button 6 is hidden (free play
-// lives in CHESS MODE's venue picker). The Blueprint's own button bindings are
-// cleared so this base fully owns the routing.
+// C++ base for WBP_LevelSelect. Story mode is the class ladder: buttons 1-6 walk
+// the tutorial levels Pawn -> Knight -> Bishop -> Rook -> Queen -> King.
+// The Blueprint's own button bindings are cleared so this base fully owns the routing.
 UCLASS()
 class CHESSKIDS_API ULevelSelectMenuWidget : public UUserWidget
 {
@@ -31,6 +30,7 @@ protected:
 	UFUNCTION() void OnLevel3();
 	UFUNCTION() void OnLevel4();
 	UFUNCTION() void OnLevel5();
+	UFUNCTION() void OnLevel6();
 
 private:
 	void OpenArena(FName MapName);

@@ -99,6 +99,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Tutorial")
 	TArray<FIntPoint> GetLegalMoves() const;
 
+	// Last guide message shown — lets a HUD that constructs after the intro
+	// broadcast (BeginPlay order isn't guaranteed) replay it on bind
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Tutorial")
+	FString GetLastGuideMessage() const { return LastGuideMessage; }
+
+	// Where the post-boss "continue" choice should travel (NAME_None = no next level)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Tutorial")
+	FName GetNextLevelName() const { return NextLevelName; }
+
 protected:
 	// Override in subclasses for level-specific logic
 	virtual void SetupPhase(ETutorialPhase Phase);
@@ -106,6 +115,8 @@ protected:
 	virtual void OnPhaseComplete();
 	virtual void AfterPlayerMove(int32 File, int32 Rank);
 	virtual bool IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, int32 ToRank) const;
+
+	FString LastGuideMessage;
 
 	// Piece mesh config for spawning player piece
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Pieces")

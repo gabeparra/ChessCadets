@@ -25,8 +25,15 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* GuideText;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* MenuButton;
 
+	// Post-boss choice panel: continue to the next lesson or back to the menu.
+	UPROPERTY(meta = (BindWidgetOptional)) UBorder* CompletePanel;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* ContinueButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* CompleteMenuButton;
+
 	UFUNCTION() void HandleGuideMessage(const FString& Message);
 	UFUNCTION() void OnMenuClicked();
+	UFUNCTION() void HandleLevelComplete();
+	UFUNCTION() void OnContinueClicked();
 
 private:
 	UPROPERTY() ATutorialManager* Manager = nullptr;
