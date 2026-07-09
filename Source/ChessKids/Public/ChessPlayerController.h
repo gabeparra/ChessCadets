@@ -72,6 +72,11 @@ private:
 	void ShowPauseMenu();
 	void HidePauseMenu();
 
+	// Starts the "robot is thinking" delay then calls Manager->RequestAIMove() — shared
+	// by the post-move handoff, promotion completion, and the opening-move kickoff when
+	// the human plays Black (White always moves first in chess).
+	void TriggerDelayedAIMove();
+
 	UPROPERTY()
 	UUserWidget* PauseMenuInstance = nullptr;
 

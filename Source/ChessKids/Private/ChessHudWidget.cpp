@@ -229,7 +229,8 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	AChessPlayerController* PC = GetChessPC();
 	const bool bTwoPlayer = Manager->IsTwoPlayerMode();
 	const bool bWhiteToMove = Manager->GetActiveColor() == TEXT("white");
-	const bool bThinking = !bTwoPlayer && ((PC && PC->IsAIThinking()) || !bWhiteToMove);
+	const bool bPlayerIsWhite = Manager->PlayerColor == EChessColor::White;
+	const bool bThinking = !bTwoPlayer && ((PC && PC->IsAIThinking()) || (bWhiteToMove != bPlayerIsWhite));
 
 	if (TurnText)
 	{

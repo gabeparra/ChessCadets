@@ -132,16 +132,34 @@ void AChessManager::BeginPlay()
 
 	// Difficulty + mode are the player's persisted choices (GameInstance survives level travel).
 	int32 Level = 1;
-	if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+	if (GI)
 	{
 		Level = GI->Difficulty;
 		bTwoPlayerMode = GI->bTwoPlayerMode;
 	}
 	SetDifficulty(Level);
 
+	// Resolve which side the human plays for this arena.
+	switch (PlayerColorMode)
+	{
+	case EPlayerColorMode::Fixed:
+		// PlayerColor is already set as configured on this level's ChessManager.
+		break;
+	case EPlayerColorMode::Random:
+		PlayerColor = FMath::RandBool() ? EChessColor::White : EChessColor::Black;
+		break;
+	case EPlayerColorMode::ChooseAtStart:
+	default:
+		if (GI) PlayerColor = GI->PlayerColor;
+		break;
+	}
+
 	if (!Board)
 		Board = Cast<AChessBoard>(UGameplayStatics::GetActorOfClass(this, AChessBoard::StaticClass()));
 	SpawnAllPieces();
+	if (GI)
+		ApplyPieceSkin(GI->GetSelectedPieceMaterial());
 
 	OnMoveMade.AddDynamic(this, &AChessManager::HandleMoveMade);
 
@@ -430,16 +448,22 @@ void AChessManager::SwapPromotedPiece(const FString& Square, const FString& Piec
 		Board->SnapActorToSquare(NewPiece, File, Rank, ZOff);
 		PieceActors.Add(Square, NewPiece);
 	}
+
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		ApplyPieceSkin(GI->GetSelectedPieceMaterial());
 }
 
 void AChessManager::ApplyPieceSkin(UMaterialInterface* SkinMaterial)
 {
 	for (const TPair<FString, AChessPiece*>& Pair : PieceActors)
 	{
-		if (AChessPiece* Piece = Pair.Value)
-		{
-			Piece->ApplyPieceSkin(SkinMaterial);
-		}
+		AChessPiece* Piece = Pair.Value;
+		if (!Piece) continue;
+
+		// Only skin pieces an actual player controls: the resolved PlayerColor is
+		// always human; the other color is the robot outside hot-seat mode.
+		const bool bHumanControlled = (Piece->PieceColor == PlayerColor) || bTwoPlayerMode;
+		Piece->ApplyPieceSkin(bHumanControlled ? SkinMaterial : nullptr);
 	}
 }
 
