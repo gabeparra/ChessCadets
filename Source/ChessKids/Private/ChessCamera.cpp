@@ -57,9 +57,16 @@ void AChessCamera::BeginPlay()
 
 		AChessManager* Manager = Cast<AChessManager>(UGameplayStatics::GetActorOfClass(Self, AChessManager::StaticClass()));
 		if (Manager && Manager->PlayerColor == EChessColor::Black)
-			Self->Yaw = Self->BlackSideYaw;
-
-		Self->ApplyView();
+		{
+			// Mirror to the opposite side of the board by spinning the already-correct
+			// default pose 180° around the world vertical axis. Done in world space
+			// (not by negating the local Yaw property) so it's correct regardless of
+			// whatever rotation this level's camera actor itself was placed with —
+			// a pure world-up rotation can never flip/invert an existing valid view,
+			// it only orbits it, so the level-authored tilt/framing is preserved.
+			const FQuat FlipYaw180(FVector::UpVector, PI);
+			Self->SpringArm->SetWorldRotation(FlipYaw180 * Self->SpringArm->GetComponentQuat());
+		}
 	});
 }
 

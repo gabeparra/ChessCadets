@@ -3,12 +3,15 @@
 #include "SettingsMenuWidget.h"
 #include "PieceSkinsMenuWidget.h"
 #include "ModeSelectWidget.h"
+#include "TutorialSelectWidget.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/TextBlock.h"
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "Styling/CoreStyle.h"
 
 void UMainMenuWidget::NativeConstruct()
 {
@@ -29,6 +32,7 @@ void UMainMenuWidget::NativeConstruct()
 
 	InjectSettingsButton();
 	InjectSkinsButton();
+	InjectLearnButton();
 }
 
 void UMainMenuWidget::SetTwoPlayerMode(bool bTwoPlayer)
@@ -77,6 +81,39 @@ void UMainMenuWidget::OnSkins()
 		SkinsInstance = CreateWidget<UUserWidget>(GetOwningPlayer(), Cls);
 	if (SkinsInstance && !SkinsInstance->IsInViewport())
 		SkinsInstance->AddToViewport(100);
+}
+
+void UMainMenuWidget::OnLearn()
+{
+	SetTwoPlayerMode(false);
+	// Lesson picker overlay — jump into any lesson, stars mark completed ones.
+	if (UUserWidget* Picker = CreateWidget<UUserWidget>(GetOwningPlayer(), UTutorialSelectWidget::StaticClass()))
+		Picker->AddToViewport(50);
+}
+
+void UMainMenuWidget::InjectLearnButton()
+{
+	if (InjectedLearnButton) return;
+
+	UCanvasPanel* Canvas = WidgetTree ? Cast<UCanvasPanel>(WidgetTree->RootWidget) : nullptr;
+	if (!Canvas) return;
+
+	InjectedLearnButton = WidgetTree->ConstructWidget<UButton>();
+	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
+	Label->SetText(FText::FromString(TEXT("LEARN CHESS")));
+	Label->SetJustification(ETextJustify::Center);
+	Label->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+	Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+	InjectedLearnButton->AddChild(Label);
+	InjectedLearnButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnLearn);
+
+	if (UCanvasPanelSlot* CS = Canvas->AddChildToCanvas(InjectedLearnButton))
+	{
+		CS->SetAnchors(FAnchors(0.f, 1.f, 0.f, 1.f));   // bottom-left corner
+		CS->SetAlignment(FVector2D(0.f, 1.f));
+		CS->SetPosition(FVector2D(24.f, -24.f));
+		CS->SetAutoSize(true);
+	}
 }
 
 void UMainMenuWidget::InjectSettingsButton()
