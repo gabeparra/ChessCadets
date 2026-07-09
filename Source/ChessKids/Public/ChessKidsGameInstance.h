@@ -53,6 +53,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game", meta = (ClampMin = "0"))
 	int32 BoardThemeIndex = 0;
 
+	// --- Progression (persisted via UChessKidsSaveGame, slot "ChessKidsProgress") ---
+
+	// Dev/testing override: everything unlocked. Session-only, toggled in Settings.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Dev")
+	bool bDevUnlockAll = false;
+
+	// Story chapter numbers are 1 = L_Pawn .. 5 = L_Royalty.
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Progress")
+	bool IsStoryChapterUnlocked(int32 Chapter) const;
+
+	// Called on a story victory; unlocks the next chapter and saves.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Progress")
+	void NotifyStoryVictory(const FString& MapName);
+
+	UFUNCTION(BlueprintCallable, Category = "Chess|Progress")
+	void MarkTutorialComplete(int32 LessonIndex);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Progress")
+	bool IsTutorialComplete(int32 LessonIndex) const;
+
+	// Chapter for a story map name (0 if not a story map).
+	static int32 StoryChapterForMap(const FString& MapName);
+
 	// Free board recoloring via the settings hue sliders (overrides themes when set).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	bool bCustomBoardColors = false;
@@ -63,21 +86,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float DarkSquareHue = 0.62f;
 
-	// Shared hue->color mapping so the board and the settings UI always agree:
-	// light squares stay pastel-bright, dark squares stay deep, whatever the hue.
+	// Shared hue->color mapping so the board and the settings UI always agree.
+	// The value bands are hard-separated (light >= 0.85, dark <= 0.28) so NO
+	// hue combination can ever produce a low-contrast board.
 	static FLinearColor LightColorFromHue(float Hue01)
 	{
-		return FLinearColor::MakeFromHSV8((uint8)(FMath::Clamp(Hue01, 0.f, 1.f) * 255.f), 90, 242);
+		return FLinearColor::MakeFromHSV8((uint8)(FMath::Clamp(Hue01, 0.f, 1.f) * 255.f), 85, 252);
 	}
 	static FLinearColor DarkColorFromHue(float Hue01)
 	{
-		return FLinearColor::MakeFromHSV8((uint8)(FMath::Clamp(Hue01, 0.f, 1.f) * 255.f), 178, 64);
+		return FLinearColor::MakeFromHSV8((uint8)(FMath::Clamp(Hue01, 0.f, 1.f) * 255.f), 205, 42);
 	}
 
 private:
 	UChessMapRegistry* LoadRegistry() const;
+	void LoadProgress();
+	void SaveProgress();
 
 	// Maps unlocked this session. Seeded from entries flagged bUnlockedByDefault.
 	UPROPERTY()
 	TSet<FName> UnlockedMaps;
+
+	UPROPERTY()
+	class UChessKidsSaveGame* Progress = nullptr;
 };
