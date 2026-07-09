@@ -85,20 +85,10 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		MakeTray(WhiteCapturedText, 0.f, 0.f, 24.f);    // left: pieces YOU/P1 captured
 		MakeTray(BlackCapturedText, 1.f, 1.f, -24.f);   // right: pieces the robot/P2 captured
 
-		// Key hints — bottom left.
-		HintText = WidgetTree->ConstructWidget<UTextBlock>();
-		HintText->SetText(FText::FromString(TEXT("P — Pause    Z — Undo    H — Hint")));
-		HintText->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 12));
-		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.55f)));
-		if (UCanvasPanelSlot* HS = Root->AddChildToCanvas(HintText))
-		{
-			HS->SetAnchors(FAnchors(0.f, 1.f, 0.f, 1.f));
-			HS->SetAlignment(FVector2D(0.f, 1.f));
-			HS->SetPosition(FVector2D(24.f, -18.f));
-			HS->SetAutoSize(true);
-		}
+		// (Keyboard-shortcut hint text removed — Marco's WBP_InGameHud shows the
+		// controls as buttons, and the text kept colliding with the undo button.)
 
-		// Board color sliders — bottom left, stacked above the key hints.
+		// Board color sliders — bottom left.
 		UVerticalBox* ColorBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		if (UCanvasPanelSlot* CBS = Root->AddChildToCanvas(ColorBox))
 		{

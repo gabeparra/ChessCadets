@@ -27,7 +27,6 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* TurnText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* CheckText;
-	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* HintText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* HintResultText;   // "Hint: e2 → e4"
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WhiteCapturedText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* BlackCapturedText;

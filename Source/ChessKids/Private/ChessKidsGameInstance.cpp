@@ -74,6 +74,10 @@ bool UChessKidsGameInstance::IsStoryChapterUnlocked(int32 Chapter) const
 
 void UChessKidsGameInstance::NotifyStoryVictory(const FString& MapName)
 {
+	// Story mode = the tutorial levels. Arcade arena wins (L_Pawn, L_Knight, ...)
+	// go through the same checkmate path but must NOT advance the story ladder.
+	if (!MapName.Contains(TEXT("Tutorial"))) return;
+
 	const int32 Chapter = StoryChapterForMap(MapName);
 	if (Chapter <= 0 || !Progress) return;
 
