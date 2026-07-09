@@ -28,6 +28,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
 	TSubclassOf<UUserWidget> SettingsWidgetClass;
 
+	// Optional styled skins panel; falls back to the C++ UPieceSkinsMenuWidget.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
+	TSubclassOf<UUserWidget> SkinsWidgetClass;
+
 	// Optional styled mode picker; falls back to the C++ UModeSelectWidget.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
 	TSubclassOf<UUserWidget> ModeSelectWidgetClass;
@@ -36,6 +40,7 @@ protected:
 	UFUNCTION() void OnChessMode();
 	UFUNCTION() void OnQuit();
 	UFUNCTION() void OnSettings();
+	UFUNCTION() void OnSkins();
 	UFUNCTION() void OnLearn();
 
 	// First tutorial level (isabella's Street Dash); the chain continues from there.
@@ -44,11 +49,14 @@ protected:
 
 private:
 	UPROPERTY() UUserWidget* SettingsInstance = nullptr;
+	UPROPERTY() UUserWidget* SkinsInstance = nullptr;
 	UPROPERTY() UUserWidget* ModeSelectInstance = nullptr;
 	UPROPERTY() UButton* InjectedSettingsButton = nullptr;
+	UPROPERTY() UButton* InjectedSkinsButton = nullptr;
 	UPROPERTY() UButton* InjectedLearnButton = nullptr;
 
 	void SetTwoPlayerMode(bool bTwoPlayer);
 	void InjectSettingsButton();
+	void InjectSkinsButton();
 	void InjectLearnButton();
 };

@@ -3,6 +3,7 @@
 #include "ChessPlayerController.h"
 #include "ChessBoard.h"
 #include "ChessKidsGameInstance.h"
+#include "PieceSkinsMenuWidget.h"
 #include "Components/Button.h"
 #include "Components/Slider.h"
 #include "Components/CanvasPanel.h"
@@ -128,6 +129,22 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		MakeHueSlider(WhiteColorLabel, WhiteColorSlider, TEXT("White squares"));
 		MakeHueSlider(BlackColorLabel, BlackColorSlider, TEXT("Black squares"));
 
+		// Customization — bottom right, mirroring the board-color cluster on the left.
+		CustomizationButton = WidgetTree->ConstructWidget<UButton>();
+		UTextBlock* CustomizationLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		CustomizationLabel->SetText(FText::FromString(TEXT("Customization")));
+		CustomizationLabel->SetJustification(ETextJustify::Center);
+		CustomizationLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
+		CustomizationLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		CustomizationButton->AddChild(CustomizationLabel);
+		if (UCanvasPanelSlot* CustS = Root->AddChildToCanvas(CustomizationButton))
+		{
+			CustS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+			CustS->SetAlignment(FVector2D(1.f, 1.f));
+			CustS->SetPosition(FVector2D(-24.f, -18.f));
+			CustS->SetAutoSize(true);
+		}
+
 		// Game-over overlay — centered, hidden until OnGameOver.
 		GameOverPanel = WidgetTree->ConstructWidget<UVerticalBox>();
 		GameOverPanel->SetVisibility(ESlateVisibility::Hidden);
@@ -175,6 +192,7 @@ void UChessHudWidget::NativeConstruct()
 	// AddUniqueDynamic: NativeConstruct can re-fire if the HUD is ever re-added.
 	if (PlayAgainButton) PlayAgainButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnPlayAgainClicked);
 	if (MainMenuButton)  MainMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnMainMenuClicked);
+	if (CustomizationButton) CustomizationButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnCustomizationClicked);
 
 	if (AChessPlayerController* PC = GetChessPC())
 		Manager = PC->Manager;
@@ -218,6 +236,16 @@ void UChessHudWidget::ApplyBoardColors()
 void UChessHudWidget::OnWhiteColorChanged(float Value) { ApplyBoardColors(); }
 void UChessHudWidget::OnBlackColorChanged(float Value) { ApplyBoardColors(); }
 
+void UChessHudWidget::OnCustomizationClicked()
+{
+	UClass* Cls = SkinsWidgetClass ? SkinsWidgetClass.Get() : UPieceSkinsMenuWidget::StaticClass();
+	if (!Cls) return;
+	if (!SkinsInstance)
+		SkinsInstance = CreateWidget<UUserWidget>(GetOwningPlayer(), Cls);
+	if (SkinsInstance && !SkinsInstance->IsInViewport())
+		SkinsInstance->AddToViewport(100);
+}
+
 void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
@@ -236,7 +264,8 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	AChessPlayerController* PC = GetChessPC();
 	const bool bTwoPlayer = Manager->IsTwoPlayerMode();
 	const bool bWhiteToMove = Manager->GetActiveColor() == TEXT("white");
-	const bool bThinking = !bTwoPlayer && ((PC && PC->IsAIThinking()) || !bWhiteToMove);
+	const bool bPlayerIsWhite = Manager->PlayerColor == EChessColor::White;
+	const bool bThinking = !bTwoPlayer && ((PC && PC->IsAIThinking()) || (bWhiteToMove != bPlayerIsWhite));
 
 	if (TurnText)
 	{
