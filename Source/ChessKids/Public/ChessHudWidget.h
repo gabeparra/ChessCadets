@@ -33,6 +33,14 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* PlayAgainButton;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* MainMenuButton;
 
+	// Bottom-right, always available in-game — opens the piece skins locker without
+	// needing to pause first.
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* CustomizationButton;
+
+	// Optional styled skins panel; falls back to the C++ UPieceSkinsMenuWidget.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|HUD")
+	TSubclassOf<UUserWidget> SkinsWidgetClass;
+
 	// Board color sliders — bottom-left, always available in-game.
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WhiteColorLabel;
 	UPROPERTY(meta = (BindWidgetOptional)) USlider* WhiteColorSlider;
@@ -44,9 +52,11 @@ protected:
 	UFUNCTION() void OnMainMenuClicked();
 	UFUNCTION() void OnWhiteColorChanged(float Value);
 	UFUNCTION() void OnBlackColorChanged(float Value);
+	UFUNCTION() void OnCustomizationClicked();
 
 private:
 	UPROPERTY() AChessManager* Manager = nullptr;
+	UPROPERTY() UUserWidget* SkinsInstance = nullptr;
 
 	// Last applied turn-indicator state (avoids restyling the text every tick).
 	// 0 = P1 (2P), 1 = P2 (2P), 2 = your turn (1P), 3 = robot thinking (1P), -1 = unset.

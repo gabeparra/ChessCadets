@@ -5,6 +5,8 @@
 #include "ChessKidsGameInstance.generated.h"
 
 class UChessMapRegistry;
+class UChessPieceSkinRegistry;
+class UMaterialInterface;
 
 // Game instance that owns the arena list and performs level travel for the
 // map picker. Set as GameInstanceClass in DefaultEngine.ini.
@@ -74,10 +76,45 @@ public:
 		return FLinearColor::MakeFromHSV8((uint8)(FMath::Clamp(Hue01, 0.f, 1.f) * 255.f), 178, 64);
 	}
 
+	// Collectible piece skins. Registry of everything that exists; unlock/selection
+	// state below persists to disk across game launches (unlike UnlockedMaps).
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chess|Skins")
+	TSoftObjectPtr<UChessPieceSkinRegistry> PieceSkinRegistry;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Skins")
+	bool IsPieceSkinUnlocked(FName SkinId) const;
+
+	// Generic hook for a future store/achievement system to grant a skin. Nothing in
+	// the game calls this yet.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Skins")
+	void UnlockPieceSkin(FName SkinId);
+
+	// Equips SkinId (NAME_None = revert to the piece's default look). Fails (returns
+	// false, no state change) if SkinId is set but not unlocked.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Skins")
+	bool SelectPieceSkin(FName SkinId);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Skins")
+	FName GetSelectedPieceSkinId() const { return SelectedPieceSkinId; }
+
+	// Resolves the equipped skin through PieceSkinRegistry; null if none equipped/found.
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Skins")
+	UMaterialInterface* GetSelectedPieceMaterial() const;
+
 private:
 	UChessMapRegistry* LoadRegistry() const;
 
 	// Maps unlocked this session. Seeded from entries flagged bUnlockedByDefault.
 	UPROPERTY()
 	TSet<FName> UnlockedMaps;
+
+	UChessPieceSkinRegistry* LoadSkinRegistry() const;
+	void LoadOrInitSkinSave();
+	void SaveSkinState() const;
+
+	UPROPERTY()
+	TSet<FName> UnlockedPieceSkins;
+
+	UPROPERTY()
+	FName SelectedPieceSkinId = NAME_None;
 };

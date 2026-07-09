@@ -2,6 +2,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "ChessKidsGameInstance.h"
 
 
 AChessPiece::AChessPiece()
@@ -76,69 +77,86 @@ void AChessPiece::SetupMeshAndMaterial(const FPieceMeshConfig* MeshOverride)
 		{
 			MeshComp->SetMaterial(0, MeshOverride->MaterialOverride);
 		}
+	}
+	else
+	{
+		const TCHAR* MeshPath = nullptr;
+		FVector Scale = FVector(0.4f, 0.4f, 0.4f);
+
+		switch (PieceType)
+		{
+		case EChessPieceType::Pawn:
+			MeshPath = TEXT("/Game/Blueprints/Models/pawn__2_.pawn__2_");
+			Scale = FVector(0.45f, 0.45f, 0.45f);
+			break;
+		case EChessPieceType::Rook:
+			MeshPath = TEXT("/Game/Blueprints/Models/rook.rook");
+			Scale = FVector(0.5f, 0.5f, 0.5f);
+			break;
+		case EChessPieceType::Knight:
+			MeshPath = TEXT("/Game/Blueprints/Models/knight.knight");
+			Scale = FVector(0.5f, 0.5f, 0.5f);
+			break;
+		case EChessPieceType::Bishop:
+			MeshPath = TEXT("/Game/Blueprints/Models/bishop.bishop");
+			Scale = FVector(0.5f, 0.5f, 0.5f);
+			break;
+		case EChessPieceType::Queen:
+			MeshPath = TEXT("/Game/Blueprints/Models/queen.queen");
+			Scale = FVector(0.5f, 0.5f, 0.65f);
+			break;
+		case EChessPieceType::King:
+			MeshPath = TEXT("/Game/Blueprints/Models/king.king");
+			Scale = FVector(0.5f, 0.5f, 0.70f);
+			break;
+		}
+
+		USkeletalMesh* Mesh = MeshPath ? LoadObject<USkeletalMesh>(nullptr, MeshPath) : nullptr;
+		if (Mesh)
+			MeshComp->SetSkeletalMesh(Mesh);
+
+		MeshComp->SetRelativeScale3D(Scale);
+
+		// Seat the piece on the board: offset so the mesh's lowest point rests at the actor
+		// origin (the square surface), regardless of where the skeletal mesh's pivot sits.
+		float MeshBottomLocal = 0.f;
+		if (Mesh)
+		{
+			const FBoxSphereBounds B = Mesh->GetBounds();
+			MeshBottomLocal = B.Origin.Z - B.BoxExtent.Z;
+		}
+		MeshComp->SetRelativeLocation(FVector(0.f, 0.f, -MeshBottomLocal * Scale.Z));
+
+		if (PieceColor == EChessColor::White)
+		{
+			MeshComp->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+		}
+	}
+
+	// DMI creation, white/black tint, and the equipped collectible skin apply the same
+	// way regardless of which branch above picked the mesh/material.
+	BaseMaterial = MeshComp->GetMaterial(0);
+
+	UMaterialInterface* SkinMaterial = nullptr;
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetWorld()->GetGameInstance()))
+	{
+		SkinMaterial = GI->GetSelectedPieceMaterial();
+	}
+	ApplyPieceSkin(SkinMaterial);
+}
+
+void AChessPiece::ApplyPieceSkin(UMaterialInterface* SkinMaterial)
+{
+	UMaterialInterface* Parent = SkinMaterial ? SkinMaterial : BaseMaterial;
+	DynamicMaterial = UMaterialInstanceDynamic::Create(Parent, this);
+	if (!DynamicMaterial)
+	{
 		return;
 	}
 
-	const TCHAR* MeshPath = nullptr;
-	FVector Scale = FVector(0.4f, 0.4f, 0.4f);
-
-	switch (PieceType)
-	{
-	case EChessPieceType::Pawn:
-		MeshPath = TEXT("/Game/Blueprints/Models/pawn__2_.pawn__2_");
-		Scale = FVector(0.45f, 0.45f, 0.45f);
-		break;
-	case EChessPieceType::Rook:
-		MeshPath = TEXT("/Game/Blueprints/Models/rook.rook");
-		Scale = FVector(0.5f, 0.5f, 0.5f);
-		break;
-	case EChessPieceType::Knight:
-		MeshPath = TEXT("/Game/Blueprints/Models/knight.knight");
-		Scale = FVector(0.5f, 0.5f, 0.5f);
-		break;
-	case EChessPieceType::Bishop:
-		MeshPath = TEXT("/Game/Blueprints/Models/bishop.bishop");
-		Scale = FVector(0.5f, 0.5f, 0.5f);
-		break;
-	case EChessPieceType::Queen:
-		MeshPath = TEXT("/Game/Blueprints/Models/queen.queen");
-		Scale = FVector(0.5f, 0.5f, 0.65f);
-		break;
-	case EChessPieceType::King:
-		MeshPath = TEXT("/Game/Blueprints/Models/king.king");
-		Scale = FVector(0.5f, 0.5f, 0.70f);
-		break;
-	}
-
-	USkeletalMesh* Mesh = MeshPath ? LoadObject<USkeletalMesh>(nullptr, MeshPath) : nullptr;
-	if (Mesh)
-		MeshComp->SetSkeletalMesh(Mesh);
-
-	MeshComp->SetRelativeScale3D(Scale);
-
-	// Seat the piece on the board: offset so the mesh's lowest point rests at the actor
-	// origin (the square surface), regardless of where the skeletal mesh's pivot sits.
-	float MeshBottomLocal = 0.f;
-	if (Mesh)
-	{
-		const FBoxSphereBounds B = Mesh->GetBounds();
-		MeshBottomLocal = B.Origin.Z - B.BoxExtent.Z;
-	}
-	MeshComp->SetRelativeLocation(FVector(0.f, 0.f, -MeshBottomLocal * Scale.Z));
-
-	if (PieceColor == EChessColor::White)
-	{
-		MeshComp->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
-	}
-
-	UMaterialInstanceDynamic* DMI = UMaterialInstanceDynamic::Create(
-		MeshComp->GetMaterial(0), this);
-	if (DMI)
-	{
-		FLinearColor Color = PieceColor == EChessColor::White
-			? FLinearColor(0.9f, 0.9f, 0.85f)
-			: FLinearColor(0.15f, 0.15f, 0.2f);
-		DMI->SetVectorParameterValue(TEXT("BaseColor"), Color);
-		MeshComp->SetMaterial(0, DMI);
-	}
+	FLinearColor Color = PieceColor == EChessColor::White
+		? FLinearColor(0.9f, 0.9f, 0.85f)
+		: FLinearColor(0.15f, 0.15f, 0.2f);
+	DynamicMaterial->SetVectorParameterValue(TEXT("BaseColor"), Color);
+	MeshComp->SetMaterial(0, DynamicMaterial);
 }
