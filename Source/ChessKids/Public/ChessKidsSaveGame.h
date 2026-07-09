@@ -4,14 +4,23 @@
 #include "GameFramework/SaveGame.h"
 #include "ChessKidsSaveGame.generated.h"
 
-// Persistent player progress (slot "ChessKidsProgress"). Loaded by the
-// GameInstance on Init, saved whenever something unlocks.
+// Backs two independent save slots on UChessKidsGameInstance, each populating only the
+// fields it cares about:
+//  - "ChessKidsSave" (skin inventory): UnlockedPieceSkins / SelectedPieceSkinId.
+//  - "ChessKidsProgress" (story progress): UnlockedStoryChapters / CompletedTutorials.
+// The slot names/user indices live with the GameInstance's load/save calls.
 UCLASS()
 class CHESSKIDS_API UChessKidsSaveGame : public USaveGame
 {
 	GENERATED_BODY()
 
 public:
+	UPROPERTY()
+	TSet<FName> UnlockedPieceSkins;
+
+	UPROPERTY()
+	FName SelectedPieceSkinId = NAME_None;
+
 	// Highest story chapter available (1 = L_Pawn ... 5 = L_Royalty).
 	UPROPERTY()
 	int32 UnlockedStoryChapters = 1;

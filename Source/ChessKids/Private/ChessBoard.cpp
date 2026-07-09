@@ -369,17 +369,21 @@ void AChessBoard::ClearHighlights()
 void AChessBoard::SelectSquare(const FString& SquareStr)
 {
 	ClearHighlights();
+	if (!SelectionMaterial) return;   // nothing configured — don't flash the mesh's raw default material
+
 	int32 File, Rank;
 	if (!ParseSquare(SquareStr, File, Rank)) return;
 
 	UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);
 	if (!Hl) return;
-	if (SelectionMaterial) Hl->SetMaterial(0, SelectionMaterial);
+	Hl->SetMaterial(0, SelectionMaterial);
 	Hl->SetVisibility(true);
 }
 
 void AChessBoard::ShowLegalMoveTargets(const TArray<FString>& Squares)
 {
+	if (!LegalMoveMaterial) return;   // nothing configured — don't flash the mesh's raw default material
+
 	for (const FString& Sq : Squares)
 	{
 		int32 File, Rank;
@@ -387,7 +391,7 @@ void AChessBoard::ShowLegalMoveTargets(const TArray<FString>& Squares)
 
 		UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);
 		if (!Hl) continue;
-		if (LegalMoveMaterial) Hl->SetMaterial(0, LegalMoveMaterial);
+		Hl->SetMaterial(0, LegalMoveMaterial);
 		Hl->SetVisibility(true);
 	}
 }
@@ -467,13 +471,18 @@ FName AChessBoard::GetCurrentThemeName() const
 
 void AChessBoard::HoverSquare(const FString& SquareStr)
 {
+    // Nothing configured to show — bail before touching visibility, or the mesh
+    // renders its raw unassigned default material (a stray grey tile) that
+    // ClearHover can then never match and hide again.
+    if (!HoverMaterial) return;
+
     int32 File, Rank;
     if (!ParseSquare(SquareStr, File, Rank)) return;
 
     UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);
     if (!Hl) return;
 
-    if (HoverMaterial) Hl->SetMaterial(0, HoverMaterial);
+    Hl->SetMaterial(0, HoverMaterial);
     Hl->SetVisibility(true);
 
     HoveredSquare = SquareStr;
