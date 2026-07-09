@@ -112,6 +112,8 @@ void UPieceSkinsMenuWidget::PopulateSkins()
 	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
 	if (!GI) return;
 
+	const FName EquippedSkinId = GI->GetSelectedPieceSkinId();
+
 	auto AddSwatch = [&](FName SkinId, const FText& DisplayName, UTexture2D* Thumbnail, bool bUnlocked)
 	{
 		UPieceSkinSwatch* Swatch = CreateWidget<UPieceSkinSwatch>(this, UPieceSkinSwatch::StaticClass());
@@ -120,6 +122,7 @@ void UPieceSkinsMenuWidget::PopulateSkins()
 		Swatch->DisplayName = DisplayName;
 		Swatch->Thumbnail = Thumbnail;
 		Swatch->bUnlocked = bUnlocked;
+		Swatch->bEquipped = (SkinId == EquippedSkinId);
 		Swatch->OnSkinSwatchClicked.AddUniqueDynamic(this, &UPieceSkinsMenuWidget::OnSkinClicked);
 		SkinSwatchBox->AddChildToWrapBox(Swatch);
 		Swatch->RefreshAppearance();
@@ -148,4 +151,7 @@ void UPieceSkinsMenuWidget::OnSkinClicked(FName SkinId)
 	{
 		Manager->ApplyPieceSkin(GI->GetSelectedPieceMaterial());
 	}
+
+	// Move the equipped highlight to the newly selected swatch.
+	PopulateSkins();
 }
