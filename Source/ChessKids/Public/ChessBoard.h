@@ -221,6 +221,8 @@ private:
 	UPROPERTY() TArray<UMaterialInstanceDynamic*> NeonDynMaterials;
 	UPROPERTY() UMaterialInstanceDynamic* LightTintDMI = nullptr;
 	UPROPERTY() UMaterialInstanceDynamic* DarkTintDMI = nullptr;
+	UPROPERTY() UMaterialInstanceDynamic* LegalMoveDMI = nullptr;
+	UPROPERTY() UMaterialInstanceDynamic* SelectionDMI = nullptr;
 
 	FString HoveredSquare;  
 
@@ -231,6 +233,7 @@ private:
 	void BuildHolographicFrame();
 	void RebuildNeonDMIs();
 	void EnsureTintDMIs();
+	void UpdateHighlightContrastColor();
 	//void SnapModelToBoard();
 
 	UStaticMeshComponent* GetHighlightMesh(int32 File, int32 Rank) const;
