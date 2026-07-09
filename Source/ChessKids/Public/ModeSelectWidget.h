@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "ChessPiece.h"
 #include "ModeSelectWidget.generated.h"
 
 class UButton;
@@ -10,8 +11,9 @@ class UVerticalBox;
 
 // Shown when CHESS MODE is clicked on the main menu: a translucent overlay
 // (menu background stays visible) asking 1 Player vs CPU or 2 Players.
-// Picking 1P swaps to a difficulty page (Easy/Medium/Hard) before starting;
-// picking 2P starts immediately. Choices persist on the GameInstance.
+// Picking 1P swaps to a difficulty page (Easy/Medium/Hard), then a side page
+// (White/Black) before starting; picking 2P starts immediately (no side choice —
+// both colors are human in hot-seat). Choices persist on the GameInstance.
 UCLASS()
 class CHESSKIDS_API UModeSelectWidget : public UUserWidget
 {
@@ -40,6 +42,12 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* HardButton;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* DifficultyBackButton;
 
+	// Page 3 — which side to play (1P only)
+	UPROPERTY(meta = (BindWidgetOptional)) UVerticalBox* SideBox;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* WhiteButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* BlackButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* SideBackButton;
+
 	UFUNCTION() void OnOnePlayer();
 	UFUNCTION() void OnTwoPlayer();
 	UFUNCTION() void OnBack();
@@ -47,9 +55,16 @@ protected:
 	UFUNCTION() void OnMedium();
 	UFUNCTION() void OnHard();
 	UFUNCTION() void OnDifficultyBack();
+	UFUNCTION() void OnWhite();
+	UFUNCTION() void OnBlack();
+	UFUNCTION() void OnSideBack();
 
 private:
 	void ShowDifficultyPage(bool bShow);
-	void StartOnePlayer(int32 Difficulty);
+	void ShowSidePage(bool bShow);
+	void StartOnePlayer(int32 Difficulty, EChessColor Color);
 	void StartGame(bool bTwoPlayer);
+
+	// Difficulty picked on page 2, held until the side is chosen on page 3.
+	int32 PendingDifficulty = 1;
 };

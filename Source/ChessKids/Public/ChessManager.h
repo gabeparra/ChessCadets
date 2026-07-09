@@ -20,6 +20,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAIMoveReady,   FString, FromSqua
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (FOnGameOver,      FString, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMoveMade,      FString, FromSquare, FString, ToSquare);
 
+// How an arena decides which side the human plays.
+UENUM(BlueprintType)
+enum class EPlayerColorMode : uint8
+{
+	ChooseAtStart,  // use UChessKidsGameInstance::PlayerColor, set by the mode-select screen
+	Random,         // re-rolled at the start of every game (including Restart)
+	Fixed           // always PlayerColor below — set this for story/tutorial/puzzle levels
+};
+
 UCLASS()
 class CHESSKIDS_API AChessManager : public AActor
 {
@@ -51,6 +60,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Pieces")
 	TMap<EChessPieceType, FPieceMeshConfig> BlackPieceMeshes;
+
+	// How this arena decides which side the human plays. Set per-level so story/
+	// tutorial/puzzle maps can hardcode a side (Fixed) or always randomize (Random),
+	// while normal arenas defer to whatever the player picked on the mode-select
+	// screen (ChooseAtStart, the default).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
+	EPlayerColorMode PlayerColorMode = EPlayerColorMode::ChooseAtStart;
+
+	// The side the human plays. Resolved from PlayerColorMode at BeginPlay except in
+	// Fixed mode, where this is the level-configured value used as-is.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess",
+	          meta = (EditCondition = "PlayerColorMode == EPlayerColorMode::Fixed"))
+	EChessColor PlayerColor = EChessColor::White;
 
 	// --- Audio (defaults resolved from the sound packs at BeginPlay when unset) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Audio") USoundBase* MoveSound = nullptr;

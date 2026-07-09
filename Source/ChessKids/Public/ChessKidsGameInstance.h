@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "ChessPiece.h"
 #include "ChessKidsGameInstance.generated.h"
 
 class UChessMapRegistry;
@@ -49,6 +50,11 @@ public:
 	// AChessManager::BeginPlay on arena load; set from menus / the pause toggle.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	bool bTwoPlayerMode = false;
+
+	// Side chosen on the mode-select screen. Only consulted by arenas whose
+	// AChessManager::PlayerColorMode == ChooseAtStart; Random/Fixed arenas ignore this.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
+	EChessColor PlayerColor = EChessColor::White;
 
 	// Board color theme chosen via the settings slider. Applied by
 	// AChessBoard::BeginPlay so the choice follows the player between arenas.

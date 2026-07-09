@@ -45,6 +45,22 @@ void AChessPlayerController::BeginPlay()
 		if (HudInstance)
 			HudInstance->AddToViewport(10);
 	}
+
+	// White always moves first in chess — if the human is playing Black, the robot
+	// (White) must open. Deferred to next tick so AChessManager::BeginPlay (which
+	// resolves PlayerColor) has definitely already run this frame, regardless of
+	// actor BeginPlay order.
+	if (Manager)
+	{
+		TWeakObjectPtr<AChessPlayerController> WeakThis(this);
+		GetWorldTimerManager().SetTimerForNextTick([WeakThis]()
+		{
+			AChessPlayerController* Self = WeakThis.Get();
+			if (!Self || !IsValid(Self->Manager)) return;
+			if (!Self->Manager->IsTwoPlayerMode() && Self->Manager->PlayerColor == EChessColor::Black)
+				Self->TriggerDelayedAIMove();
+		});
+	}
 }
 
 void AChessPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -147,7 +163,8 @@ void AChessPlayerController::OnSelect()
 
 	const bool bTwoPlayer = Manager->IsTwoPlayerMode();
 	const bool bWhiteToMove = Manager->GetActiveColor() == TEXT("white");
-	if (!bTwoPlayer && !bWhiteToMove) return;   // vs AI the human is always White
+	const bool bHumanTurn = bTwoPlayer || (bWhiteToMove == (Manager->PlayerColor == EChessColor::White));
+	if (!bHumanTurn) return;   // vs AI, ignore clicks on the robot's turn
 
 	// The side to move may only pick up its own pieces (upper = white, lower = black).
 	auto IsOwnPiece = [bWhiteToMove](const FString& PieceStr)
@@ -218,19 +235,24 @@ void AChessPlayerController::OnSelect()
 		bool bSuccess = Manager->MakeMove(MoveStr);
 		//bPieceSelected = false;
 
-		if (bSuccess && !bTwoPlayer)   // hot-seat: the other human just plays next
+		if (bSuccess && !bTwoPlayer)   // vs AI: the robot replies next
 		{
-			bIsAIThinking = true;
-			TWeakObjectPtr<AChessPlayerController> WeakThis(this);
-			GetWorldTimerManager().SetTimer(AITimerHandle, [WeakThis]()
-			{
-				AChessPlayerController* Self = WeakThis.Get();
-				if (!Self) return;
-				if (IsValid(Self->Manager)) Self->Manager->RequestAIMove();
-				Self->bIsAIThinking = false;
-			}, 0.5f, false);
+			TriggerDelayedAIMove();
 		}
 	}
+}
+
+void AChessPlayerController::TriggerDelayedAIMove()
+{
+	bIsAIThinking = true;
+	TWeakObjectPtr<AChessPlayerController> WeakThis(this);
+	GetWorldTimerManager().SetTimer(AITimerHandle, [WeakThis]()
+	{
+		AChessPlayerController* Self = WeakThis.Get();
+		if (!Self) return;
+		if (IsValid(Self->Manager)) Self->Manager->RequestAIMove();
+		Self->bIsAIThinking = false;
+	}, 0.5f, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -338,15 +360,7 @@ void AChessPlayerController::CompletePromotion(const FString& PieceLetter)
 		Manager->RefreshBoard();
 		if (!Manager->IsTwoPlayerMode())
 		{
-			bIsAIThinking = true;
-			TWeakObjectPtr<AChessPlayerController> WeakThis(this);
-			GetWorldTimerManager().SetTimer(AITimerHandle, [WeakThis]()
-				{
-					AChessPlayerController* Self = WeakThis.Get();
-					if (!Self) return;
-					if (IsValid(Self->Manager)) Self->Manager->RequestAIMove();
-					Self->bIsAIThinking = false;
-				}, 0.5f, false);
+			TriggerDelayedAIMove();
 		}
 	}
 }

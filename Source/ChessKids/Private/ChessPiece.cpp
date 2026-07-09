@@ -2,7 +2,6 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "ChessKidsGameInstance.h"
 
 
 AChessPiece::AChessPiece()
@@ -87,27 +86,27 @@ void AChessPiece::SetupMeshAndMaterial(const FPieceMeshConfig* MeshOverride)
 		{
 		case EChessPieceType::Pawn:
 			MeshPath = TEXT("/Game/Blueprints/Models/pawn__2_.pawn__2_");
-			Scale = FVector(0.45f, 0.45f, 0.45f);
+			Scale = FVector(0.60f, 0.60f, 0.60f);
 			break;
 		case EChessPieceType::Rook:
 			MeshPath = TEXT("/Game/Blueprints/Models/rook.rook");
-			Scale = FVector(0.5f, 0.5f, 0.5f);
+			Scale = FVector(0.70f, 0.70f, 0.85f);
 			break;
 		case EChessPieceType::Knight:
 			MeshPath = TEXT("/Game/Blueprints/Models/knight.knight");
-			Scale = FVector(0.5f, 0.5f, 0.5f);
+			Scale = FVector(0.70f, 0.70f, 0.70f);
 			break;
 		case EChessPieceType::Bishop:
 			MeshPath = TEXT("/Game/Blueprints/Models/bishop.bishop");
-			Scale = FVector(0.5f, 0.5f, 0.5f);
+			Scale = FVector(0.70f, 0.70f, 0.80f);
 			break;
 		case EChessPieceType::Queen:
 			MeshPath = TEXT("/Game/Blueprints/Models/queen.queen");
-			Scale = FVector(0.5f, 0.5f, 0.65f);
+			Scale = FVector(0.70f, 0.70f, 0.90f);
 			break;
 		case EChessPieceType::King:
 			MeshPath = TEXT("/Game/Blueprints/Models/king.king");
-			Scale = FVector(0.5f, 0.5f, 0.70f);
+			Scale = FVector(0.75f, 0.75f, 1.0f);
 			break;
 		}
 
@@ -133,16 +132,12 @@ void AChessPiece::SetupMeshAndMaterial(const FPieceMeshConfig* MeshOverride)
 		}
 	}
 
-	// DMI creation, white/black tint, and the equipped collectible skin apply the same
-	// way regardless of which branch above picked the mesh/material.
+	// DMI creation and the white/black tint apply the same way regardless of which
+	// branch above picked the mesh/material. Which collectible skin (if any) belongs on
+	// this piece depends on the arena's resolved PlayerColor, which only AChessManager
+	// knows — it pushes the real skin via ApplyPieceSkin() right after spawning.
 	BaseMaterial = MeshComp->GetMaterial(0);
-
-	UMaterialInterface* SkinMaterial = nullptr;
-	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetWorld()->GetGameInstance()))
-	{
-		SkinMaterial = GI->GetSelectedPieceMaterial();
-	}
-	ApplyPieceSkin(SkinMaterial);
+	ApplyPieceSkin(nullptr);
 }
 
 void AChessPiece::ApplyPieceSkin(UMaterialInterface* SkinMaterial)
