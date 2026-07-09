@@ -57,7 +57,7 @@ void AChessCamera::BeginPlay()
 
 		AChessManager* Manager = Cast<AChessManager>(UGameplayStatics::GetActorOfClass(Self, AChessManager::StaticClass()));
 		if (Manager && Manager->PlayerColor == EChessColor::Black)
-			Self->Yaw = Self->BlackSideYaw;
+			Self->Yaw = FRotator::NormalizeAxis(Self->Yaw + 180.f);   // opposite side of the board, whatever Yaw was tuned to
 
 		Self->ApplyView();
 	});
