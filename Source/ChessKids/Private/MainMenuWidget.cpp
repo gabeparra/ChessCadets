@@ -1,6 +1,7 @@
 #include "MainMenuWidget.h"
 #include "ChessKidsGameInstance.h"
 #include "SettingsMenuWidget.h"
+#include "PieceSkinsMenuWidget.h"
 #include "ModeSelectWidget.h"
 #include "TutorialSelectWidget.h"
 #include "Components/Button.h"
@@ -30,6 +31,7 @@ void UMainMenuWidget::NativeConstruct()
 	if (quitButton)      quitButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnQuit);
 
 	InjectSettingsButton();
+	InjectSkinsButton();
 	InjectLearnButton();
 }
 
@@ -69,6 +71,16 @@ void UMainMenuWidget::OnSettings()
 		SettingsInstance = CreateWidget<UUserWidget>(GetOwningPlayer(), Cls);
 	if (SettingsInstance && !SettingsInstance->IsInViewport())
 		SettingsInstance->AddToViewport(100);
+}
+
+void UMainMenuWidget::OnSkins()
+{
+	UClass* Cls = SkinsWidgetClass ? SkinsWidgetClass.Get() : UPieceSkinsMenuWidget::StaticClass();
+	if (!Cls) return;
+	if (!SkinsInstance)
+		SkinsInstance = CreateWidget<UUserWidget>(GetOwningPlayer(), Cls);
+	if (SkinsInstance && !SkinsInstance->IsInViewport())
+		SkinsInstance->AddToViewport(100);
 }
 
 void UMainMenuWidget::OnLearn()
@@ -123,6 +135,29 @@ void UMainMenuWidget::InjectSettingsButton()
 		CS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));   // bottom-right corner
 		CS->SetAlignment(FVector2D(1.f, 1.f));
 		CS->SetPosition(FVector2D(-24.f, -24.f));
+		CS->SetAutoSize(true);
+	}
+}
+
+void UMainMenuWidget::InjectSkinsButton()
+{
+	if (InjectedSkinsButton) return;   // once per widget lifetime
+
+	UCanvasPanel* Canvas = WidgetTree ? Cast<UCanvasPanel>(WidgetTree->RootWidget) : nullptr;
+	if (!Canvas) return;
+
+	InjectedSkinsButton = WidgetTree->ConstructWidget<UButton>();
+	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
+	Label->SetText(FText::FromString(TEXT("Piece Skins")));
+	Label->SetJustification(ETextJustify::Center);
+	InjectedSkinsButton->AddChild(Label);
+	InjectedSkinsButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnSkins);
+
+	if (UCanvasPanelSlot* CS = Canvas->AddChildToCanvas(InjectedSkinsButton))
+	{
+		CS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));   // bottom-right corner, stacked above Settings
+		CS->SetAlignment(FVector2D(1.f, 1.f));
+		CS->SetPosition(FVector2D(-24.f, -66.f));
 		CS->SetAutoSize(true);
 	}
 }

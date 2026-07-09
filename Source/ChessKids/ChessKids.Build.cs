@@ -8,7 +8,7 @@ public class ChessKids : ModuleRules
 		PCHUsage = PCHUsageMode.NoPCHs;
 		bEnableExceptions = true;
 		bUseUnity = false;
-		bUseRTTI = false;
+		bUseRTTI = true;
 		CppStandard = CppStandardVersion.Cpp20;
 
 		// Pulse chess engine — embedded source
