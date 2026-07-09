@@ -122,7 +122,7 @@ void AKingTutorial::ShowNextRecapPiece()
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	RecapPiece = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (RecapPiece)
-		RecapPiece->Init(RecapOrder[RecapIndex], EChessColor::White, CenterF, CenterR, nullptr);
+		RecapPiece->Init(RecapOrder[RecapIndex], EChessColor::White, CenterF, CenterR, PieceMeshes.Find(RecapOrder[RecapIndex]));
 
 	// Show this piece's movement pattern from the center of the board
 	TaughtPiece = RecapOrder[RecapIndex];

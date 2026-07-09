@@ -92,7 +92,7 @@ void ARookTutorial::SetupBoss()
 	Runner = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Runner)
 	{
-		Runner->Init(EChessPieceType::Pawn, EChessColor::Black, RunnerFile, RunnerRank, nullptr);
+		Runner->Init(EChessPieceType::Pawn, EChessColor::Black, RunnerFile, RunnerRank, PieceMeshes.Find(EChessPieceType::Pawn));
 		Runner->SetActorScale3D(FVector(0.8f));
 	}
 

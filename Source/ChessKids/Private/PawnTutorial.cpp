@@ -100,7 +100,7 @@ void APawnTutorial::SetupBoss()
 	AIPawn = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), AILocation, FRotator::ZeroRotator, Params);
 	if (AIPawn)
 	{
-		AIPawn->Init(EChessPieceType::Pawn, EChessColor::Black, AIPawnFile, AIPawnRank, nullptr);
+		AIPawn->Init(EChessPieceType::Pawn, EChessColor::Black, AIPawnFile, AIPawnRank, PieceMeshes.Find(EChessPieceType::Pawn));
 		AIPawn->SetActorScale3D(FVector(1.2f));
 	}
 
