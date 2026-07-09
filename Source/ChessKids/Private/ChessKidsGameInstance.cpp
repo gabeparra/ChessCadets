@@ -53,11 +53,15 @@ void UChessKidsGameInstance::SaveProgress()
 
 int32 UChessKidsGameInstance::StoryChapterForMap(const FString& MapName)
 {
-	if (MapName.Contains(TEXT("L_Pawn")))    return 1;
-	if (MapName.Contains(TEXT("L_Knight")))  return 2;
-	if (MapName.Contains(TEXT("L_Bishop")))  return 3;
-	if (MapName.Contains(TEXT("L_Rook")))    return 4;
-	if (MapName.Contains(TEXT("L_Royalty"))) return 5;
+	// Matches both the arena maps (L_Pawn) and the tutorial builds
+	// (L_Tutorial_Pawn / L_Tutorial_Pawn_v2) — chapter is keyed by piece.
+	// Teaching order: Pawn -> Rook -> Bishop -> Knight -> Queen -> King.
+	if (MapName.Contains(TEXT("Pawn")))    return 1;
+	if (MapName.Contains(TEXT("Rook")))    return 2;
+	if (MapName.Contains(TEXT("Bishop")))  return 3;
+	if (MapName.Contains(TEXT("Knight")))  return 4;
+	if (MapName.Contains(TEXT("Royalty")) || MapName.Contains(TEXT("Queen"))) return 5;
+	if (MapName.Contains(TEXT("King")))    return 6;
 	return 0;
 }
 
@@ -73,7 +77,7 @@ void UChessKidsGameInstance::NotifyStoryVictory(const FString& MapName)
 	const int32 Chapter = StoryChapterForMap(MapName);
 	if (Chapter <= 0 || !Progress) return;
 
-	const int32 Next = FMath::Clamp(Chapter + 1, 1, 5);
+	const int32 Next = FMath::Clamp(Chapter + 1, 1, 6);
 	if (Next > Progress->UnlockedStoryChapters)
 	{
 		Progress->UnlockedStoryChapters = Next;
