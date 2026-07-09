@@ -6,7 +6,7 @@
 
 class UButton;
 class UTextBlock;
-class UWrapBox;
+class UScrollBox;
 
 // Dedicated "locker" screen for the piece skin collectible system: lists every skin in
 // UChessKidsGameInstance::PieceSkinRegistry as a swatch (locked ones disabled),
@@ -24,7 +24,12 @@ protected:
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* TitleText;
-	UPROPERTY(meta = (BindWidgetOptional)) UWrapBox* SkinSwatchBox;
+
+	// Horizontal, fixed-height scroller — keeps the panel's vertical footprint constant
+	// no matter how many skins are in the catalog; overflow scrolls sideways instead of
+	// wrapping to new rows.
+	UPROPERTY(meta = (BindWidgetOptional)) UScrollBox* SkinSwatchBox;
+
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* BackButton;
 
 	UFUNCTION() void OnBack();

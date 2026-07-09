@@ -15,8 +15,8 @@ TSharedRef<SWidget> UPieceSkinSwatch::RebuildWidget()
 	if (WidgetTree && WidgetTree->RootWidget == nullptr)
 	{
 		USizeBox* SizeBox = WidgetTree->ConstructWidget<USizeBox>();
-		SizeBox->SetWidthOverride(96.f);
-		SizeBox->SetHeightOverride(116.f);
+		SizeBox->SetWidthOverride(140.f);
+		SizeBox->SetHeightOverride(172.f);
 		WidgetTree->RootWidget = SizeBox;
 
 		// Frame that highlights around the equipped swatch; RefreshAppearance colors it.
@@ -30,17 +30,24 @@ TSharedRef<SWidget> UPieceSkinSwatch::RebuildWidget()
 		UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>();
 		Btn->AddChild(Box);
 
-		ImageWidget = WidgetTree->ConstructWidget<UImage>();
-		ImageWidget->SetDesiredSizeOverride(FVector2D(72.f, 72.f));
-		if (UVerticalBoxSlot* IS = Box->AddChildToVerticalBox(ImageWidget))
+		// A fixed-size SizeBox forces the actual paint geometry the image renders
+		// into — SetDesiredSizeOverride alone doesn't grow the image here, since the
+		// VerticalBox slot above only reserves the image's own (unscaled) desired size.
+		USizeBox* ImageBox = WidgetTree->ConstructWidget<USizeBox>();
+		ImageBox->SetWidthOverride(110.f);
+		ImageBox->SetHeightOverride(110.f);
+		if (UVerticalBoxSlot* IS = Box->AddChildToVerticalBox(ImageBox))
 		{
 			IS->SetHorizontalAlignment(HAlign_Center);
 			IS->SetPadding(FMargin(6.f, 8.f, 6.f, 2.f));
 		}
 
+		ImageWidget = WidgetTree->ConstructWidget<UImage>();
+		ImageBox->AddChild(ImageWidget);
+
 		LabelWidget = WidgetTree->ConstructWidget<UTextBlock>();
 		LabelWidget->SetJustification(ETextJustify::Center);
-		LabelWidget->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 13));
+		LabelWidget->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 14));
 		LabelWidget->SetAutoWrapText(true);
 		if (UVerticalBoxSlot* LS = Box->AddChildToVerticalBox(LabelWidget))
 		{

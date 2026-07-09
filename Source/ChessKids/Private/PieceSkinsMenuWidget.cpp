@@ -9,8 +9,9 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
-#include "Components/WrapBox.h"
-#include "Components/WrapBoxSlot.h"
+#include "Components/ScrollBox.h"
+#include "Components/ScrollBoxSlot.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/GameplayStatics.h"
@@ -51,13 +52,24 @@ TSharedRef<SWidget> UPieceSkinsMenuWidget::RebuildWidget()
 			TS->SetHorizontalAlignment(HAlign_Center);
 		}
 
-		SkinSwatchBox = WidgetTree->ConstructWidget<UWrapBox>();
-		SkinSwatchBox->SetInnerSlotPadding(FVector2D(8.f, 8.f));
-		if (UVerticalBoxSlot* WS = Box->AddChildToVerticalBox(SkinSwatchBox))
+		// Fixed-height box around the scroller — this, not the WrapBox this used to be,
+		// is what keeps the panel's total height constant as skins are added: overflow
+		// scrolls sideways instead of wrapping to a new row and growing the panel.
+		// MaxDesiredWidth (not WidthOverride) so a handful of swatches shrink-to-fit and
+		// stay centered instead of being left-aligned in a forced-width box; it only caps
+		// out (and starts scrolling) once the catalog is wide enough to need it.
+		USizeBox* ScrollSizeBox = WidgetTree->ConstructWidget<USizeBox>();
+		ScrollSizeBox->SetHeightOverride(190.f);
+		ScrollSizeBox->SetMaxDesiredWidth(760.f);
+		if (UVerticalBoxSlot* WS = Box->AddChildToVerticalBox(ScrollSizeBox))
 		{
 			WS->SetPadding(FMargin(8.f, 0.f));
 			WS->SetHorizontalAlignment(HAlign_Center);
 		}
+
+		SkinSwatchBox = WidgetTree->ConstructWidget<UScrollBox>();
+		SkinSwatchBox->SetOrientation(Orient_Horizontal);
+		ScrollSizeBox->AddChild(SkinSwatchBox);
 
 		BackButton = WidgetTree->ConstructWidget<UButton>();
 		UTextBlock* BackLabel = WidgetTree->ConstructWidget<UTextBlock>();
@@ -124,7 +136,9 @@ void UPieceSkinsMenuWidget::PopulateSkins()
 		Swatch->bUnlocked = bUnlocked;
 		Swatch->bEquipped = (SkinId == EquippedSkinId);
 		Swatch->OnSkinSwatchClicked.AddUniqueDynamic(this, &UPieceSkinsMenuWidget::OnSkinClicked);
-		SkinSwatchBox->AddChildToWrapBox(Swatch);
+		SkinSwatchBox->AddChild(Swatch);
+		if (UScrollBoxSlot* SwatchSlot = Cast<UScrollBoxSlot>(Swatch->Slot))
+			SwatchSlot->SetPadding(FMargin(6.f, 0.f));
 		Swatch->RefreshAppearance();
 	};
 
