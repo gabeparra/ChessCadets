@@ -53,7 +53,6 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 		UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>();
 		WidgetTree->RootWidget = Root;
 
-		// Translucent scrim so the menu background stays visible behind the question.
 		UBorder* Scrim = WidgetTree->ConstructWidget<UBorder>();
 		Scrim->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.55f));
 		Scrim->SetHorizontalAlignment(HAlign_Center);
@@ -64,7 +63,6 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 			SS->SetOffsets(FMargin(0.f));
 		}
 
-		// The scrim holds a wrapper canvas with both pages; one is visible at a time.
 		UCanvasPanel* Pages = WidgetTree->ConstructWidget<UCanvasPanel>();
 		Scrim->AddChild(Pages);
 
@@ -77,7 +75,7 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 		MakeButton(WidgetTree, ModeBox, TwoPlayerButton, TEXT("2 PLAYERS"), 26);
 		MakeButton(WidgetTree, ModeBox, BackButton, TEXT("BACK"), 18);
 
-		// --- Page 2: robot difficulty (hidden until 1P is chosen) ---
+		// --- Page 2: robot difficulty ---
 		DifficultyBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		DifficultyBox->SetVisibility(ESlateVisibility::Collapsed);
 		if (UCanvasPanelSlot* PS = Pages->AddChildToCanvas(DifficultyBox)) { PS->SetAutoSize(true); }
@@ -88,7 +86,7 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 		MakeButton(WidgetTree, DifficultyBox, HardButton, TEXT("HARD"), 26);
 		MakeButton(WidgetTree, DifficultyBox, DifficultyBackButton, TEXT("BACK"), 18);
 
-		// --- Page 3: which side to play (hidden until a difficulty is chosen) ---
+		// --- Page 3: which side to play ---
 		SideBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		SideBox->SetVisibility(ESlateVisibility::Collapsed);
 		if (UCanvasPanelSlot* PS = Pages->AddChildToCanvas(SideBox)) { PS->SetAutoSize(true); }
@@ -97,6 +95,16 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 		MakeButton(WidgetTree, SideBox, WhiteButton, TEXT("WHITE"), 26);
 		MakeButton(WidgetTree, SideBox, BlackButton, TEXT("BLACK"), 26);
 		MakeButton(WidgetTree, SideBox, SideBackButton, TEXT("BACK"), 18);
+
+		// --- Page 4: venue (both free play) ---
+		VenueBox = WidgetTree->ConstructWidget<UVerticalBox>();
+		VenueBox->SetVisibility(ESlateVisibility::Collapsed);
+		if (UCanvasPanelSlot* PS = Pages->AddChildToCanvas(VenueBox)) { PS->SetAutoSize(true); }
+		MakeText(WidgetTree, VenueBox, TEXT("PICK YOUR ARENA"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
+		MakeText(WidgetTree, VenueBox, TEXT("Where do you want to play?"), 20, TEXT("Regular"), FMargin(24.f, 0.f, 24.f, 18.f));
+		MakeButton(WidgetTree, VenueBox, GridButton, TEXT("THE GRID"), 26);
+		MakeButton(WidgetTree, VenueBox, FieldButton, TEXT("THE FIELD"), 26);
+		MakeButton(WidgetTree, VenueBox, VenueBackButton, TEXT("BACK"), 18);
 	}
 
 	return Super::RebuildWidget();
@@ -116,21 +124,26 @@ void UModeSelectWidget::NativeConstruct()
 	if (WhiteButton)          WhiteButton->OnClicked.AddUniqueDynamic(this, &UModeSelectWidget::OnWhite);
 	if (BlackButton)          BlackButton->OnClicked.AddUniqueDynamic(this, &UModeSelectWidget::OnBlack);
 	if (SideBackButton)       SideBackButton->OnClicked.AddUniqueDynamic(this, &UModeSelectWidget::OnSideBack);
+	if (GridButton)           GridButton->OnClicked.AddUniqueDynamic(this, &UModeSelectWidget::OnGrid);
+	if (FieldButton)          FieldButton->OnClicked.AddUniqueDynamic(this, &UModeSelectWidget::OnField);
+	if (VenueBackButton)      VenueBackButton->OnClicked.AddUniqueDynamic(this, &UModeSelectWidget::OnVenueBack);
 
-	ShowDifficultyPage(false);   // always land on the mode page (also collapses the side page)
+	ShowPage(EPage::Mode);
 	SetIsFocusable(true);
-	SetKeyboardFocus();          // so Escape works
+	SetKeyboardFocus();
 }
 
 FReply UModeSelectWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
 	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
-		// Each page backs up one step; the mode page closes the overlay.
-		if (SideBox && SideBox->GetVisibility() == ESlateVisibility::Visible)
-			ShowSidePage(false);
-		else if (DifficultyBox && DifficultyBox->GetVisibility() == ESlateVisibility::Visible)
-			ShowDifficultyPage(false);
+		// Escape steps back one page; on the first page it closes the overlay.
+		if (CurrentPage == EPage::Venue)
+			ShowPage(bPendingTwoPlayer ? EPage::Mode : EPage::Side);
+		else if (CurrentPage == EPage::Side)
+			ShowPage(EPage::Difficulty);
+		else if (CurrentPage == EPage::Difficulty)
+			ShowPage(EPage::Mode);
 		else
 			OnBack();
 		return FReply::Handled();
@@ -138,48 +151,53 @@ FReply UModeSelectWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKe
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
-void UModeSelectWidget::ShowDifficultyPage(bool bShow)
+void UModeSelectWidget::ShowPage(EPage Page)
 {
-	if (ModeBox)       ModeBox->SetVisibility(bShow ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
-	if (DifficultyBox) DifficultyBox->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-	if (!bShow && SideBox) SideBox->SetVisibility(ESlateVisibility::Collapsed);
+	CurrentPage = Page;
+	if (ModeBox)       ModeBox->SetVisibility(Page == EPage::Mode ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (DifficultyBox) DifficultyBox->SetVisibility(Page == EPage::Difficulty ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (SideBox)       SideBox->SetVisibility(Page == EPage::Side ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (VenueBox)      VenueBox->SetVisibility(Page == EPage::Venue ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 }
 
-void UModeSelectWidget::ShowSidePage(bool bShow)
+void UModeSelectWidget::PickDifficulty(int32 Difficulty)
 {
-	if (DifficultyBox) DifficultyBox->SetVisibility(bShow ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
-	if (SideBox)        SideBox->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	PendingDifficulty = FMath::Clamp(Difficulty, 1, 3);
+	ShowPage(EPage::Side);
 }
 
-void UModeSelectWidget::StartGame(bool bTwoPlayer)
+void UModeSelectWidget::PickSide(EChessColor Color)
 {
-	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
-		GI->bTwoPlayerMode = bTwoPlayer;
-	UGameplayStatics::OpenLevel(this, TargetLevel);
+	PendingColor = Color;
+	ShowPage(EPage::Venue);
 }
 
-void UModeSelectWidget::StartOnePlayer(int32 Difficulty, EChessColor Color)
+void UModeSelectWidget::StartGame(FName Venue)
 {
 	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
 	{
-		GI->Difficulty = FMath::Clamp(Difficulty, 1, 3);
-		GI->PlayerColor = Color;
+		GI->bTwoPlayerMode = bPendingTwoPlayer;
+		if (!bPendingTwoPlayer)
+		{
+			GI->Difficulty = PendingDifficulty;
+			GI->PlayerColor = PendingColor;
+		}
 	}
-	StartGame(false);
+	UGameplayStatics::OpenLevel(this, Venue);
 }
 
-void UModeSelectWidget::OnOnePlayer() { ShowDifficultyPage(true); }
-void UModeSelectWidget::OnTwoPlayer() { StartGame(true); }
-
-void UModeSelectWidget::OnEasy()   { PendingDifficulty = 1; ShowSidePage(true); }
-void UModeSelectWidget::OnMedium() { PendingDifficulty = 2; ShowSidePage(true); }
-void UModeSelectWidget::OnHard()   { PendingDifficulty = 3; ShowSidePage(true); }
-
-void UModeSelectWidget::OnDifficultyBack() { ShowDifficultyPage(false); }
-
-void UModeSelectWidget::OnWhite()    { StartOnePlayer(PendingDifficulty, EChessColor::White); }
-void UModeSelectWidget::OnBlack()    { StartOnePlayer(PendingDifficulty, EChessColor::Black); }
-void UModeSelectWidget::OnSideBack() { ShowSidePage(false); }
+void UModeSelectWidget::OnOnePlayer()      { bPendingTwoPlayer = false; ShowPage(EPage::Difficulty); }
+void UModeSelectWidget::OnTwoPlayer()      { bPendingTwoPlayer = true; ShowPage(EPage::Venue); }
+void UModeSelectWidget::OnEasy()           { PickDifficulty(1); }
+void UModeSelectWidget::OnMedium()         { PickDifficulty(2); }
+void UModeSelectWidget::OnHard()           { PickDifficulty(3); }
+void UModeSelectWidget::OnDifficultyBack() { ShowPage(EPage::Mode); }
+void UModeSelectWidget::OnWhite()          { PickSide(EChessColor::White); }
+void UModeSelectWidget::OnBlack()          { PickSide(EChessColor::Black); }
+void UModeSelectWidget::OnSideBack()       { ShowPage(EPage::Difficulty); }
+void UModeSelectWidget::OnGrid()           { StartGame(TEXT("L_Grid")); }
+void UModeSelectWidget::OnField()          { StartGame(TEXT("L_Field")); }
+void UModeSelectWidget::OnVenueBack()      { ShowPage(bPendingTwoPlayer ? EPage::Mode : EPage::Side); }
 
 void UModeSelectWidget::OnBack()
 {

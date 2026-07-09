@@ -41,6 +41,11 @@ protected:
 	UFUNCTION() void OnQuit();
 	UFUNCTION() void OnSettings();
 	UFUNCTION() void OnSkins();
+	UFUNCTION() void OnLearn();
+
+	// First tutorial level (isabella's Street Dash); the chain continues from there.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
+	FName FirstTutorialLevel = TEXT("L_Tutorial_Pawn");
 
 private:
 	UPROPERTY() UUserWidget* SettingsInstance = nullptr;
@@ -48,8 +53,10 @@ private:
 	UPROPERTY() UUserWidget* ModeSelectInstance = nullptr;
 	UPROPERTY() UButton* InjectedSettingsButton = nullptr;
 	UPROPERTY() UButton* InjectedSkinsButton = nullptr;
+	UPROPERTY() UButton* InjectedLearnButton = nullptr;
 
 	void SetTwoPlayerMode(bool bTwoPlayer);
 	void InjectSettingsButton();
 	void InjectSkinsButton();
+	void InjectLearnButton();
 };

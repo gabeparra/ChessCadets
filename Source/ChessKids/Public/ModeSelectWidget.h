@@ -9,20 +9,17 @@ class UButton;
 class UTextBlock;
 class UVerticalBox;
 
-// Shown when CHESS MODE is clicked on the main menu: a translucent overlay
-// (menu background stays visible) asking 1 Player vs CPU or 2 Players.
-// Picking 1P swaps to a difficulty page (Easy/Medium/Hard), then a side page
-// (White/Black) before starting; picking 2P starts immediately (no side choice —
-// both colors are human in hot-seat). Choices persist on the GameInstance.
+// CHESS MODE flow, four pages on one translucent overlay:
+//   1) mode:       1 PLAYER VS CPU / 2 PLAYERS
+//   2) difficulty (1P only): EASY / MEDIUM / HARD
+//   3) side       (1P only): WHITE / BLACK — which color the human plays
+//   4) venue:      THE GRID (L_Grid) / THE FIELD (L_Field) — both free play
+// 2P skips straight from mode to venue (no difficulty/side choice — both colors
+// are human in hot-seat). Choices persist on the GameInstance; the venue click travels.
 UCLASS()
 class CHESSKIDS_API UModeSelectWidget : public UUserWidget
 {
 	GENERATED_BODY()
-
-public:
-	// Level to open after choosing (what CHESS MODE opened directly before).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
-	FName TargetLevel = TEXT("L_Field");
 
 protected:
 	virtual void NativeConstruct() override;
@@ -48,6 +45,12 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* BlackButton;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* SideBackButton;
 
+	// Page 4 — venue
+	UPROPERTY(meta = (BindWidgetOptional)) UVerticalBox* VenueBox;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* GridButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* FieldButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* VenueBackButton;
+
 	UFUNCTION() void OnOnePlayer();
 	UFUNCTION() void OnTwoPlayer();
 	UFUNCTION() void OnBack();
@@ -58,13 +61,20 @@ protected:
 	UFUNCTION() void OnWhite();
 	UFUNCTION() void OnBlack();
 	UFUNCTION() void OnSideBack();
+	UFUNCTION() void OnGrid();
+	UFUNCTION() void OnField();
+	UFUNCTION() void OnVenueBack();
 
 private:
-	void ShowDifficultyPage(bool bShow);
-	void ShowSidePage(bool bShow);
-	void StartOnePlayer(int32 Difficulty, EChessColor Color);
-	void StartGame(bool bTwoPlayer);
+	enum class EPage { Mode, Difficulty, Side, Venue };
+	void ShowPage(EPage Page);
+	void PickDifficulty(int32 Difficulty);
+	void PickSide(EChessColor Color);
+	void StartGame(FName Venue);
 
-	// Difficulty picked on page 2, held until the side is chosen on page 3.
+	EPage CurrentPage = EPage::Mode;
+	bool bPendingTwoPlayer = false;
+	// Difficulty/side picked on pages 2/3, held until the venue is chosen on page 4.
 	int32 PendingDifficulty = 1;
+	EChessColor PendingColor = EChessColor::White;
 };

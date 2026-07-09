@@ -130,6 +130,12 @@ void AChessManager::BeginPlay()
 
 	NewGame();
 
+	// Arena lesson position (piece-focused story maps). A malformed FEN is
+	// rejected inside SetPositionFromFEN and the standard game remains.
+	const FString LessonFEN = StartingFEN.TrimStartAndEnd();
+	if (!LessonFEN.IsEmpty())
+		SetPositionFromFEN(LessonFEN);
+
 	// Difficulty + mode are the player's persisted choices (GameInstance survives level travel).
 	int32 Level = 1;
 	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
@@ -231,7 +237,7 @@ void AChessManager::BeginDestroy()
 
 void AChessManager::NewGame()
 {
-	bGameOver = false;  
+	bGameOver = false;
 	if (Engine)
 	{
 		Engine->Search.quit();
@@ -241,6 +247,7 @@ void AChessManager::NewGame()
 
 	Engine = new FEngineImpl();
 	bExpectingAIMove = false;
+	bHintRequest = false;
 	FENHistory.Empty();   // a fresh game must not let Undo reach into a previous game's snapshots
 
 	// Capture a weak ptr — IsValid(this) is undefined behaviour once the actor is freed,
@@ -261,12 +268,21 @@ void AChessManager::SetPositionFromFEN(const FString& FEN)
 	if (!Engine) NewGame();
 
 	const std::string FENStd(TCHAR_TO_UTF8(*FEN));
-	Engine->Position = pulse::notation::toPosition(FENStd);
+	try
+	{
+		Engine->Position = pulse::notation::toPosition(FENStd);
+	}
+	catch (const std::exception&)
+	{
+		// Malformed FEN (toPosition throws) — keep the current position instead
+		// of crashing; callers can detect the no-op by comparing GetFEN().
+		UE_LOG(LogTemp, Warning, TEXT("SetPositionFromFEN rejected malformed FEN: %s"), *FEN);
+	}
 }
 
 bool AChessManager::MakeMove(const FString& MoveStr)
 {
-	
+
 	if (!Engine) return false;
 	if (bGameOver) return false;   // finished games accept no more moves (undo re-opens)
 	if (MoveStr.Len() < 4) return false;
@@ -303,6 +319,11 @@ bool AChessManager::MakeMove(const FString& MoveStr)
 			if (pulse::move::getPromotion(M) != ExpectedPromo) continue;
 		}
 
+		// A real move invalidates any in-flight hint search — cancel only NOW that
+		// the move is known legal (an illegal click must not kill a pending hint).
+		if (bHintRequest)
+			StopSearch();
+
 		// Push BEFORE the move so undo can restore to this state — only now that a real,
 		// legal move has matched (a failed/illegal call must not leave a phantom snapshot).
 		FENHistory.Push(GetFEN());
@@ -310,6 +331,7 @@ bool AChessManager::MakeMove(const FString& MoveStr)
 
 		const FString From = SquareToString(OriginSquare);
 		const FString To   = SquareToString(TargetSquare);
+		PositionVersion++;
 		OnMoveMade.Broadcast(From, To);
 
 		CheckGameOver();
@@ -324,7 +346,7 @@ void AChessManager::RequestAIMove()
 	if (!Engine) return;
 	if (bTwoPlayerMode) return;   // hot-seat: no AI ever moves
 	bExpectingAIMove = true;   // arm OnBestMoveFound; Undo/NewGame clear this to drop a stale reply
-	UE_LOG(LogTemp, Warning, TEXT("AI thinking at depth %d"), AISearchDepth);
+	UE_LOG(LogTemp, Verbose, TEXT("AI thinking at depth %d"), AISearchDepth);
 	// At Easy difficulty, 50% chance of playing a random legal move
 	if (AISearchDepth == 1)
 	{
@@ -341,7 +363,7 @@ void AChessManager::RequestAIMove()
 			// 50% chance use random move, 50% use engine
 			if (FMath::RandBool())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Easy mode: playing random move!"));
+				UE_LOG(LogTemp, Verbose, TEXT("Easy mode: playing random move!"));
 				OnBestMoveFound(RandomMove);
 				return;
 			}
@@ -354,7 +376,67 @@ void AChessManager::RequestAIMove()
 
 void AChessManager::StopSearch()
 {
+	// The one true cancel: stop the engine AND disarm the pending-search flags.
+	// stop() blocks until the aborted search's callback is queued, so clearing the
+	// flags here (game thread) guarantees that callback is dropped, whatever it was.
 	if (Engine) Engine->Search.stop();
+	bExpectingAIMove = false;
+	bHintRequest = false;
+}
+
+void AChessManager::RequestHint()
+{
+	if (!Engine || bGameOver) return;
+	if (bExpectingAIMove) return;   // a search is already in flight (AI reply or hint)
+
+	bHintRequest = true;
+	bExpectingAIMove = true;
+	Engine->Search.newDepthSearch(Engine->Position, 4);   // fast, good enough to teach
+	Engine->Search.start();
+}
+
+FString AChessManager::GetCapturedPieces(bool bWhitePieces) const
+{
+	if (!Engine) return TEXT("");
+
+	// Count what's still on the board, subtract from the starting set. Promotions
+	// can push a type over its starting count — clamp so the tray never goes negative.
+	TMap<TCHAR, int32> OnBoard;
+	for (int32 Rank = 0; Rank < 8; ++Rank)
+		for (int32 File = 0; File < 8; ++File)
+		{
+			const FString P = GetPieceOnSquare(FString::Printf(TEXT("%c%c"), 'a' + File, '1' + Rank));
+			if (!P.IsEmpty()) OnBoard.FindOrAdd(P[0])++;
+		}
+
+	static const TCHAR WhiteSet[] = { 'Q', 'R', 'B', 'N', 'P' };
+	static const TCHAR BlackSet[] = { 'q', 'r', 'b', 'n', 'p' };
+	static const int32 StartCount[] = { 1, 2, 2, 2, 8 };
+
+	// Promotions add extra non-pawn pieces; each one accounts for a pawn that
+	// left the board WITHOUT being captured, so subtract them from the pawn
+	// deficit or the tray shows a phantom captured pawn after every promotion.
+	int32 PromotionExtras = 0;
+	for (int32 i = 0; i < 4; ++i)   // Q R B N only
+	{
+		const TCHAR C = bWhitePieces ? WhiteSet[i] : BlackSet[i];
+		PromotionExtras += FMath::Max(0, OnBoard.FindRef(C) - StartCount[i]);
+	}
+
+	FString Result;
+	for (int32 i = 0; i < 5; ++i)
+	{
+		const TCHAR C = bWhitePieces ? WhiteSet[i] : BlackSet[i];
+		int32 Missing = FMath::Max(0, StartCount[i] - OnBoard.FindRef(C));
+		if (C == 'P' || C == 'p')
+			Missing = FMath::Max(0, Missing - PromotionExtras);
+		for (int32 k = 0; k < Missing; ++k)
+		{
+			if (!Result.IsEmpty()) Result += TEXT(" ");
+			Result.AppendChar(FChar::ToUpper(C));
+		}
+	}
+	return Result;
 }
 
 void AChessManager::UndoLastMove()
@@ -363,8 +445,7 @@ void AChessManager::UndoLastMove()
 	// emits is dropped by OnBestMoveFound instead of being applied to the restored position.
 	// stop() blocks until that callback is queued, so clearing the flag here (game thread)
 	// guarantees the later-running callback observes it as false.
-	if (Engine) Engine->Search.stop();
-	bExpectingAIMove = false;
+	StopSearch();   // stops the engine and disarms any pending AI/hint reply
 
 	if (FENHistory.Num() == 0) return;
 
@@ -382,6 +463,7 @@ void AChessManager::UndoLastMove()
 	// Hot-seat: one pop = take back exactly the last move, whichever color made it.
 
 	SetPositionFromFEN(RestoredFEN);
+	PositionVersion++;
 	SpawnAllPieces();   // re-sync the 3D pieces to match the restored position
 	bGameOver = false;  // in case undo happens after checkmate detection
 }
@@ -481,7 +563,7 @@ void AChessManager::SetDifficulty(int32 Level)
 	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
 		GI->Difficulty = CurrentDifficulty;
 
-	UE_LOG(LogTemp, Warning, TEXT("Difficulty set! AISearchDepth = %d"), AISearchDepth);
+	UE_LOG(LogTemp, Verbose, TEXT("Difficulty set! AISearchDepth = %d"), AISearchDepth);
 }
 
 FString AChessManager::GetFEN() const
@@ -557,10 +639,20 @@ void AChessManager::OnBestMoveFound(int BestMove)
 	if (!bExpectingAIMove) return;
 	bExpectingAIMove = false;
 
-	if (BestMove == pulse::move::NOMOVE) return;
+	if (BestMove == pulse::move::NOMOVE) { bHintRequest = false; return; }
 
 	const FString From = SquareToString(pulse::move::getOriginSquare(BestMove));
 	const FString To   = SquareToString(pulse::move::getTargetSquare(BestMove));
+
+	// Hint searches show the move instead of playing it. Presentation is left to
+	// the OnHintReady subscribers — the controller owns selection state, and the
+	// board highlights must never diverge from it.
+	if (bHintRequest)
+	{
+		bHintRequest = false;
+		OnHintReady.Broadcast(From, To);
+		return;
+	}
 
 	// Capture promotion + mover colour BEFORE makeMove flips the active colour.
 	const int Promo = pulse::move::getPromotion(BestMove);
@@ -569,6 +661,7 @@ void AChessManager::OnBestMoveFound(int BestMove)
 	FENHistory.Push(GetFEN());
 
 	Engine->Position.makeMove(BestMove);
+	PositionVersion++;
 	OnMoveMade.Broadcast(From, To);   // starts the pawn's glide (HandleMoveMade)
 
 	// The engine now has a promoted piece on the back rank, but HandleMoveMade only
@@ -597,7 +690,7 @@ void AChessManager::CheckGameOver()
 {
 	if (!Engine) return;
 	if (bGameOver) return;
-	
+
 
 	pulse::MoveGenerator Gen;
 	auto& LegalMoves = Gen.getLegalMoves(
@@ -611,6 +704,12 @@ void AChessManager::CheckGameOver()
 				? TEXT("black") : TEXT("white");
 			bGameOver = true;
 			PlaySfx(Winner == TEXT("white") ? WinSound : LoseSound);
+
+			// Story progression: beating the robot in a story arena unlocks the next chapter.
+			if (Winner == TEXT("white") && !bTwoPlayerMode)
+				if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+					GI->NotifyStoryVictory(GetWorld()->GetMapName());
+
 			OnGameOver.Broadcast(Winner);
 		}
 		else
@@ -660,6 +759,13 @@ void AChessManager::SpawnAllPieces()
 		if (IsValid(Pair.Value))
 			Pair.Value->Destroy();
 	PieceActors.Empty();
+
+	// Sweep capture animations too — an undo/rebuild mid-fling must not leave a
+	// ghost duplicate rising over the respawned piece.
+	for (AChessPiece* Fling : FlingingPieces)
+		if (IsValid(Fling))
+			Fling->Destroy();
+	FlingingPieces.Empty();
 
 	if (!IsValid(Board)) return;
 
@@ -732,8 +838,9 @@ void AChessManager::HandleMoveMade(FString From, FString To)
 	bool bEnPassantCapture = false;
 	if (Captured)
 	{
-		Captured->Destroy();
+		Captured->StartCaptureFling();   // pops up + shrinks, destroys itself
 		PieceActors.Remove(To);
+		FlingingPieces.Add(Captured);
 	}
 
 	AChessPiece* MovingPiece = FindPieceOnSquare(From);
@@ -763,8 +870,9 @@ void AChessManager::HandleMoveMade(FString From, FString To)
 			const FString CapturedSquare = FString::Printf(TEXT("%c%c"), 'a' + ToFile, '1' + FromRank);
 			if (AChessPiece* EPPawn = FindPieceOnSquare(CapturedSquare))
 			{
-				EPPawn->Destroy();
+				EPPawn->StartCaptureFling();
 				PieceActors.Remove(CapturedSquare);
+				FlingingPieces.Add(EPPawn);
 				bEnPassantCapture = true;
 			}
 		}
