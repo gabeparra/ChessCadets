@@ -1,4 +1,5 @@
 #include "PieceSkinSwatch.h"
+#include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
@@ -18,8 +19,13 @@ TSharedRef<SWidget> UPieceSkinSwatch::RebuildWidget()
 		SizeBox->SetHeightOverride(116.f);
 		WidgetTree->RootWidget = SizeBox;
 
+		// Frame that highlights around the equipped swatch; RefreshAppearance colors it.
+		FrameBorder = WidgetTree->ConstructWidget<UBorder>();
+		FrameBorder->SetPadding(FMargin(3.f));
+		SizeBox->AddChild(FrameBorder);
+
 		Btn = WidgetTree->ConstructWidget<UButton>();
-		SizeBox->AddChild(Btn);
+		FrameBorder->AddChild(Btn);
 
 		UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>();
 		Btn->AddChild(Box);
@@ -59,7 +65,20 @@ void UPieceSkinSwatch::RefreshAppearance()
 	if (LabelWidget)
 	{
 		const FText Name = SkinId.IsNone() ? FText::FromString(TEXT("Default")) : DisplayName;
-		LabelWidget->SetText(bUnlocked ? Name : FText::Format(NSLOCTEXT("ChessKids", "LockedSkinLabel", "{0} (Locked)"), Name));
+		if (!bUnlocked)
+			LabelWidget->SetText(FText::Format(NSLOCTEXT("ChessKids", "LockedSkinLabel", "{0} (Locked)"), Name));
+		else if (bEquipped)
+			LabelWidget->SetText(FText::Format(NSLOCTEXT("ChessKids", "EquippedSkinLabel", "{0} (Equipped)"), Name));
+		else
+			LabelWidget->SetText(Name);
+	}
+
+	if (FrameBorder)
+	{
+		// Gold frame on the equipped swatch, a faint neutral outline otherwise.
+		FrameBorder->SetBrushColor(bEquipped
+			? FLinearColor(1.f, 0.82f, 0.2f, 1.f)
+			: FLinearColor(1.f, 1.f, 1.f, 0.12f));
 	}
 
 	if (ImageWidget)

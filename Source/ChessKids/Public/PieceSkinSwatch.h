@@ -8,6 +8,7 @@ class UButton;
 class UTexture2D;
 class UImage;
 class UTextBlock;
+class UBorder;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkinSwatchClicked, FName, SkinId);
 
@@ -31,6 +32,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Chess|Skin")
 	bool bUnlocked = true;
 
+	// Whether this is the skin the player currently has equipped.
+	UPROPERTY(BlueprintReadWrite, Category = "Chess|Skin")
+	bool bEquipped = false;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Chess|Skin")
 	FText DisplayName;
 
@@ -47,6 +52,9 @@ protected:
 
 	UPROPERTY()
 	UButton* Btn = nullptr;
+
+	UPROPERTY()
+	UBorder* FrameBorder = nullptr;
 
 	UPROPERTY()
 	UImage* ImageWidget = nullptr;
