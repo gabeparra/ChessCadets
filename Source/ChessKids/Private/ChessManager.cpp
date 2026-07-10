@@ -542,10 +542,13 @@ void AChessManager::ApplyPieceSkin(UMaterialInterface* SkinMaterial)
 		AChessPiece* Piece = Pair.Value;
 		if (!Piece) continue;
 
-		// Only skin pieces an actual player controls: the resolved PlayerColor is
-		// always human; the other color is the robot outside hot-seat mode.
-		const bool bHumanControlled = (Piece->PieceColor == PlayerColor) || bTwoPlayerMode;
-		Piece->ApplyPieceSkin(bHumanControlled ? SkinMaterial : nullptr);
+		// Only skin the piece color the player actually plays as, and only outside
+		// hot-seat mode. In two-player hot-seat there's a single local save/skin
+		// selection shared by both people taking turns on one device, so no one side
+		// is "the player" — applying it to both made them visually indistinguishable,
+		// so neither side gets it instead.
+		const bool bShouldSkin = !bTwoPlayerMode && (Piece->PieceColor == PlayerColor);
+		Piece->ApplyPieceSkin(bShouldSkin ? SkinMaterial : nullptr);
 	}
 }
 
