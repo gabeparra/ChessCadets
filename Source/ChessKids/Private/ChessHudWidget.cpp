@@ -206,6 +206,24 @@ void UChessHudWidget::NativeConstruct()
 		Manager->OnHintReady.AddUniqueDynamic(this, &UChessHudWidget::HandleHintReady);
 	}
 
+	// Two-player hot-seat has one local save/skin selection shared by both people
+	// taking turns — ApplyPieceSkin() already refuses to skin either side in that mode
+	// (see AChessManager.cpp), so the button would just open a screen whose Equip has
+	// no visible effect. Hide the entry point in that mode and explicitly restore it
+	// otherwise — NativeConstruct can re-fire if the HUD is ever re-added, so this has
+	// to actively set the right state each time rather than only ever collapsing it.
+	// Reads GI->bTwoPlayerMode directly rather than Manager->IsTwoPlayerMode(): the
+	// latter only becomes accurate once AChessManager::BeginPlay() has copied it from
+	// the GameInstance, and that isn't guaranteed to happen before this widget's own
+	// NativeConstruct — GI's copy is set from the mode-select screen, well before any
+	// level/actor BeginPlay runs, so it's always already correct here.
+	if (CustomizationButton)
+	{
+		const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+		const bool bTwoPlayer = GI && GI->bTwoPlayerMode;
+		CustomizationButton->SetVisibility(bTwoPlayer ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+
 	if (WhiteColorSlider) WhiteColorSlider->OnValueChanged.AddUniqueDynamic(this, &UChessHudWidget::OnWhiteColorChanged);
 	if (BlackColorSlider) BlackColorSlider->OnValueChanged.AddUniqueDynamic(this, &UChessHudWidget::OnBlackColorChanged);
 
