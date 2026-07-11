@@ -122,6 +122,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Pieces")
 	TMap<EChessPieceType, FPieceMeshConfig> PieceMeshes;
 
+	// Look for generic target/enemy stand-ins spawned by SpawnTargetAt/SpawnEnemyAt.
+	// Deliberately separate from PieceMeshes: those markers are always a Pawn-shaped
+	// mesh regardless of which piece the level teaches, so keying their material off
+	// PieceMeshes[Pawn] made the hero and its own decoys visually identical whenever
+	// TaughtPiece was Pawn (the pawn tutorial's capture gauntlet).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Pieces")
+	FPieceMeshConfig MarkerMeshConfig;
+
 	// Player piece actor
 	UPROPERTY() AChessPiece* PlayerPiece = nullptr;
 
