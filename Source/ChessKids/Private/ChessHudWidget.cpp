@@ -12,6 +12,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
 #include "TimerManager.h"
@@ -205,6 +206,24 @@ void UChessHudWidget::NativeConstruct()
 		Manager->OnHintReady.AddUniqueDynamic(this, &UChessHudWidget::HandleHintReady);
 	}
 
+	// Two-player hot-seat has one local save/skin selection shared by both people
+	// taking turns — ApplyPieceSkin() already refuses to skin either side in that mode
+	// (see AChessManager.cpp), so the button would just open a screen whose Equip has
+	// no visible effect. Hide the entry point in that mode and explicitly restore it
+	// otherwise — NativeConstruct can re-fire if the HUD is ever re-added, so this has
+	// to actively set the right state each time rather than only ever collapsing it.
+	// Reads GI->bTwoPlayerMode directly rather than Manager->IsTwoPlayerMode(): the
+	// latter only becomes accurate once AChessManager::BeginPlay() has copied it from
+	// the GameInstance, and that isn't guaranteed to happen before this widget's own
+	// NativeConstruct — GI's copy is set from the mode-select screen, well before any
+	// level/actor BeginPlay runs, so it's always already correct here.
+	if (CustomizationButton)
+	{
+		const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+		const bool bTwoPlayer = GI && GI->bTwoPlayerMode;
+		CustomizationButton->SetVisibility(bTwoPlayer ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+
 	if (WhiteColorSlider) WhiteColorSlider->OnValueChanged.AddUniqueDynamic(this, &UChessHudWidget::OnWhiteColorChanged);
 	if (BlackColorSlider) BlackColorSlider->OnValueChanged.AddUniqueDynamic(this, &UChessHudWidget::OnBlackColorChanged);
 
@@ -347,6 +366,24 @@ void UChessHudWidget::HandleGameOver(FString Result)
 	if (CheckText) CheckText->SetVisibility(ESlateVisibility::Hidden);
 	if (HintResultText) HintResultText->SetVisibility(ESlateVisibility::Hidden);
 	if (GameOverPanel) GameOverPanel->SetVisibility(ESlateVisibility::Visible);
+
+	// The arena level blueprints still spawn the legacy WBP_GameOver menu off the
+	// same OnGameOver broadcast — sweep it next tick (works regardless of which
+	// binding fired first) so only this overlay is on screen.
+	if (UWorld* World = GetWorld())
+	{
+		TWeakObjectPtr<UChessHudWidget> WeakThis(this);
+		World->GetTimerManager().SetTimerForNextTick([WeakThis]()
+		{
+			UChessHudWidget* Self = WeakThis.Get();
+			if (!Self) return;
+			TArray<UUserWidget*> TopLevel;
+			UWidgetBlueprintLibrary::GetAllWidgetsOfClass(Self, TopLevel, UUserWidget::StaticClass(), true);
+			for (UUserWidget* W : TopLevel)
+				if (W != Self && W->GetClass()->GetName().StartsWith(TEXT("WBP_GameOver")))
+					W->RemoveFromParent();
+		});
+	}
 }
 
 void UChessHudWidget::HandleHintReady(FString FromSquare, FString ToSquare)

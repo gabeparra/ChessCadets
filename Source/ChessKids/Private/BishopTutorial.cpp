@@ -121,7 +121,7 @@ void ABishopTutorial::SpawnDecoyAt(int32 File, int32 Rank)
 	AChessPiece* Decoy = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Decoy)
 	{
-		Decoy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, nullptr);
+		Decoy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, PieceMeshes.Find(EChessPieceType::Pawn));
 		Decoy->SetActorScale3D(FVector(0.6f));
 		DecoyActors.Add(Decoy);
 	}

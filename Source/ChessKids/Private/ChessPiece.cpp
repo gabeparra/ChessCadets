@@ -129,11 +129,6 @@ void AChessPiece::SetupMeshAndMaterial(const FPieceMeshConfig* MeshOverride)
 		MeshComp->SetSkeletalMesh(MeshOverride->Mesh);
 		MeshComp->SetRelativeScale3D(MeshOverride->Scale);
 		MeshComp->SetRelativeLocation(FVector(0.f, 0.f, MeshOverride->ZOffset));
-
-		if (MeshOverride->MaterialOverride)
-		{
-			MeshComp->SetMaterial(0, MeshOverride->MaterialOverride);
-		}
 	}
 	else
 	{
@@ -190,6 +185,14 @@ void AChessPiece::SetupMeshAndMaterial(const FPieceMeshConfig* MeshOverride)
 		}
 	}
 
+	// Applies independently of whether a custom mesh was also given above — a designer
+	// should be able to reskin a piece's material without also having to re-specify
+	// its mesh.
+	if (MeshOverride && MeshOverride->MaterialOverride)
+	{
+		MeshComp->SetMaterial(0, MeshOverride->MaterialOverride);
+	}
+
 	// DMI creation and the white/black tint apply the same way regardless of which
 	// branch above picked the mesh/material. Which collectible skin (if any) belongs on
 	// this piece depends on the arena's resolved PlayerColor, which only AChessManager
@@ -207,9 +210,13 @@ void AChessPiece::ApplyPieceSkin(UMaterialInterface* SkinMaterial)
 		return;
 	}
 
-	FLinearColor Color = PieceColor == EChessColor::White
-		? FLinearColor(0.9f, 0.9f, 0.85f)
-		: FLinearColor(0.15f, 0.15f, 0.2f);
-	DynamicMaterial->SetVectorParameterValue(TEXT("BaseColor"), Color);
+	DynamicMaterial->SetVectorParameterValue(TEXT("BaseColor"), GetTintColor(PieceColor));
 	MeshComp->SetMaterial(0, DynamicMaterial);
+}
+
+FLinearColor AChessPiece::GetTintColor(EChessColor Color)
+{
+	return Color == EChessColor::White
+		? FLinearColor(0.1f, 0.1f, 0.1f)
+		: FLinearColor(0.15f, 0.15f, 0.2f);
 }

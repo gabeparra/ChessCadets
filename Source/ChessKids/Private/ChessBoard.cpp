@@ -53,6 +53,15 @@ void AChessBoard::BeginPlay()
 	Super::BeginPlay();
 	//SnapModelToBoard(); // re-snap at runtime in case the actor was moved after OnConstruction
 
+	// Fallback highlight materials (same set TutorialBoard loads): boards placed in
+	// maps that never configured them (L_Grid) still glow for legal moves.
+	if (!LegalMoveMaterial)
+		LegalMoveMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/Board/M_LegalMove.M_LegalMove"));
+	if (!SelectionMaterial)
+		SelectionMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/Board/M_Selection.M_Selection"));
+	if (!HoverMaterial)
+		HoverMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/Board/M_Hover.M_Hover"));
+
 	// Re-apply the player's saved board colors (settings sliders) — custom hues
 	// win over themes when set.
 	if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
@@ -63,6 +72,10 @@ void AChessBoard::BeginPlay()
 		else if (BoardThemes.IsValidIndex(GI->BoardThemeIndex) && GI->BoardThemeIndex != CurrentThemeIndex)
 			SetBoardTheme(GI->BoardThemeIndex);
 	}
+
+	// Maps that never recolor still need the contrast-derived highlight color
+	// (SetSquareColors also refreshes it whenever the sliders move).
+	UpdateHighlightContrastColor();
 }
 
 void AChessBoard::SetSquareColors(FLinearColor LightColor, FLinearColor DarkColor)
@@ -73,6 +86,10 @@ void AChessBoard::SetSquareColors(FLinearColor LightColor, FLinearColor DarkColo
 
 	LightSquareColor = LightColor;
 	DarkSquareColor  = DarkColor;
+
+	// Board colors changed — re-derive the highlight color so the legal-move
+	// markers never blend into the new square hues.
+	UpdateHighlightContrastColor();
 
 	if (LightTintDMI && DarkTintDMI)
 	{
@@ -353,6 +370,34 @@ FVector AChessBoard::GetBoardCenter() const
 
 //Highlighting
 
+void AChessBoard::UpdateHighlightContrastColor()
+{
+	if (LegalMoveMaterial && !LegalMoveDMI)
+		LegalMoveDMI = UMaterialInstanceDynamic::Create(LegalMoveMaterial, this);
+	if (SelectionMaterial && !SelectionDMI)
+		SelectionDMI = UMaterialInstanceDynamic::Create(SelectionMaterial, this);
+	if (!LegalMoveDMI && !SelectionDMI) return;
+
+	// Pick the hue farthest from BOTH square hues: the midpoint of the larger of
+	// the two arcs between them on the hue circle. Full saturation/value so it
+	// also pops against the pale light squares (S<=0.5) and dark squares (V<=0.28)
+	// that ClampBoardColor guarantees.
+	const float HL = LightSquareColor.LinearRGBToHSV().R;
+	const float HD = DarkSquareColor.LinearRGBToHSV().R;
+	const float Lo = FMath::Min(HL, HD), Hi = FMath::Max(HL, HD);
+	const float InnerArc = Hi - Lo;
+	const float Hue = (InnerArc >= 360.f - InnerArc)
+		? Lo + InnerArc * 0.5f
+		: FMath::Fmod(Hi + (360.f - InnerArc) * 0.5f, 360.f);
+
+	if (LegalMoveDMI)
+		LegalMoveDMI->SetVectorParameterValue(TEXT("Color"),
+			FLinearColor(Hue, 1.f, 1.f).HSVToLinearRGB());
+	if (SelectionDMI)   // 45 degrees off the marker hue: related but distinguishable
+		SelectionDMI->SetVectorParameterValue(TEXT("Color"),
+			FLinearColor(FMath::Fmod(Hue + 45.f, 360.f), 1.f, 1.f).HSVToLinearRGB());
+}
+
 UStaticMeshComponent* AChessBoard::GetHighlightMesh(int32 File, int32 Rank) const
 {
 	if (File < 0 || File > 7 || Rank < 0 || Rank > 7) return nullptr;
@@ -369,17 +414,21 @@ void AChessBoard::ClearHighlights()
 void AChessBoard::SelectSquare(const FString& SquareStr)
 {
 	ClearHighlights();
+	if (!SelectionMaterial) return;   // nothing configured — don't flash the mesh's raw default material
+
 	int32 File, Rank;
 	if (!ParseSquare(SquareStr, File, Rank)) return;
 
 	UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);
 	if (!Hl) return;
-	if (SelectionMaterial) Hl->SetMaterial(0, SelectionMaterial);
+	Hl->SetMaterial(0, SelectionDMI ? static_cast<UMaterialInterface*>(SelectionDMI) : SelectionMaterial);
 	Hl->SetVisibility(true);
 }
 
 void AChessBoard::ShowLegalMoveTargets(const TArray<FString>& Squares)
 {
+	if (!LegalMoveMaterial) return;   // nothing configured — don't flash the mesh's raw default material
+
 	for (const FString& Sq : Squares)
 	{
 		int32 File, Rank;
@@ -387,7 +436,7 @@ void AChessBoard::ShowLegalMoveTargets(const TArray<FString>& Squares)
 
 		UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);
 		if (!Hl) continue;
-		if (LegalMoveMaterial) Hl->SetMaterial(0, LegalMoveMaterial);
+		Hl->SetMaterial(0, LegalMoveDMI ? static_cast<UMaterialInterface*>(LegalMoveDMI) : LegalMoveMaterial);
 		Hl->SetVisibility(true);
 	}
 }
@@ -467,13 +516,18 @@ FName AChessBoard::GetCurrentThemeName() const
 
 void AChessBoard::HoverSquare(const FString& SquareStr)
 {
+    // Nothing configured to show — bail before touching visibility, or the mesh
+    // renders its raw unassigned default material (a stray grey tile) that
+    // ClearHover can then never match and hide again.
+    if (!HoverMaterial) return;
+
     int32 File, Rank;
     if (!ParseSquare(SquareStr, File, Rank)) return;
 
     UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);
     if (!Hl) return;
 
-    if (HoverMaterial) Hl->SetMaterial(0, HoverMaterial);
+    Hl->SetMaterial(0, HoverMaterial);
     Hl->SetVisibility(true);
 
     HoveredSquare = SquareStr;

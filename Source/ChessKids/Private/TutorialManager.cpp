@@ -48,6 +48,7 @@ void ATutorialManager::Tick(float DeltaTime)
 
 void ATutorialManager::ShowGuideMessage(const FString& Message)
 {
+	LastGuideMessage = Message;          // cached for late-binding HUDs
 	OnGuideMessage.Broadcast(Message);   // rendered by UTutorialHudWidget
 
 	if (false)   // debug fallback retired — the guide panel owns messaging now
@@ -118,7 +119,7 @@ void ATutorialManager::SpawnTargetAt(int32 File, int32 Rank)
 	AChessPiece* Target = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Target)
 	{
-		Target->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, nullptr);
+		Target->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, PieceMeshes.Find(EChessPieceType::Pawn));
 		Target->SetActorScale3D(FVector(0.6f));
 		TargetActors.Add(Key, Target);
 		TargetPositions.Add(FIntPoint(File, Rank));
@@ -151,7 +152,7 @@ void ATutorialManager::SpawnEnemyAt(int32 File, int32 Rank)
 	AChessPiece* Enemy = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Enemy)
 	{
-		Enemy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, nullptr);
+		Enemy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, PieceMeshes.Find(EChessPieceType::Pawn));
 		EnemyActors.Add(Key, Enemy);
 		EnemyPositions.Add(FIntPoint(File, Rank));
 	}
@@ -455,19 +456,13 @@ void ATutorialManager::OnPhaseComplete()
 			}
 			if (Lesson >= 0)
 				GI->MarkTutorialComplete(Lesson);
+
+			// Unlock the next story chapter on the level-select screen.
+			GI->NotifyStoryVictory(GetWorld()->GetMapName());
 		}
 
-		// Chain to the next lesson after the celebration has a moment on screen.
-		if (NextLevelName != NAME_None)
-		{
-			TWeakObjectPtr<ATutorialManager> WeakThis(this);
-			FTimerHandle TravelHandle;
-			GetWorldTimerManager().SetTimer(TravelHandle, [WeakThis]()
-			{
-				if (ATutorialManager* Self = WeakThis.Get())
-					UGameplayStatics::OpenLevel(Self, Self->NextLevelName);
-			}, 3.5f, false);
-		}
+		// No auto-travel: the HUD listens to OnLevelComplete and offers the
+		// player a choice — continue to NextLevelName or back to the main menu.
 	}
 	else
 	{

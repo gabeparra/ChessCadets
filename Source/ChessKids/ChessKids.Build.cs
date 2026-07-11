@@ -8,13 +8,13 @@ public class ChessKids : ModuleRules
 		PCHUsage = PCHUsageMode.NoPCHs;
 		bEnableExceptions = true;
 		bUseUnity = false;
-		bUseRTTI = true;
+		bUseRTTI = false;
 		CppStandard = CppStandardVersion.Cpp20;
 
 		// Pulse chess engine — embedded source
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Engine"));
 
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG", "Slate", "SlateCore" });
-        PrivateDependencyModuleNames.AddRange(new string[] { });
+        PrivateDependencyModuleNames.AddRange(new string[] { "RenderCore" });
 	}
 }
