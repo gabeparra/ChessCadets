@@ -119,7 +119,7 @@ void ATutorialManager::SpawnTargetAt(int32 File, int32 Rank)
 	AChessPiece* Target = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Target)
 	{
-		Target->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, PieceMeshes.Find(EChessPieceType::Pawn));
+		Target->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, &MarkerMeshConfig);
 		Target->SetActorScale3D(FVector(0.6f));
 		TargetActors.Add(Key, Target);
 		TargetPositions.Add(FIntPoint(File, Rank));
@@ -152,7 +152,7 @@ void ATutorialManager::SpawnEnemyAt(int32 File, int32 Rank)
 	AChessPiece* Enemy = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Enemy)
 	{
-		Enemy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, PieceMeshes.Find(EChessPieceType::Pawn));
+		Enemy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, &MarkerMeshConfig);
 		EnemyActors.Add(Key, Enemy);
 		EnemyPositions.Add(FIntPoint(File, Rank));
 	}
