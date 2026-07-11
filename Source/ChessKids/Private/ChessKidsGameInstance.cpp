@@ -7,6 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Misc/PackageName.h"
 #include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "AudioDevice.h"
 
 namespace
@@ -147,11 +148,21 @@ void UChessKidsGameInstance::SetMasterVolume(float Volume)
 
 void UChessKidsGameInstance::ApplyMasterVolume() const
 {
-	if (!GEngine) return;
-	if (FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice().GetAudioDevice())
+	const float V = GetMasterVolume();
+
+	// Use the WORLD's audio device — in PIE the game plays through a separate device
+	// from GEngine's main one, so setting the main device does nothing audible. Fall
+	// back to the main device (packaged builds share it).
+	FAudioDevice* AudioDevice = nullptr;
+	if (UWorld* World = GetWorld())
+		AudioDevice = World->GetAudioDeviceRaw();
+	if (!AudioDevice && GEngine)
+		AudioDevice = GEngine->GetMainAudioDevice().GetAudioDevice();
+
+	if (AudioDevice)
 	{
 		// Global multiplier over every sound — music, SFX, UI — no sound-class setup needed.
-		AudioDevice->SetTransientPrimaryVolume(GetMasterVolume());
+		AudioDevice->SetTransientPrimaryVolume(V);
 	}
 }
 
