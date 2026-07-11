@@ -6,6 +6,7 @@
 
 class UButton;
 class UTextBlock;
+class USlider;
 
 // Base class for WBP_PauseMenu. All logic lives here; the Widget Blueprint only
 // needs buttons named ResumeButton / RestartButton / SettingsButton / QuitButton
@@ -52,6 +53,13 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	UButton* HardButton;
 
+	// Game volume slider (0..1); persists via the GameInstance/save game.
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* VolumeLabel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	USlider* VolumeSlider;
+
 	// Optional settings panel opened by the Settings button (WBP_Settings).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pause")
 	TSubclassOf<UUserWidget> SettingsWidgetClass;
@@ -65,6 +73,7 @@ protected:
 	UFUNCTION() void OnMediumClicked();
 	UFUNCTION() void OnHardClicked();
 	UFUNCTION() void OnTwoPlayerClicked();
+	UFUNCTION() void OnVolumeChanged(float Value);
 
 private:
 	UPROPERTY()

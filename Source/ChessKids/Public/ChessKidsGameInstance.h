@@ -131,7 +131,17 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Skins")
 	UMaterialInterface* GetSelectedPieceMaterial() const;
 
+	// Master game volume (0..1), persisted across sessions and applied to the audio
+	// device. The pause-menu slider calls SetMasterVolume.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Audio")
+	void SetMasterVolume(float Volume);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Audio")
+	float GetMasterVolume() const;
+
 private:
+	void ApplyMasterVolume() const;
+
 	UChessMapRegistry* LoadRegistry() const;
 	void LoadProgress();
 	void SaveProgress();

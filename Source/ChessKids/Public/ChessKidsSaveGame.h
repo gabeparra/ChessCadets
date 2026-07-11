@@ -28,4 +28,9 @@ public:
 	// Lesson indices (0 = Pawn ... 5 = King) the player has finished.
 	UPROPERTY()
 	TArray<int32> CompletedTutorials;
+
+	// Master game volume, 0..1. Applied to the audio device on startup and
+	// whenever the pause-menu slider changes it.
+	UPROPERTY()
+	float MasterVolume = 1.f;
 };

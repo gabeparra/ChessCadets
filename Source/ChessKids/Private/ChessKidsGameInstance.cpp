@@ -6,6 +6,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Misc/PackageName.h"
+#include "Engine/Engine.h"
+#include "AudioDevice.h"
 
 namespace
 {
@@ -122,6 +124,35 @@ void UChessKidsGameInstance::Init()
 	}
 
 	LoadOrInitSkinSave();
+
+	// Restore the saved game volume onto the audio device.
+	ApplyMasterVolume();
+}
+
+float UChessKidsGameInstance::GetMasterVolume() const
+{
+	return Progress ? Progress->MasterVolume : 1.f;
+}
+
+void UChessKidsGameInstance::SetMasterVolume(float Volume)
+{
+	Volume = FMath::Clamp(Volume, 0.f, 1.f);
+	if (Progress)
+	{
+		Progress->MasterVolume = Volume;
+		SaveProgress();
+	}
+	ApplyMasterVolume();
+}
+
+void UChessKidsGameInstance::ApplyMasterVolume() const
+{
+	if (!GEngine) return;
+	if (FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice().GetAudioDevice())
+	{
+		// Global multiplier over every sound — music, SFX, UI — no sound-class setup needed.
+		AudioDevice->SetTransientPrimaryVolume(GetMasterVolume());
+	}
 }
 
 UChessMapRegistry* UChessKidsGameInstance::LoadRegistry() const
