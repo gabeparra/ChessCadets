@@ -322,11 +322,12 @@ void UPieceSkinsMenuWidget::RefreshPreview()
 		// Default: show the piece's real look, not an unskinned/empty material. In a
 		// live game that's whichever side the player is actually playing; outside a
 		// game (e.g. opened from the main menu, no side resolved yet) it falls back to
-		// the same Black piece material the engine's own chess template uses (PlayerColor
-		// is already hardcoded to Black above for that case).
+		// Black (PlayerColor is already hardcoded to Black above for that case). Uses
+		// the project's own /Game copies of these materials rather than /Engine so they
+		// travel with the repo instead of depending on the engine install having them.
 		PreviewMaterial = LoadObject<UMaterialInterface>(nullptr, (PlayerColor == EChessColor::White)
-			? TEXT("/Engine/MapTemplates/Materials/WhitePiece.WhitePiece")
-			: TEXT("/Engine/MapTemplates/Materials/BlackPiece.BlackPiece"));
+			? TEXT("/Game/Materials/Pieces/WhitePiece.WhitePiece")
+			: TEXT("/Game/Materials/Pieces/BlackPiece.BlackPiece"));
 	}
 
 	if (PreviewNameText) PreviewNameText->SetText(PreviewName);

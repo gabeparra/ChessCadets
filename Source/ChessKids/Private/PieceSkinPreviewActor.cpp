@@ -88,11 +88,12 @@ APieceSkinPreviewActor::APieceSkinPreviewActor()
 		Backdrop->SetStaticMesh(PlaneMesh);
 	// A neutral mid-gray reads clearly against both white and black pieces — pure white
 	// washes out against white pieces the same way pure black would against black ones.
-	// Built from WhitePiece (same reliable, always-present material real board pieces
-	// use, confirmed to accept a BaseColor tint) rather than deriving it from whatever
-	// skin the piece currently has equipped, so the backdrop color is fixed and doesn't
-	// shift depending on which skin is being previewed.
-	if (UMaterialInterface* BackdropBase = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/MapTemplates/Materials/WhitePiece.WhitePiece")))
+	// Built from WhitePiece (confirmed to accept a BaseColor tint) rather than deriving
+	// it from whatever skin the piece currently has equipped, so the backdrop color is
+	// fixed and doesn't shift depending on which skin is being previewed. Uses the
+	// project's own copy under /Game rather than the /Engine one so it travels with the
+	// repo instead of depending on the engine install having template content.
+	if (UMaterialInterface* BackdropBase = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/Pieces/WhitePiece.WhitePiece")))
 	{
 		if (UMaterialInstanceDynamic* BackdropMID = UMaterialInstanceDynamic::Create(BackdropBase, this))
 		{
