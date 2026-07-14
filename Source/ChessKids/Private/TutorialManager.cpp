@@ -439,27 +439,7 @@ void ATutorialManager::OnPhaseComplete()
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
 		ShowGuideMessage(TEXT("Amazing! You've mastered this piece!"));
-
-		// Persist lesson completion (Pawn=0 Rook=1 Bishop=2 Knight=3 Queen=4 King=5).
-		if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
-		{
-			int32 Lesson = -1;
-			switch (TaughtPiece)
-			{
-			case EChessPieceType::Pawn:   Lesson = 0; break;
-			case EChessPieceType::Rook:   Lesson = 1; break;
-			case EChessPieceType::Bishop: Lesson = 2; break;
-			case EChessPieceType::Knight: Lesson = 3; break;
-			case EChessPieceType::Queen:  Lesson = 4; break;
-			case EChessPieceType::King:   Lesson = 5; break;
-			default: break;
-			}
-			if (Lesson >= 0)
-				GI->MarkTutorialComplete(Lesson);
-
-			// Unlock the next story chapter on the level-select screen.
-			GI->NotifyStoryVictory(GetWorld()->GetMapName());
-		}
+		GrantBossVictoryRewards();
 
 		// No auto-travel: the HUD listens to OnLevelComplete and offers the
 		// player a choice — continue to NextLevelName or back to the main menu.
@@ -471,5 +451,42 @@ void ATutorialManager::OnPhaseComplete()
 		bPhaseTransitionPending = true;
 		FTimerHandle TimerHandle;
 		GetWorldTimerManager().SetTimer(TimerHandle, this, &ATutorialManager::AdvancePhase, 2.0f, false);
+	}
+}
+
+void ATutorialManager::GrantBossVictoryRewards()
+{
+	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+	if (!GI)
+	{
+		return;
+	}
+
+	// Persist lesson completion (Pawn=0 Rook=1 Bishop=2 Knight=3 Queen=4 King=5).
+	int32 Lesson = -1;
+	switch (TaughtPiece)
+	{
+	case EChessPieceType::Pawn:   Lesson = 0; break;
+	case EChessPieceType::Rook:   Lesson = 1; break;
+	case EChessPieceType::Bishop: Lesson = 2; break;
+	case EChessPieceType::Knight: Lesson = 3; break;
+	case EChessPieceType::Queen:  Lesson = 4; break;
+	case EChessPieceType::King:   Lesson = 5; break;
+	default: break;
+	}
+	if (Lesson >= 0)
+	{
+		GI->MarkTutorialComplete(Lesson);
+	}
+
+	// Unlock the next story chapter on the level-select screen.
+	GI->NotifyStoryVictory(GetWorld()->GetMapName());
+
+	// Grant this tutorial's configured skin reward, if any (and it isn't already
+	// owned from a previous playthrough) — the HUD shows a popup.
+	const FName UnlockedSkin = GI->UnlockSkinForTutorial(TaughtPiece);
+	if (!UnlockedSkin.IsNone())
+	{
+		OnSkinUnlocked.Broadcast(UnlockedSkin);
 	}
 }

@@ -257,6 +257,29 @@ void UChessKidsGameInstance::UnlockPieceSkin(FName SkinId)
 	SaveSkinState();
 }
 
+FName UChessKidsGameInstance::UnlockSkinForTutorial(EChessPieceType Piece)
+{
+	UChessPieceSkinRegistry* Registry = LoadSkinRegistry();
+	if (!Registry)
+	{
+		return NAME_None;
+	}
+
+	for (const FChessPieceSkinEntry& Entry : Registry->Skins)
+	{
+		if (Entry.bUnlockedByTutorial && Entry.TutorialUnlockPiece == Piece && !Entry.SkinId.IsNone())
+		{
+			if (IsPieceSkinUnlocked(Entry.SkinId))
+			{
+				return NAME_None; // already had it — no popup
+			}
+			UnlockPieceSkin(Entry.SkinId);
+			return Entry.SkinId;
+		}
+	}
+	return NAME_None;
+}
+
 bool UChessKidsGameInstance::SelectPieceSkin(FName SkinId)
 {
 	// NAME_None always selectable — it means "no skin, use the piece's default look".

@@ -112,6 +112,7 @@ void ARookTutorial::AfterPlayerMove(int32 File, int32 Rank)
 		ShowGuideMessage(TEXT("You caught the runner! Straight lines, unstoppable!"));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
+		GrantBossVictoryRewards();
 		return;
 	}
 

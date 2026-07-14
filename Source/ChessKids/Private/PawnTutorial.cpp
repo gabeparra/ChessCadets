@@ -147,6 +147,7 @@ void APawnTutorial::AfterPlayerMove(int32 File, int32 Rank)
 		ShowGuideMessage(TEXT("You captured the enemy pawn! You win the race!"));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
+		GrantBossVictoryRewards();
 		return;
 	}
 
@@ -157,6 +158,7 @@ void APawnTutorial::AfterPlayerMove(int32 File, int32 Rank)
 		ShowGuideMessage(TEXT("You won the race! You've mastered the pawn!"));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
+		GrantBossVictoryRewards();
 		return;
 	}
 

@@ -1,15 +1,15 @@
 #include "PieceSkinSwatch.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/ButtonSlot.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Components/HorizontalBox.h"
-#include "Components/HorizontalBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Blueprint/WidgetTree.h"
 #include "Styling/CoreStyle.h"
+#include "Brushes/SlateColorBrush.h"
 #include "Engine/Texture2D.h"
 
 TSharedRef<SWidget> UPieceSkinSwatch::RebuildWidget()
@@ -23,51 +23,45 @@ TSharedRef<SWidget> UPieceSkinSwatch::RebuildWidget()
 		SizeBox->SetHeightOverride(56.f);
 		WidgetTree->RootWidget = SizeBox;
 
-		// Left accent bar — RefreshAppearance colors it to highlight the equipped
-		// and/or previewed row. Only the left inset is nonzero so the strip is the one
-		// bit of AccentBorder's background that isn't painted over by Btn's own opaque
-		// button-style background (Btn fills everything inside the padding).
-		AccentBorder = WidgetTree->ConstructWidget<UBorder>();
-		AccentBorder->SetPadding(FMargin(7.f, 0.f, 0.f, 0.f));
-		SizeBox->AddChild(AccentBorder);
-
 		Btn = WidgetTree->ConstructWidget<UButton>();
-		AccentBorder->AddChild(Btn);
+		SizeBox->AddChild(Btn);
+		DefaultButtonStyle = Btn->GetStyle();
 
-		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
-		Btn->AddChild(Row);
-
-		// A fixed-size SizeBox forces the actual paint geometry the image/lock renders
-		// into, same reasoning as the old card layout's image box.
-		USizeBox* ImageBox = WidgetTree->ConstructWidget<USizeBox>();
-		ImageBox->SetWidthOverride(48.f);
-		ImageBox->SetHeightOverride(48.f);
-		if (UHorizontalBoxSlot* IS = Row->AddChildToHorizontalBox(ImageBox))
+		// The thumbnail (or flat-color fallback) now fills the entire row as a
+		// background instead of sitting in a small icon box, so everything stacks in
+		// one Overlay rather than the old icon-then-label HorizontalBox.
+		UOverlay* RowOverlay = WidgetTree->ConstructWidget<UOverlay>();
+		if (UButtonSlot* BtnSlot = Cast<UButtonSlot>(Btn->AddChild(RowOverlay)))
 		{
-			IS->SetHorizontalAlignment(HAlign_Center);
-			IS->SetVerticalAlignment(VAlign_Center);
-			IS->SetPadding(FMargin(8.f, 4.f));
+			// UButtonSlot defaults to Center/Center (auto-sized to content) — without
+			// this, Btn's own background only ever paints a box the size of the label
+			// text, centered in the row, instead of filling it.
+			BtnSlot->SetHorizontalAlignment(HAlign_Fill);
+			BtnSlot->SetVerticalAlignment(VAlign_Fill);
 		}
 
-		// Overlay hosts the texture preview, the flat-color fallback, and the locked
-		// glyph in the same space — RefreshAppearance toggles which one is visible.
-		// Overlay slots default to top-left/auto-size, so each child needs an explicit
-		// Fill alignment or it shrinks to a tiny icon instead of filling the 48x48 area.
-		UOverlay* ImageOverlay = WidgetTree->ConstructWidget<UOverlay>();
-		ImageBox->AddChild(ImageOverlay);
-
 		ImageWidget = WidgetTree->ConstructWidget<UImage>();
-		if (UOverlaySlot* ImgSlot = ImageOverlay->AddChildToOverlay(ImageWidget))
+		if (UOverlaySlot* ImgSlot = RowOverlay->AddChildToOverlay(ImageWidget))
 		{
 			ImgSlot->SetHorizontalAlignment(HAlign_Fill);
 			ImgSlot->SetVerticalAlignment(VAlign_Fill);
 		}
 
 		ColorSwatchWidget = WidgetTree->ConstructWidget<UBorder>();
-		if (UOverlaySlot* ColorSlot = ImageOverlay->AddChildToOverlay(ColorSwatchWidget))
+		if (UOverlaySlot* ColorSlot = RowOverlay->AddChildToOverlay(ColorSwatchWidget))
 		{
 			ColorSlot->SetHorizontalAlignment(HAlign_Fill);
 			ColorSlot->SetVerticalAlignment(VAlign_Fill);
+		}
+
+		// Darkens the bottom of the row so the label stays readable over whatever the
+		// thumbnail/color happens to look like, without hiding the art entirely.
+		ScrimBorder = WidgetTree->ConstructWidget<UBorder>();
+		ScrimBorder->SetBrushColor(FLinearColor(0.f, 0.f, 0.f, 0.45f));
+		if (UOverlaySlot* ScrimSlot = RowOverlay->AddChildToOverlay(ScrimBorder))
+		{
+			ScrimSlot->SetHorizontalAlignment(HAlign_Fill);
+			ScrimSlot->SetVerticalAlignment(VAlign_Fill);
 		}
 
 		LockGlyphWidget = WidgetTree->ConstructWidget<UTextBlock>();
@@ -78,22 +72,27 @@ TSharedRef<SWidget> UPieceSkinSwatch::RebuildWidget()
 		LockGlyphWidget->SetJustification(ETextJustify::Center);
 		LockGlyphWidget->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 10));
 		LockGlyphWidget->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.5f)));
-		if (UOverlaySlot* LockSlot = ImageOverlay->AddChildToOverlay(LockGlyphWidget))
+		if (UOverlaySlot* LockSlot = RowOverlay->AddChildToOverlay(LockGlyphWidget))
 		{
-			LockSlot->SetHorizontalAlignment(HAlign_Fill);
+			LockSlot->SetHorizontalAlignment(HAlign_Right);
 			LockSlot->SetVerticalAlignment(VAlign_Fill);
+			LockSlot->SetPadding(FMargin(0.f, 0.f, 14.f, 0.f));
 		}
 
 		LabelWidget = WidgetTree->ConstructWidget<UTextBlock>();
-		LabelWidget->SetJustification(ETextJustify::Left);
-		LabelWidget->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 15));
+		LabelWidget->SetJustification(ETextJustify::Center);
+		LabelWidget->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 15));
 		LabelWidget->SetAutoWrapText(true);
-		if (UHorizontalBoxSlot* LS = Row->AddChildToHorizontalBox(LabelWidget))
+		LabelWidget->SetColorAndOpacity(FSlateColor(FLinearColor(0.97f, 0.97f, 1.f)));
+		// A drop shadow keeps the text legible over a busy or light-colored thumbnail,
+		// on top of ScrimBorder's darkening.
+		LabelWidget->SetShadowOffset(FVector2D(1.f, 1.f));
+		LabelWidget->SetShadowColorAndOpacity(FLinearColor(0.f, 0.f, 0.f, 0.9f));
+		if (UOverlaySlot* LS = RowOverlay->AddChildToOverlay(LabelWidget))
 		{
 			LS->SetHorizontalAlignment(HAlign_Fill);
 			LS->SetVerticalAlignment(VAlign_Center);
-			LS->SetPadding(FMargin(4.f, 4.f, 12.f, 4.f));
-			LS->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			LS->SetPadding(FMargin(40.f, 4.f));
 		}
 	}
 
@@ -112,20 +111,12 @@ void UPieceSkinSwatch::RefreshAppearance()
 {
 	if (LabelWidget)
 	{
-		const FText Name = SkinId.IsNone() ? FText::FromString(TEXT("Default")) : DisplayName;
-		LabelWidget->SetText(Name);
-	}
-
-	if (AccentBorder)
-	{
-		// Gold background on the equipped row, a softer highlight on the previewed
-		// (but not yet equipped) row, dark/transparent otherwise.
-		FLinearColor BgColor(0.f, 0.f, 0.f, 0.f);
+		FString NameStr = SkinId.IsNone() ? TEXT("Default") : DisplayName.ToString();
 		if (bEquipped)
-			BgColor = FLinearColor(0.55f, 0.42f, 0.05f, 0.9f);
-		else if (bPreviewed)
-			BgColor = FLinearColor(0.15f, 0.25f, 0.4f, 0.8f);
-		AccentBorder->SetBrushColor(BgColor);
+		{
+			NameStr += TEXT("  (Equipped)");
+		}
+		LabelWidget->SetText(FText::FromString(NameStr));
 	}
 
 	const bool bShowLocked = !bUnlocked;
@@ -166,6 +157,29 @@ void UPieceSkinSwatch::RefreshAppearance()
 	{
 		Btn->SetIsEnabled(bUnlocked);
 		Btn->SetRenderOpacity(bUnlocked ? 1.f : 0.5f);
+
+		if (bPreviewed)
+		{
+			// The equipped row no longer gets its own background color (it clashed
+			// with real skins' own material tones) — the "(Equipped)" text appended
+			// to its label above is the only equipped indicator now. Previewed-but-
+			// not-yet-equipped still gets a highlight so browsing feels responsive.
+			// Flat color brush (not just a tint) so it's genuinely one solid color
+			// with no bevel/border showing through.
+			const FSlateColorBrush FlatBrush(FLinearColor(0.15f, 0.25f, 0.4f, 0.9f));
+			FButtonStyle Style = DefaultButtonStyle;
+			Style.Normal = FlatBrush;
+			Style.Hovered = FlatBrush;
+			Style.Pressed = FlatBrush;
+			Style.Disabled = FlatBrush;
+			Btn->SetStyle(Style);
+		}
+		else
+		{
+			// Same look as the menu's Back button — the engine's plain default button
+			// style, no per-row background of its own.
+			Btn->SetStyle(DefaultButtonStyle);
+		}
 	}
 }
 
