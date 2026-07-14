@@ -92,7 +92,7 @@ void AKnightTutorial::SetupBoss()
 	Luna = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Luna)
 	{
-		Luna->Init(EChessPieceType::Knight, EChessColor::Black, LunaFile, LunaRank, PieceMeshes.Find(EChessPieceType::Knight));
+		Luna->Init(EChessPieceType::Knight, EChessColor::Black, LunaFile, LunaRank, &GetBlackRivalMeshConfig());
 		Luna->SetActorScale3D(FVector(0.8f));
 	}
 

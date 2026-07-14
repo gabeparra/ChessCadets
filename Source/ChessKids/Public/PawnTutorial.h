@@ -30,6 +30,7 @@ protected:
 	virtual void OnTargetCollected(int32 File, int32 Rank) override;
 	virtual void OnPhaseComplete() override;
 	virtual bool IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, int32 ToRank) const override;
+	virtual bool IsSquareBlocked(int32 File, int32 Rank) const override;
 
 private:
 	UPROPERTY() AChessPiece* AIPawn = nullptr;

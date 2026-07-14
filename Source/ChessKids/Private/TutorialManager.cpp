@@ -10,6 +10,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInterface.h"
 
 ATutorialManager::ATutorialManager()
 {
@@ -196,8 +197,23 @@ void ATutorialManager::SpawnWallAt(int32 File, int32 Rank)
 
 bool ATutorialManager::IsSquareBlocked(int32 File, int32 Rank) const
 {
+	// Targets block too, same as enemies/walls — a slide has to stop at the nearest
+	// uncollected one rather than sweeping past it to a farther square. Harmless for
+	// the destination square itself: IsMoveAllowed's path-clearing loops never call
+	// this for the final square, only squares strictly in between, so landing
+	// directly on a target to collect it still works.
 	const int32 Key = PackPos(File, Rank);
-	return EnemyActors.Contains(Key) || WallActors.Contains(Key);
+	return EnemyActors.Contains(Key) || WallActors.Contains(Key) || TargetActors.Contains(Key);
+}
+
+const FPieceMeshConfig& ATutorialManager::GetBlackRivalMeshConfig()
+{
+	if (!BlackRivalMeshConfig.MaterialOverride)
+	{
+		BlackRivalMeshConfig.MaterialOverride = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Materials/Pieces/BlackPiece.BlackPiece"));
+	}
+	return BlackRivalMeshConfig;
 }
 
 TArray<FIntPoint> ATutorialManager::GetLegalMoves() const

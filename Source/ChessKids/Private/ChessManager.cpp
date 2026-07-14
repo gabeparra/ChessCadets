@@ -9,6 +9,7 @@
 #include "TimerManager.h"
 #include "Sound/SoundBase.h"
 #include "Components/AudioComponent.h"
+#include "Materials/MaterialInterface.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "position.h"
@@ -710,8 +711,24 @@ void AChessManager::CheckGameOver()
 
 			// Story progression: beating the robot in a story arena unlocks the next chapter.
 			if (Winner == TEXT("white") && !bTwoPlayerMode)
+			{
 				if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+				{
 					GI->NotifyStoryVictory(GetWorld()->GetMapName());
+
+					// AXIOM is King's tutorial chapter reward, but it's a real chess
+					// match (via this class) rather than a scripted tutorial phase, so
+					// it needs its own hook into the same skin-reward system.
+					if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+					{
+						const FName UnlockedSkin = GI->UnlockSkinForTutorial(EChessPieceType::King);
+						if (!UnlockedSkin.IsNone())
+						{
+							OnSkinUnlocked.Broadcast(UnlockedSkin);
+						}
+					}
+				}
+			}
 
 			OnGameOver.Broadcast(Winner);
 		}

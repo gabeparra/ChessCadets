@@ -20,6 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAIMoveReady,   FString, FromSqua
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (FOnGameOver,      FString, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMoveMade,      FString, FromSquare, FString, ToSquare);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHintReady,     FString, FromSquare, FString, ToSquare);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (FOnArenaSkinUnlocked, FName, SkinId);
 
 // How an arena decides which side the human plays.
 UENUM(BlueprintType)
@@ -52,6 +53,13 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Chess")
 	FOnHintReady OnHintReady;
+
+	// Fired alongside OnGameOver when winning this arena granted a piece skin (the
+	// AXIOM battle is King's tutorial chapter reward, but resolves as a real chess
+	// match here rather than through ATutorialManager — see UChessKidsGameInstance::
+	// UnlockSkinForTutorial). Not fired on replays once the skin is already owned.
+	UPROPERTY(BlueprintAssignable, Category = "Chess")
+	FOnArenaSkinUnlocked OnSkinUnlocked;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess", meta = (ClampMin = "1", ClampMax = "20"))
 	int32 AISearchDepth = 5;
