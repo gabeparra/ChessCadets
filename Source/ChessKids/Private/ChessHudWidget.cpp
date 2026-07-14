@@ -3,8 +3,11 @@
 #include "ChessPlayerController.h"
 #include "ChessBoard.h"
 #include "ChessKidsGameInstance.h"
+#include "ChessPieceSkinRegistry.h"
 #include "PieceSkinsMenuWidget.h"
+#include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/Slider.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -181,6 +184,54 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		};
 		MakeButton(PlayAgainButton, TEXT("Play Again"));
 		MakeButton(MainMenuButton, TEXT("Main Menu"));
+
+		// "New skin unlocked!" popup — shown ahead of GameOverPanel when winning
+		// granted a skin. Gold accent to read as a reward, matching
+		// UTutorialHudWidget's SkinUnlockPanel.
+		SkinUnlockPanel = WidgetTree->ConstructWidget<UBorder>();
+		SkinUnlockPanel->SetBrushColor(FLinearColor(0.05f, 0.03f, 0.f, 0.95f));
+		SkinUnlockPanel->SetPadding(FMargin(48.f, 32.f));
+		SkinUnlockPanel->SetVisibility(ESlateVisibility::Collapsed);
+		if (UCanvasPanelSlot* SUS = Root->AddChildToCanvas(SkinUnlockPanel))
+		{
+			SUS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			SUS->SetAlignment(FVector2D(0.5f, 0.5f));
+			SUS->SetPosition(FVector2D(0.f, 0.f));
+			SUS->SetAutoSize(true);
+		}
+
+		UVerticalBox* SkinColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		SkinUnlockPanel->AddChild(SkinColumn);
+
+		UTextBlock* SkinHeadline = WidgetTree->ConstructWidget<UTextBlock>();
+		SkinHeadline->SetText(FText::FromString(TEXT("NEW SKIN UNLOCKED!")));
+		SkinHeadline->SetJustification(ETextJustify::Center);
+		SkinHeadline->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 26));
+		SkinHeadline->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.82f, 0.2f)));
+		if (UVerticalBoxSlot* SHS = SkinColumn->AddChildToVerticalBox(SkinHeadline))
+			SHS->SetPadding(FMargin(0.f, 0.f, 0.f, 16.f));
+
+		SkinUnlockImage = WidgetTree->ConstructWidget<UImage>();
+		if (UVerticalBoxSlot* SIS = SkinColumn->AddChildToVerticalBox(SkinUnlockImage))
+		{
+			SIS->SetHorizontalAlignment(HAlign_Center);
+			SIS->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
+		}
+
+		SkinUnlockNameText = WidgetTree->ConstructWidget<UTextBlock>();
+		SkinUnlockNameText->SetJustification(ETextJustify::Center);
+		SkinUnlockNameText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
+		SkinUnlockNameText->SetColorAndOpacity(FSlateColor(FLinearColor(0.95f, 0.98f, 1.f)));
+		if (UVerticalBoxSlot* SNS = SkinColumn->AddChildToVerticalBox(SkinUnlockNameText))
+			SNS->SetPadding(FMargin(0.f, 0.f, 0.f, 20.f));
+
+		SkinUnlockOkButton = WidgetTree->ConstructWidget<UButton>();
+		UTextBlock* SkinOkLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		SkinOkLabel->SetText(FText::FromString(TEXT("NICE!")));
+		SkinOkLabel->SetJustification(ETextJustify::Center);
+		SkinUnlockOkButton->AddChild(SkinOkLabel);
+		if (UVerticalBoxSlot* SOS = SkinColumn->AddChildToVerticalBox(SkinUnlockOkButton))
+			SOS->SetHorizontalAlignment(HAlign_Center);
 	}
 
 	return Super::RebuildWidget();
@@ -194,6 +245,7 @@ void UChessHudWidget::NativeConstruct()
 	if (PlayAgainButton) PlayAgainButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnPlayAgainClicked);
 	if (MainMenuButton)  MainMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnMainMenuClicked);
 	if (CustomizationButton) CustomizationButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnCustomizationClicked);
+	if (SkinUnlockOkButton) SkinUnlockOkButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnSkinUnlockOkClicked);
 
 	if (AChessPlayerController* PC = GetChessPC())
 		Manager = PC->Manager;
@@ -204,6 +256,7 @@ void UChessHudWidget::NativeConstruct()
 	{
 		Manager->OnGameOver.AddUniqueDynamic(this, &UChessHudWidget::HandleGameOver);
 		Manager->OnHintReady.AddUniqueDynamic(this, &UChessHudWidget::HandleHintReady);
+		Manager->OnSkinUnlocked.AddUniqueDynamic(this, &UChessHudWidget::HandleSkinUnlocked);
 	}
 
 	// Two-player hot-seat has one local save/skin selection shared by both people
@@ -269,6 +322,27 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
+	// Runs even once the game is over (below this point is frozen then) — the skin
+	// popup's pop-in animation plays exactly when that's true. Eased scale/opacity
+	// tween, same manual-Tick idiom as UTutorialHudWidget's SkinUnlockPanel.
+	if (bSkinPopupAnimating && SkinUnlockPanel)
+	{
+		SkinPopupAnimElapsed += InDeltaTime;
+		constexpr float PopDuration = 0.45f;
+		const float Alpha = FMath::Clamp(SkinPopupAnimElapsed / PopDuration, 0.f, 1.f);
+
+		const float Eased = FMath::InterpEaseOut(0.f, 1.f, Alpha, 3.f);
+		const float Overshoot = 1.f + FMath::Sin(Alpha * PI) * 0.12f * (1.f - Alpha);
+		const float Scale = FMath::Lerp(0.6f, 1.f, Eased) * Overshoot;
+
+		SkinUnlockPanel->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+		SkinUnlockPanel->SetRenderScale(FVector2D(Scale, Scale));
+		SkinUnlockPanel->SetRenderOpacity(FMath::Clamp(SkinPopupAnimElapsed / 0.2f, 0.f, 1.f));
+
+		if (Alpha >= 1.f)
+			bSkinPopupAnimating = false;
+	}
+
 	if (!Manager) return;
 	if (Manager->IsGameOver()) return;   // frozen once the overlay is up
 
@@ -278,6 +352,11 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	{
 		GameOverPanel->SetVisibility(ESlateVisibility::Hidden);
 		if (TurnText) TurnText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	if (SkinUnlockPanel && SkinUnlockPanel->GetVisibility() == ESlateVisibility::Visible)
+	{
+		SkinUnlockPanel->SetVisibility(ESlateVisibility::Collapsed);
+		bSkinPopupAnimating = false;
 	}
 
 	AChessPlayerController* PC = GetChessPC();
@@ -353,6 +432,22 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UChessHudWidget::HandleGameOver(FString Result)
 {
+	// OnSkinUnlocked/OnGameOver both broadcast synchronously from the same checkmate
+	// handling in AChessManager, so PendingUnlockedSkinId (if any) is already set by
+	// the time this runs — show that popup first, GameOverPanel once it's dismissed.
+	if (!PendingUnlockedSkinId.IsNone())
+	{
+		PendingGameOverResult = Result;
+		ShowSkinUnlockPopup();
+	}
+	else
+	{
+		ShowGameOverPanel(Result);
+	}
+}
+
+void UChessHudWidget::ShowGameOverPanel(FString Result)
+{
 	if (GameOverText)
 	{
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();
@@ -384,6 +479,62 @@ void UChessHudWidget::HandleGameOver(FString Result)
 					W->RemoveFromParent();
 		});
 	}
+}
+
+void UChessHudWidget::HandleSkinUnlocked(FName SkinId)
+{
+	PendingUnlockedSkinId = SkinId;
+}
+
+void UChessHudWidget::ShowSkinUnlockPopup()
+{
+	if (!SkinUnlockPanel)
+	{
+		ShowGameOverPanel(PendingGameOverResult);
+		return;
+	}
+
+	FChessPieceSkinEntry Entry;
+	bool bFound = false;
+	if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+	{
+		if (UChessPieceSkinRegistry* Registry = GI->PieceSkinRegistry.LoadSynchronous())
+			bFound = Registry->FindSkin(PendingUnlockedSkinId, Entry);
+	}
+
+	if (SkinUnlockNameText)
+		SkinUnlockNameText->SetText(bFound ? Entry.DisplayName : FText::FromName(PendingUnlockedSkinId));
+
+	if (SkinUnlockImage)
+	{
+		if (bFound && Entry.Thumbnail)
+		{
+			SkinUnlockImage->SetBrushFromTexture(Entry.Thumbnail, false);
+			SkinUnlockImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			SkinUnlockImage->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if (TurnText)  TurnText->SetVisibility(ESlateVisibility::Hidden);
+	if (CheckText) CheckText->SetVisibility(ESlateVisibility::Hidden);
+	if (HintResultText) HintResultText->SetVisibility(ESlateVisibility::Hidden);
+
+	SkinPopupAnimElapsed = 0.f;
+	bSkinPopupAnimating = true;
+	SkinUnlockPanel->SetRenderOpacity(0.f);
+	SkinUnlockPanel->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UChessHudWidget::OnSkinUnlockOkClicked()
+{
+	if (SkinUnlockPanel)
+		SkinUnlockPanel->SetVisibility(ESlateVisibility::Collapsed);
+	bSkinPopupAnimating = false;
+	PendingUnlockedSkinId = NAME_None;
+	ShowGameOverPanel(PendingGameOverResult);
 }
 
 void UChessHudWidget::HandleHintReady(FString FromSquare, FString ToSquare)

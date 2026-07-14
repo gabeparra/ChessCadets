@@ -7,6 +7,8 @@
 class UButton;
 class UTextBlock;
 class UVerticalBox;
+class UBorder;
+class UImage;
 class USlider;
 class AChessManager;
 class AChessPlayerController;
@@ -36,6 +38,15 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* PlayAgainButton;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* MainMenuButton;
 
+	// "New skin unlocked!" popup — shown before GameOverPanel when winning granted a
+	// skin (currently only the AXIOM battle, King's tutorial chapter reward — see
+	// AChessManager::OnSkinUnlocked). Mirrors UTutorialHudWidget's SkinUnlockPanel:
+	// same manual scale/opacity pop-in via NativeTick rather than a UMG WidgetAnimation.
+	UPROPERTY(meta = (BindWidgetOptional)) UBorder* SkinUnlockPanel;
+	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* SkinUnlockNameText;
+	UPROPERTY(meta = (BindWidgetOptional)) UImage* SkinUnlockImage;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* SkinUnlockOkButton;
+
 	// Bottom-right, always available in-game — opens the piece skins locker without
 	// needing to pause first.
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* CustomizationButton;
@@ -57,6 +68,8 @@ protected:
 	UFUNCTION() void OnWhiteColorChanged(float Value);
 	UFUNCTION() void OnBlackColorChanged(float Value);
 	UFUNCTION() void OnCustomizationClicked();
+	UFUNCTION() void HandleSkinUnlocked(FName SkinId);
+	UFUNCTION() void OnSkinUnlockOkClicked();
 
 private:
 	UPROPERTY() AChessManager* Manager = nullptr;
@@ -68,7 +81,14 @@ private:
 
 	void ApplyBoardColors();
 	AChessPlayerController* GetChessPC() const;
+	void ShowGameOverPanel(FString Result);
+	void ShowSkinUnlockPopup();
 
 	FTimerHandle HintHideTimer;
 	int32 LastPositionVersion = -1;   // gates the captured-tray board scan to actual moves
+
+	FName PendingUnlockedSkinId = NAME_None;
+	FString PendingGameOverResult;
+	bool bSkinPopupAnimating = false;
+	float SkinPopupAnimElapsed = 0.f;
 };
