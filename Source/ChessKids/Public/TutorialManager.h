@@ -22,6 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPhaseChanged, ETutorialPhase, New
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGuideMessage, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelComplete);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTryAgain);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkinUnlocked, FName, SkinId);
 
 UCLASS()
 class CHESSKIDS_API ATutorialManager : public AActor
@@ -45,6 +46,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
 	FOnTryAgain OnTryAgain;
+
+	// Fired right after OnLevelComplete if beating this tutorial's boss granted a new
+	// piece skin (see UChessKidsGameInstance::UnlockSkinForTutorial). Not fired on
+	// replays once the skin is already owned.
+	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
+	FOnSkinUnlocked OnSkinUnlocked;
 
 	// Set in editor — which board this manager controls
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
@@ -115,6 +122,15 @@ protected:
 	virtual void OnPhaseComplete();
 	virtual void AfterPlayerMove(int32 File, int32 Rank);
 	virtual bool IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, int32 ToRank) const;
+
+	// Boss-victory bookkeeping: lesson-complete tracking, story-chapter unlock, and the
+	// tutorial's configured skin reward (see OnSkinUnlocked). Every subclass detects
+	// "boss defeated" its own way (capturing a runner, tagging a knight, racing to the
+	// finish...) and sets CurrentPhase/broadcasts OnLevelComplete itself rather than
+	// going through OnPhaseComplete()'s generic Boss branch, since each needs its own
+	// victory guide message — call this alongside that instead of duplicating the
+	// bookkeeping in every subclass.
+	void GrantBossVictoryRewards();
 
 	FString LastGuideMessage;
 

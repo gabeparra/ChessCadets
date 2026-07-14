@@ -165,6 +165,7 @@ void ABishopTutorial::AfterPlayerMove(int32 File, int32 Rank)
 			PaintedCount, TotalOwnSquares));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
+		GrantBossVictoryRewards();
 		return;
 	}
 

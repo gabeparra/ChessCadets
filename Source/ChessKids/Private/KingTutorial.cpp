@@ -165,6 +165,7 @@ void AKingTutorial::StartAxiomBattle()
 	ShowGuideMessage(TEXT("(AXIOM battle map not set — assign 'Axiom Map Name' on the KingTutorial actor.)"));
 	CurrentPhase = ETutorialPhase::Complete;
 	OnLevelComplete.Broadcast();
+	GrantBossVictoryRewards();
 }
 
 bool AKingTutorial::IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, int32 ToRank) const

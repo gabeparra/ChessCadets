@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "ChessPiece.h"
 #include "ChessPieceSkinRegistry.generated.h"
 
 class UMaterialInterface;
@@ -34,6 +35,16 @@ struct FChessPieceSkinEntry
 	// Locked entries stay locked until a future store/achievement system unlocks them.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Skin")
 	bool bUnlockedByDefault = false;
+
+	// If set, completing TutorialUnlockPiece's tutorial (the boss phase) automatically
+	// unlocks this skin and shows the "new skin!" popup. At most one skin should set
+	// this per piece — UChessKidsGameInstance::UnlockSkinForTutorial grants the first
+	// match it finds.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Skin")
+	bool bUnlockedByTutorial = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Skin", meta = (EditCondition = "bUnlockedByTutorial"))
+	EChessPieceType TutorialUnlockPiece = EChessPieceType::Pawn;
 };
 
 // Data-driven catalog of collectible piece skins. Create one instance

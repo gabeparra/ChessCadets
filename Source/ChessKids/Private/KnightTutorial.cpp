@@ -116,6 +116,7 @@ void AKnightTutorial::AfterPlayerMove(int32 File, int32 Rank)
 		ShowGuideMessage(TEXT("TAG! You got her! Nobody escapes a knight!"));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
+		GrantBossVictoryRewards();
 		return;
 	}
 
