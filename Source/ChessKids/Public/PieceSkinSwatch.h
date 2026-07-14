@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Styling/SlateTypes.h"
 #include "PieceSkinSwatch.generated.h"
 
 class UButton;
@@ -70,10 +71,6 @@ protected:
 	UPROPERTY()
 	UButton* Btn = nullptr;
 
-	// Left accent bar — highlights the equipped and/or previewed row.
-	UPROPERTY()
-	UBorder* AccentBorder = nullptr;
-
 	UPROPERTY()
 	UImage* ImageWidget = nullptr;
 
@@ -81,12 +78,23 @@ protected:
 	UPROPERTY()
 	UBorder* ColorSwatchWidget = nullptr;
 
+	// Semi-transparent dark overlay above the thumbnail/color background so
+	// LabelWidget stays legible regardless of how bright the art underneath is.
+	UPROPERTY()
+	UBorder* ScrimBorder = nullptr;
+
 	// Shown instead of ImageWidget/ColorSwatchWidget when the row is locked.
 	UPROPERTY()
 	UTextBlock* LockGlyphWidget = nullptr;
 
 	UPROPERTY()
 	UTextBlock* LabelWidget = nullptr;
+
+	// Captured from Btn right after construction, before any per-state style override —
+	// lets the base (non-equipped, non-previewed) look match the menu's Back button
+	// exactly, since neither one customizes its style.
+	UPROPERTY()
+	FButtonStyle DefaultButtonStyle;
 
 	UFUNCTION()
 	void HandleClicked();
