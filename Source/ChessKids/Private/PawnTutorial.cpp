@@ -16,6 +16,15 @@ bool APawnTutorial::IsSquareOccupied(int32 File, int32 Rank) const
 	return EnemyActors.Contains(PackPos(File, Rank)) || TargetActors.Contains(PackPos(File, Rank));
 }
 
+bool APawnTutorial::IsSquareBlocked(int32 File, int32 Rank) const
+{
+	// The AI pawn isn't in EnemyActors (see SetupBoss) — without this, a 2-square
+	// first move could slide straight through/onto it without blocking or capturing.
+	if (AIPawn && File == AIPawnFile && Rank == AIPawnRank)
+		return true;
+	return Super::IsSquareBlocked(File, Rank);
+}
+
 void APawnTutorial::SetupPhase(ETutorialPhase Phase)
 {
 	Super::SetupPhase(Phase);
@@ -100,7 +109,7 @@ void APawnTutorial::SetupBoss()
 	AIPawn = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), AILocation, FRotator::ZeroRotator, Params);
 	if (AIPawn)
 	{
-		AIPawn->Init(EChessPieceType::Pawn, EChessColor::Black, AIPawnFile, AIPawnRank, PieceMeshes.Find(EChessPieceType::Pawn));
+		AIPawn->Init(EChessPieceType::Pawn, EChessColor::Black, AIPawnFile, AIPawnRank, &GetBlackRivalMeshConfig());
 		AIPawn->SetActorScale3D(FVector(1.2f));
 	}
 
