@@ -4,8 +4,12 @@
 #include "ChessPieceSkinRegistry.h"
 #include "Materials/MaterialInterface.h"
 #include "Kismet/GameplayStatics.h"
+#include "ChessCamera.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Misc/PackageName.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "AudioDevice.h"
 
 namespace
 {
@@ -74,6 +78,10 @@ bool UChessKidsGameInstance::IsStoryChapterUnlocked(int32 Chapter) const
 
 void UChessKidsGameInstance::NotifyStoryVictory(const FString& MapName)
 {
+	// Story mode = the tutorial levels. Arcade arena wins (L_Pawn, L_Knight, ...)
+	// go through the same checkmate path but must NOT advance the story ladder.
+	if (!MapName.Contains(TEXT("Tutorial"))) return;
+
 	const int32 Chapter = StoryChapterForMap(MapName);
 	if (Chapter <= 0 || !Progress) return;
 
@@ -118,6 +126,64 @@ void UChessKidsGameInstance::Init()
 	}
 
 	LoadOrInitSkinSave();
+
+	// Restore the saved game volume onto the audio device.
+	ApplyMasterVolume();
+}
+
+float UChessKidsGameInstance::GetMasterVolume() const
+{
+	return Progress ? Progress->MasterVolume : 1.f;
+}
+
+void UChessKidsGameInstance::SetMasterVolume(float Volume)
+{
+	Volume = FMath::Clamp(Volume, 0.f, 1.f);
+	if (Progress)
+	{
+		Progress->MasterVolume = Volume;
+		SaveProgress();
+	}
+	ApplyMasterVolume();
+}
+
+float UChessKidsGameInstance::GetBoardZoom() const
+{
+	return Progress ? FMath::Clamp(Progress->BoardZoom, 0.f, 1.f) : 0.f;
+}
+
+void UChessKidsGameInstance::SetBoardZoom(float Zoom01)
+{
+	Zoom01 = FMath::Clamp(Zoom01, 0.f, 1.f);
+	if (Progress)
+	{
+		Progress->BoardZoom = Zoom01;
+		SaveProgress();
+	}
+	// Re-frame any live camera immediately so the slider feels responsive.
+	if (AChessCamera* Cam = Cast<AChessCamera>(
+			UGameplayStatics::GetActorOfClass(this, AChessCamera::StaticClass())))
+		Cam->RefreshFraming();
+}
+
+void UChessKidsGameInstance::ApplyMasterVolume() const
+{
+	const float V = GetMasterVolume();
+
+	// Use the WORLD's audio device — in PIE the game plays through a separate device
+	// from GEngine's main one, so setting the main device does nothing audible. Fall
+	// back to the main device (packaged builds share it).
+	FAudioDevice* AudioDevice = nullptr;
+	if (UWorld* World = GetWorld())
+		AudioDevice = World->GetAudioDeviceRaw();
+	if (!AudioDevice && GEngine)
+		AudioDevice = GEngine->GetMainAudioDevice().GetAudioDevice();
+
+	if (AudioDevice)
+	{
+		// Global multiplier over every sound — music, SFX, UI — no sound-class setup needed.
+		AudioDevice->SetTransientPrimaryVolume(V);
+	}
 }
 
 UChessMapRegistry* UChessKidsGameInstance::LoadRegistry() const

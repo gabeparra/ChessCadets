@@ -1,5 +1,6 @@
 #include "ChessManager.h"
 #include "ChessBoard.h"
+#include "FireworkShow.h"
 #include "ChessPiece.h"
 #include "ChessKidsGameInstance.h"
 #include "Async/Async.h"
@@ -189,12 +190,12 @@ void AChessManager::ResolveDefaultSounds()
 		if (!Slot)
 			Slot = Cast<USoundBase>(FSoftObjectPath(Path).TryLoad());
 	};
-	Resolve(MoveSound,       TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIClick_Select_001_VZ_GN_Cue.UIClick_Select_001_VZ_GN_Cue"));
-	Resolve(CaptureSound,    TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIAlert_Cancel_001_VZ_GN_Cue.UIAlert_Cancel_001_VZ_GN_Cue"));
-	Resolve(CheckSound,      TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIAlert_Warning_001_VZ_GN_Cue.UIAlert_Warning_001_VZ_GN_Cue"));
-	Resolve(WinSound,        TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIData_Processing_Complete_001_VZ_GN_Cue.UIData_Processing_Complete_001_VZ_GN_Cue"));
-	Resolve(LoseSound,       TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIMvmt_Transition_001_VZ_GN_Cue.UIMvmt_Transition_001_VZ_GN_Cue"));
-	Resolve(DrawSound,       TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIAlert_Notification_001_VZ_GN_Cue.UIAlert_Notification_001_VZ_GN_Cue"));
+	Resolve(MoveSound,       TEXT("/Game/Audio/SFX/UIClick_Select_001_VZ_GN_Cue.UIClick_Select_001_VZ_GN_Cue"));
+	Resolve(CaptureSound,    TEXT("/Game/Audio/SFX/UIAlert_Cancel_001_VZ_GN_Cue.UIAlert_Cancel_001_VZ_GN_Cue"));
+	Resolve(CheckSound,      TEXT("/Game/Audio/SFX/UIAlert_Warning_001_VZ_GN_Cue.UIAlert_Warning_001_VZ_GN_Cue"));
+	Resolve(WinSound,        TEXT("/Game/Audio/SFX/UIData_Processing_Complete_001_VZ_GN_Cue.UIData_Processing_Complete_001_VZ_GN_Cue"));
+	Resolve(LoseSound,       TEXT("/Game/Audio/SFX/UIMvmt_Transition_001_VZ_GN_Cue.UIMvmt_Transition_001_VZ_GN_Cue"));
+	Resolve(DrawSound,       TEXT("/Game/Audio/SFX/UIAlert_Notification_001_VZ_GN_Cue.UIAlert_Notification_001_VZ_GN_Cue"));
 	// BackgroundMusic gets NO default: arena music is owned by Marco's BP_MusicManager
 	// (Content/Music, per-arena tracks). Set this property only to override it.
 }
@@ -725,6 +726,16 @@ void AChessManager::CheckGameOver()
 						if (!UnlockedSkin.IsNone())
 						{
 							OnSkinUnlocked.Broadcast(UnlockedSkin);
+						}
+
+						// End of the story — celebrate with a firework show above the
+						// board (the HUD adds the "thank you for playing" message).
+						if (Board)
+						{
+							FActorSpawnParameters FxParams;
+							FxParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+							GetWorld()->SpawnActor<AFireworkShow>(AFireworkShow::StaticClass(),
+								Board->GetBoardCenter() + FVector(0.f, 0.f, 400.f), FRotator::ZeroRotator, FxParams);
 						}
 					}
 				}

@@ -3,6 +3,7 @@
 #include "ChessCamera.h"
 #include "ChessBoard.h"
 #include "ChessManager.h"
+#include "ChessKidsGameInstance.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -75,6 +76,12 @@ void AChessCamera::ApplyView()
 	if (IsValid(TargetBoard))
 		SetActorLocation(TargetBoard->GetBoardCenter());
 
-	SpringArm->TargetArmLength = ArmLength;
+	// Player's persisted zoom shrinks the arm toward MinZoomArmFraction (closest).
+	float Zoom = 0.f;
+	if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		Zoom = GI->GetBoardZoom();
+	const float Frac = FMath::Lerp(1.f, MinZoomArmFraction, Zoom);
+
+	SpringArm->TargetArmLength = ArmLength * Frac;
 	SpringArm->SetRelativeRotation(FRotator(-PitchAngle, Yaw, 0.f));
 }

@@ -71,6 +71,20 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			HRS->SetAutoSize(true);
 		}
 
+		// Invalid-move warning — center screen, red/orange, hidden until a bad click.
+		WarningText = WidgetTree->ConstructWidget<UTextBlock>();
+		WarningText->SetJustification(ETextJustify::Center);
+		WarningText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 26));
+		WarningText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.35f, 0.15f)));
+		WarningText->SetVisibility(ESlateVisibility::Hidden);
+		if (UCanvasPanelSlot* WS = Root->AddChildToCanvas(WarningText))
+		{
+			WS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			WS->SetAlignment(FVector2D(0.5f, 0.5f));
+			WS->SetPosition(FVector2D(0.f, -120.f));
+			WS->SetAutoSize(true);
+		}
+
 		// Captured-piece trays — top corners.
 		auto MakeTray = [&](UTextBlock*& OutText, float AnchorX, float AlignX, float PosX)
 		{
@@ -88,20 +102,10 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		MakeTray(WhiteCapturedText, 0.f, 0.f, 24.f);    // left: pieces YOU/P1 captured
 		MakeTray(BlackCapturedText, 1.f, 1.f, -24.f);   // right: pieces the robot/P2 captured
 
-		// Key hints — bottom left.
-		HintText = WidgetTree->ConstructWidget<UTextBlock>();
-		HintText->SetText(FText::FromString(TEXT("P — Pause    Z — Undo    H — Hint")));
-		HintText->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 12));
-		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.55f)));
-		if (UCanvasPanelSlot* HS = Root->AddChildToCanvas(HintText))
-		{
-			HS->SetAnchors(FAnchors(0.f, 1.f, 0.f, 1.f));
-			HS->SetAlignment(FVector2D(0.f, 1.f));
-			HS->SetPosition(FVector2D(24.f, -18.f));
-			HS->SetAutoSize(true);
-		}
+		// (Keyboard-shortcut hint text removed — Marco's WBP_InGameHud shows the
+		// controls as buttons, and the text kept colliding with the undo button.)
 
-		// Board color sliders — bottom left, stacked above the key hints.
+		// Board color sliders — bottom left.
 		UVerticalBox* ColorBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		if (UCanvasPanelSlot* CBS = Root->AddChildToCanvas(ColorBox))
 		{
@@ -451,8 +455,13 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 	if (GameOverText)
 	{
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();
+		const bool bAxiomFinale = !bTwoPlayer && GetWorld()
+			&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
 		FString Msg;
-		if (Result == TEXT("white"))      Msg = bTwoPlayer ? TEXT("P1 wins! Great game!") : TEXT("You win! Amazing game!");
+		if (Result == TEXT("white"))
+			Msg = bTwoPlayer ? TEXT("P1 wins! Great game!")
+			    : bAxiomFinale ? TEXT("AXIOM is defeated — Neo City is free!\nTHANK YOU FOR PLAYING!")
+			    : TEXT("You win! Amazing game!");
 		else if (Result == TEXT("black")) Msg = bTwoPlayer ? TEXT("P2 wins! Great game!") : TEXT("Good try! You'll get the robot next time!");
 		else                              Msg = TEXT("It's a draw — what a battle!");
 		GameOverText->SetText(FText::FromString(Msg));
@@ -478,6 +487,24 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 				if (W != Self && W->GetClass()->GetName().StartsWith(TEXT("WBP_GameOver")))
 					W->RemoveFromParent();
 		});
+	}
+}
+
+void UChessHudWidget::ShowWarning(const FString& Message)
+{
+	if (!WarningText) return;
+	WarningText->SetText(FText::FromString(Message));
+	WarningText->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (UWorld* World = GetWorld())
+	{
+		TWeakObjectPtr<UChessHudWidget> WeakThis(this);
+		World->GetTimerManager().SetTimer(WarningHideTimer, [WeakThis]()
+		{
+			if (UChessHudWidget* Self = WeakThis.Get())
+				if (Self->WarningText)
+					Self->WarningText->SetVisibility(ESlateVisibility::Hidden);
+		}, 1.6f, false);
 	}
 }
 
