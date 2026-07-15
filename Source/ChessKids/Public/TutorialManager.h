@@ -22,6 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPhaseChanged, ETutorialPhase, New
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGuideMessage, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelComplete);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTryAgain);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkinUnlocked, FName, SkinId);
 
 UCLASS()
 class CHESSKIDS_API ATutorialManager : public AActor
@@ -45,6 +46,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
 	FOnTryAgain OnTryAgain;
+
+	// Fired right after OnLevelComplete if beating this tutorial's boss granted a new
+	// piece skin (see UChessKidsGameInstance::UnlockSkinForTutorial). Not fired on
+	// replays once the skin is already owned.
+	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
+	FOnSkinUnlocked OnSkinUnlocked;
 
 	// Set in editor — which board this manager controls
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
@@ -116,6 +123,15 @@ protected:
 	virtual void AfterPlayerMove(int32 File, int32 Rank);
 	virtual bool IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, int32 ToRank) const;
 
+	// Boss-victory bookkeeping: lesson-complete tracking, story-chapter unlock, and the
+	// tutorial's configured skin reward (see OnSkinUnlocked). Every subclass detects
+	// "boss defeated" its own way (capturing a runner, tagging a knight, racing to the
+	// finish...) and sets CurrentPhase/broadcasts OnLevelComplete itself rather than
+	// going through OnPhaseComplete()'s generic Boss branch, since each needs its own
+	// victory guide message — call this alongside that instead of duplicating the
+	// bookkeeping in every subclass.
+	void GrantBossVictoryRewards();
+
 	FString LastGuideMessage;
 
 	// Piece mesh config for spawning player piece
@@ -152,8 +168,24 @@ protected:
 	void SpawnEnemyAt(int32 File, int32 Rank);
 	void RemoveEnemyAt(int32 File, int32 Rank);
 	void SpawnWallAt(int32 File, int32 Rank);
-	bool IsSquareBlocked(int32 File, int32 Rank) const;
+
+	// Virtual so subclasses with a named boss rival tracked outside EnemyActors (the
+	// AI pawn, Luna, the Runner — each keeps its own File/Rank rather than going
+	// through SpawnEnemyAt) can fold that position in too. Without this, sliding/
+	// multi-square moves never see the rival as an obstacle: IsMoveAllowed's path
+	// checks only consult this function, so a move could land past the rival without
+	// ever being blocked by or capturing it.
+	virtual bool IsSquareBlocked(int32 File, int32 Rank) const;
+
 	void UpdateHighlights();
+
+	// A boss rival that's meant to read as an opponent piece (the AI pawn, Luna, the
+	// Runner) shouldn't inherit whatever skin the hero has equipped via PieceMeshes —
+	// when the rival's type matches TaughtPiece (the pawn tutorial's AI pawn, the
+	// knight tutorial's Luna) that's the exact same PieceMeshes entry as the hero, and
+	// the White/Black tint alone isn't reliably strong enough to still read as black
+	// against a bright custom skin. This guarantees a real black piece regardless.
+	const FPieceMeshConfig& GetBlackRivalMeshConfig();
 
 protected:
 	UPROPERTY() TMap<int32, AChessPiece*> TargetActors;
@@ -163,4 +195,7 @@ protected:
 	UPROPERTY() TMap<int32, AActor*> WallActors;
 
 	int32 PackPos(int32 File, int32 Rank) const;
+
+	// Lazily loaded/cached by GetBlackRivalMeshConfig().
+	UPROPERTY() FPieceMeshConfig BlackRivalMeshConfig;
 };

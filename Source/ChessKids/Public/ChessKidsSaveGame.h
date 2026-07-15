@@ -15,18 +15,18 @@ class CHESSKIDS_API UChessKidsSaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TSet<FName> UnlockedPieceSkins;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	FName SelectedPieceSkinId = NAME_None;
 
 	// Highest story chapter available (1 = L_Pawn ... 5 = L_Royalty).
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	int32 UnlockedStoryChapters = 1;
 
 	// Lesson indices (0 = Pawn ... 5 = King) the player has finished.
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TArray<int32> CompletedTutorials;
 
 	// Master game volume, 0..1. Applied to the audio device on startup and

@@ -10,6 +10,7 @@
 #include "TimerManager.h"
 #include "Sound/SoundBase.h"
 #include "Components/AudioComponent.h"
+#include "Materials/MaterialInterface.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "position.h"
@@ -711,18 +712,33 @@ void AChessManager::CheckGameOver()
 
 			// Story progression: beating the robot in a story arena unlocks the next chapter.
 			if (Winner == TEXT("white") && !bTwoPlayerMode)
+			{
 				if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+				{
 					GI->NotifyStoryVictory(GetWorld()->GetMapName());
 
-			// Beating AXIOM is the end of the story — celebrate with a firework show
-			// above the board (the HUD adds the "thank you for playing" message).
-			if (Winner == TEXT("white") && !bTwoPlayerMode
-				&& GetWorld()->GetMapName().Contains(TEXT("Axiom")) && Board)
-			{
-				FActorSpawnParameters FxParams;
-				FxParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-				GetWorld()->SpawnActor<AFireworkShow>(AFireworkShow::StaticClass(),
-					Board->GetBoardCenter() + FVector(0.f, 0.f, 400.f), FRotator::ZeroRotator, FxParams);
+					// AXIOM is King's tutorial chapter reward, but it's a real chess
+					// match (via this class) rather than a scripted tutorial phase, so
+					// it needs its own hook into the same skin-reward system.
+					if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+					{
+						const FName UnlockedSkin = GI->UnlockSkinForTutorial(EChessPieceType::King);
+						if (!UnlockedSkin.IsNone())
+						{
+							OnSkinUnlocked.Broadcast(UnlockedSkin);
+						}
+
+						// End of the story — celebrate with a firework show above the
+						// board (the HUD adds the "thank you for playing" message).
+						if (Board)
+						{
+							FActorSpawnParameters FxParams;
+							FxParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+							GetWorld()->SpawnActor<AFireworkShow>(AFireworkShow::StaticClass(),
+								Board->GetBoardCenter() + FVector(0.f, 0.f, 400.f), FRotator::ZeroRotator, FxParams);
+						}
+					}
+				}
 			}
 
 			OnGameOver.Broadcast(Winner);
