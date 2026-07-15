@@ -1,8 +1,28 @@
 #include "TutorialBoard.h"
 #include "ChessPiece.h"
+#include "ChessKidsGameInstance.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/StaticMesh.h"
+
+// Same contrast guarantee as the arena boards (ChessBoard.cpp): light squares are
+// always bright and pale, dark squares always dim and saturated — the recognizable
+// pattern cannot wash out no matter what colors reach the board.
+static FLinearColor ClampTutorialBoardColor(const FLinearColor& In, bool bLight)
+{
+	FLinearColor HSV = In.LinearRGBToHSV();   // R = hue, G = sat, B = value
+	if (bLight)
+	{
+		HSV.B = FMath::Max(HSV.B, 0.85f);
+		HSV.G = FMath::Min(HSV.G, 0.50f);
+	}
+	else
+	{
+		HSV.B = FMath::Min(HSV.B, 0.28f);
+		HSV.G = FMath::Max(HSV.G, 0.40f);
+	}
+	return HSV.HSVToLinearRGB();
+}
 
 ATutorialBoard::ATutorialBoard()
 {
@@ -15,6 +35,52 @@ void ATutorialBoard::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	BuildBoard();
+}
+
+void ATutorialBoard::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Match the arena boards exactly: the player's saved custom hues win over any
+	// per-instance colors baked into the map, so tutorials always show the same
+	// board pattern the rest of the game does.
+	if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+	{
+		if (GI->bCustomBoardColors)
+		{
+			LightSquareColor = UChessKidsGameInstance::LightColorFromHue(GI->LightSquareHue);
+			DarkSquareColor  = UChessKidsGameInstance::DarkColorFromHue(GI->DarkSquareHue);
+		}
+	}
+	BuildBoard();   // rebuild with the (clamped) final colors
+	UpdateHighlightContrastColor();
+}
+
+void ATutorialBoard::UpdateHighlightContrastColor()
+{
+	// Same "inverse" highlight system as the arena boards: the marker color is the
+	// hue farthest from BOTH square hues (midpoint of the larger arc between them),
+	// full saturation/value — guaranteed contrast against any board palette.
+	if (LegalMoveMaterial && !LegalMoveDMI)
+		LegalMoveDMI = UMaterialInstanceDynamic::Create(LegalMoveMaterial, this);
+	if (SelectionMaterial && !SelectionDMI)
+		SelectionDMI = UMaterialInstanceDynamic::Create(SelectionMaterial, this);
+	if (!LegalMoveDMI && !SelectionDMI) return;
+
+	const float HL = LightSquareColor.LinearRGBToHSV().R;
+	const float HD = DarkSquareColor.LinearRGBToHSV().R;
+	const float Lo = FMath::Min(HL, HD), Hi = FMath::Max(HL, HD);
+	const float InnerArc = Hi - Lo;
+	const float Hue = (InnerArc >= 360.f - InnerArc)
+		? Lo + InnerArc * 0.5f
+		: FMath::Fmod(Hi + (360.f - InnerArc) * 0.5f, 360.f);
+
+	if (LegalMoveDMI)
+		LegalMoveDMI->SetVectorParameterValue(TEXT("Color"),
+			FLinearColor(Hue, 1.f, 1.f).HSVToLinearRGB());
+	if (SelectionDMI)   // 45 degrees off the marker hue: related but distinguishable
+		SelectionDMI->SetVectorParameterValue(TEXT("Color"),
+			FLinearColor(FMath::Fmod(Hue + 45.f, 360.f), 1.f, 1.f).HSVToLinearRGB());
 }
 
 int32 ATutorialBoard::GridIndex(int32 File, int32 Rank) const
@@ -35,8 +101,8 @@ void ATutorialBoard::EnsureTintDMIs()
 	if (!Base) { LightTintDMI = nullptr; DarkTintDMI = nullptr; return; }
 	LightTintDMI = UMaterialInstanceDynamic::Create(Base, this);
 	DarkTintDMI = UMaterialInstanceDynamic::Create(Base, this);
-	LightTintDMI->SetVectorParameterValue(TEXT("Color"), LightSquareColor);
-	DarkTintDMI->SetVectorParameterValue(TEXT("Color"), DarkSquareColor);
+	LightTintDMI->SetVectorParameterValue(TEXT("Color"), ClampTutorialBoardColor(LightSquareColor, true));
+	DarkTintDMI->SetVectorParameterValue(TEXT("Color"), ClampTutorialBoardColor(DarkSquareColor, false));
 }
 
 void ATutorialBoard::AutoLoadMaterials()
@@ -156,13 +222,13 @@ void ATutorialBoard::HighlightSquare(int32 File, int32 Rank, UMaterialInterface*
 void ATutorialBoard::SelectSquare(int32 File, int32 Rank)
 {
 	ClearHighlights();
-	HighlightSquare(File, Rank, SelectionMaterial);
+	HighlightSquare(File, Rank, SelectionDMI ? static_cast<UMaterialInterface*>(SelectionDMI) : SelectionMaterial);
 }
 
 void ATutorialBoard::ShowLegalMoves(const TArray<FIntPoint>& Squares)
 {
 	for (const FIntPoint& Sq : Squares)
-		HighlightSquare(Sq.X, Sq.Y, LegalMoveMaterial);
+		HighlightSquare(Sq.X, Sq.Y, LegalMoveDMI ? static_cast<UMaterialInterface*>(LegalMoveDMI) : LegalMoveMaterial);
 }
 
 void ATutorialBoard::TintSquare(int32 File, int32 Rank, FLinearColor Color)

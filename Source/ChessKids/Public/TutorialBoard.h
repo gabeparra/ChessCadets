@@ -16,6 +16,7 @@ class CHESSKIDS_API ATutorialBoard : public AActor
 public:
 	ATutorialBoard();
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Board")
 	int32 NumFiles = 4;
@@ -96,10 +97,13 @@ private:
 	UPROPERTY() TArray<UStaticMeshComponent*> HighlightMeshes;
 	UPROPERTY() UMaterialInstanceDynamic* LightTintDMI = nullptr;
 	UPROPERTY() UMaterialInstanceDynamic* DarkTintDMI = nullptr;
+	UPROPERTY() UMaterialInstanceDynamic* LegalMoveDMI = nullptr;
+	UPROPERTY() UMaterialInstanceDynamic* SelectionDMI = nullptr;
 
 	void BuildBoard();
 	void EnsureTintDMIs();
 	void AutoLoadMaterials();
+	void UpdateHighlightContrastColor();
 	UStaticMeshComponent* GetHighlightMesh(int32 File, int32 Rank) const;
 	int32 GridIndex(int32 File, int32 Rank) const;
 };

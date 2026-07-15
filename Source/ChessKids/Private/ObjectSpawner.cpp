@@ -18,17 +18,17 @@ void AObjectSpawner::BeginPlay()
 	SpawnObjects();
 }
 
-float AObjectSpawner::FindBoardZ() const
+AActor* AObjectSpawner::FindBoard() const
 {
 	if (UWorld* World = GetWorld())
 	{
 		for (TActorIterator<AActor> It(World); It; ++It)
 		{
 			if (It->GetClass()->GetName().Contains(TEXT("Board")))
-				return It->GetActorLocation().Z;
+				return *It;
 		}
 	}
-	return 0.f;
+	return nullptr;
 }
 
 void AObjectSpawner::SpawnObjects()
@@ -47,12 +47,15 @@ void AObjectSpawner::SpawnObjects()
 	}
 
 	const FVector ActorOrigin = GetActorLocation();
-	const FVector BoardCentre = FVector::ZeroVector; // board is at world origin
 
-	// Object/traffic spawns are placed relative to the board so they always sit under it.
-	// Vegetation (no actor override) keeps sitting on the traced ground.
+	// The rule: nothing ever spawns on/over the board. Use the board's REAL position
+	// (not an assumed world origin) for the exclusion zone, keep it out of the ground
+	// trace so meshes can't land on its surface, and place actor-spawns (traffic)
+	// a fixed clearance under it.
+	AActor* Board = FindBoard();
+	const FVector BoardCentre = Board ? Board->GetActorLocation() : FVector::ZeroVector;
 	const bool bBoardRelative = (SpawnActorClassOverride != nullptr);
-	const float ObjectZ = FindBoardZ() - ClearanceBelowBoard;
+	const float ObjectZ = BoardCentre.Z - ClearanceBelowBoard;
 
 	for (const FObjectSpawnEntry& Entry : SpawnEntries)
 	{
@@ -80,7 +83,7 @@ void AObjectSpawner::SpawnObjects()
 
 			FVector SpawnLocation;
 			FRotator SpawnRotation;
-			if (!TryGetGroundLocation(ActorOrigin, SpawnRadius, SpawnLocation, SpawnRotation))
+			if (!TryGetGroundLocation(ActorOrigin, SpawnRadius, Board, SpawnLocation, SpawnRotation))
 				continue;
 
 			// Never spawn on the board footprint.
@@ -141,7 +144,8 @@ void AObjectSpawner::ClearSpawnedObjects()
 	SpawnedHISMs.Empty();
 }
 
-bool AObjectSpawner::TryGetGroundLocation(const FVector& Origin, float Radius, FVector& OutLocation, FRotator& OutRotation) const
+bool AObjectSpawner::TryGetGroundLocation(const FVector& Origin, float Radius, AActor* IgnoreActor,
+                                          FVector& OutLocation, FRotator& OutRotation) const
 {
 	UWorld* World = GetWorld();
 	if (!World) return false;
@@ -155,6 +159,10 @@ bool AObjectSpawner::TryGetGroundLocation(const FVector& Origin, float Radius, F
 	FHitResult Hit;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
+	// Never treat the chess board as "ground" — a trace that lands on the board's
+	// surface would otherwise scatter props on top of it.
+	if (IgnoreActor)
+		QueryParams.AddIgnoredActor(IgnoreActor);
 
 	if (World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
 	{

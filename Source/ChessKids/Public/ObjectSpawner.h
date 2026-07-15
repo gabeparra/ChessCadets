@@ -71,7 +71,7 @@ public:
 	// height at runtime, so this works on any level regardless of how high the board
 	// floats — objects can never end up over/on the board.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Spawner")
-	float ClearanceBelowBoard = 350.f;
+	float ClearanceBelowBoard = 800.f;
 
 	// Ground vegetation only (no actor override): vertical offset above the traced ground.
 	// Ignored for board-relative object spawns.
@@ -91,9 +91,10 @@ private:
 	UPROPERTY()
 	TArray<UHierarchicalInstancedStaticMeshComponent*> SpawnedHISMs;
 
-	bool TryGetGroundLocation(const FVector& Origin, float Radius, FVector& OutLocation, FRotator& OutRotation) const;
+	bool TryGetGroundLocation(const FVector& Origin, float Radius, AActor* IgnoreActor,
+	                          FVector& OutLocation, FRotator& OutRotation) const;
 
-	// Height of the level's board (ChessBoard or TutorialBoard), found by class name so
-	// this class stays decoupled from either board type. 0 if no board is present.
-	float FindBoardZ() const;
+	// The level's board (ChessBoard or TutorialBoard), found by class name so this
+	// class stays decoupled from either board type. Null if no board is present.
+	AActor* FindBoard() const;
 };
