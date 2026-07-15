@@ -1,5 +1,6 @@
 #include "ChessManager.h"
 #include "ChessBoard.h"
+#include "FireworkShow.h"
 #include "ChessPiece.h"
 #include "ChessKidsGameInstance.h"
 #include "Async/Async.h"
@@ -712,6 +713,17 @@ void AChessManager::CheckGameOver()
 			if (Winner == TEXT("white") && !bTwoPlayerMode)
 				if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
 					GI->NotifyStoryVictory(GetWorld()->GetMapName());
+
+			// Beating AXIOM is the end of the story — celebrate with a firework show
+			// above the board (the HUD adds the "thank you for playing" message).
+			if (Winner == TEXT("white") && !bTwoPlayerMode
+				&& GetWorld()->GetMapName().Contains(TEXT("Axiom")) && Board)
+			{
+				FActorSpawnParameters FxParams;
+				FxParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				GetWorld()->SpawnActor<AFireworkShow>(AFireworkShow::StaticClass(),
+					Board->GetBoardCenter() + FVector(0.f, 0.f, 400.f), FRotator::ZeroRotator, FxParams);
+			}
 
 			OnGameOver.Broadcast(Winner);
 		}

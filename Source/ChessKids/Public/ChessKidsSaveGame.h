@@ -33,4 +33,9 @@ public:
 	// whenever the pause-menu slider changes it.
 	UPROPERTY()
 	float MasterVolume = 1.f;
+
+	// Board camera zoom, 0..1 (0 = level default distance, 1 = closest). Read by
+	// AChessCamera to shorten its spring-arm; set by the settings slider.
+	UPROPERTY()
+	float BoardZoom = 0.f;
 };

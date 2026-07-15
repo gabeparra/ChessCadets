@@ -68,6 +68,20 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			HRS->SetAutoSize(true);
 		}
 
+		// Invalid-move warning — center screen, red/orange, hidden until a bad click.
+		WarningText = WidgetTree->ConstructWidget<UTextBlock>();
+		WarningText->SetJustification(ETextJustify::Center);
+		WarningText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 26));
+		WarningText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.35f, 0.15f)));
+		WarningText->SetVisibility(ESlateVisibility::Hidden);
+		if (UCanvasPanelSlot* WS = Root->AddChildToCanvas(WarningText))
+		{
+			WS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			WS->SetAlignment(FVector2D(0.5f, 0.5f));
+			WS->SetPosition(FVector2D(0.f, -120.f));
+			WS->SetAutoSize(true);
+		}
+
 		// Captured-piece trays — top corners.
 		auto MakeTray = [&](UTextBlock*& OutText, float AnchorX, float AlignX, float PosX)
 		{
@@ -346,8 +360,13 @@ void UChessHudWidget::HandleGameOver(FString Result)
 	if (GameOverText)
 	{
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();
+		const bool bAxiomFinale = !bTwoPlayer && GetWorld()
+			&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
 		FString Msg;
-		if (Result == TEXT("white"))      Msg = bTwoPlayer ? TEXT("P1 wins! Great game!") : TEXT("You win! Amazing game!");
+		if (Result == TEXT("white"))
+			Msg = bTwoPlayer ? TEXT("P1 wins! Great game!")
+			    : bAxiomFinale ? TEXT("AXIOM is defeated — Neo City is free!\nTHANK YOU FOR PLAYING!")
+			    : TEXT("You win! Amazing game!");
 		else if (Result == TEXT("black")) Msg = bTwoPlayer ? TEXT("P2 wins! Great game!") : TEXT("Good try! You'll get the robot next time!");
 		else                              Msg = TEXT("It's a draw — what a battle!");
 		GameOverText->SetText(FText::FromString(Msg));
@@ -373,6 +392,24 @@ void UChessHudWidget::HandleGameOver(FString Result)
 				if (W != Self && W->GetClass()->GetName().StartsWith(TEXT("WBP_GameOver")))
 					W->RemoveFromParent();
 		});
+	}
+}
+
+void UChessHudWidget::ShowWarning(const FString& Message)
+{
+	if (!WarningText) return;
+	WarningText->SetText(FText::FromString(Message));
+	WarningText->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (UWorld* World = GetWorld())
+	{
+		TWeakObjectPtr<UChessHudWidget> WeakThis(this);
+		World->GetTimerManager().SetTimer(WarningHideTimer, [WeakThis]()
+		{
+			if (UChessHudWidget* Self = WeakThis.Get())
+				if (Self->WarningText)
+					Self->WarningText->SetVisibility(ESlateVisibility::Hidden);
+		}, 1.6f, false);
 	}
 }
 

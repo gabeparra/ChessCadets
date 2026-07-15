@@ -211,6 +211,12 @@ void ATutorialBoard::ClearHighlights()
 		if (IsValid(Hl)) Hl->SetVisibility(false);
 }
 
+void ATutorialBoard::RebuildBoard()
+{
+	BuildBoard();
+	UpdateHighlightContrastColor();
+}
+
 void ATutorialBoard::HighlightSquare(int32 File, int32 Rank, UMaterialInterface* Material)
 {
 	UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);

@@ -4,6 +4,7 @@
 #include "ChessPieceSkinRegistry.h"
 #include "Materials/MaterialInterface.h"
 #include "Kismet/GameplayStatics.h"
+#include "ChessCamera.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Misc/PackageName.h"
 #include "Engine/Engine.h"
@@ -144,6 +145,25 @@ void UChessKidsGameInstance::SetMasterVolume(float Volume)
 		SaveProgress();
 	}
 	ApplyMasterVolume();
+}
+
+float UChessKidsGameInstance::GetBoardZoom() const
+{
+	return Progress ? FMath::Clamp(Progress->BoardZoom, 0.f, 1.f) : 0.f;
+}
+
+void UChessKidsGameInstance::SetBoardZoom(float Zoom01)
+{
+	Zoom01 = FMath::Clamp(Zoom01, 0.f, 1.f);
+	if (Progress)
+	{
+		Progress->BoardZoom = Zoom01;
+		SaveProgress();
+	}
+	// Re-frame any live camera immediately so the slider feels responsive.
+	if (AChessCamera* Cam = Cast<AChessCamera>(
+			UGameplayStatics::GetActorOfClass(this, AChessCamera::StaticClass())))
+		Cam->RefreshFraming();
 }
 
 void UChessKidsGameInstance::ApplyMasterVolume() const

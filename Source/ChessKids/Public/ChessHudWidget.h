@@ -28,6 +28,7 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* TurnText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* CheckText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* HintResultText;   // "Hint: e2 → e4"
+	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WarningText;      // "This is not a valid move"
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WhiteCapturedText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* BlackCapturedText;
 	UPROPERTY(meta = (BindWidgetOptional)) UVerticalBox* GameOverPanel;
@@ -51,6 +52,12 @@ protected:
 
 	UFUNCTION() void HandleGameOver(FString Result);
 	UFUNCTION() void HandleHintReady(FString FromSquare, FString ToSquare);
+
+public:
+	// Flash a transient warning (e.g. "This is not a valid move") that fades on its own.
+	// Public so the player controller can call it on a rejected move.
+	UFUNCTION(BlueprintCallable, Category = "Chess|HUD") void ShowWarning(const FString& Message);
+protected:
 	UFUNCTION() void OnPlayAgainClicked();
 	UFUNCTION() void OnMainMenuClicked();
 	UFUNCTION() void OnWhiteColorChanged(float Value);
@@ -69,5 +76,6 @@ private:
 	AChessPlayerController* GetChessPC() const;
 
 	FTimerHandle HintHideTimer;
+	FTimerHandle WarningHideTimer;
 	int32 LastPositionVersion = -1;   // gates the captured-tray board scan to actual moves
 };

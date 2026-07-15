@@ -139,6 +139,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Audio")
 	float GetMasterVolume() const;
 
+	// Board zoom (0 = level default framing, 1 = as close as allowed). Persisted; the
+	// ChessCamera reads GetBoardZoom() to shorten its arm. The settings slider calls
+	// SetBoardZoom.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Camera")
+	void SetBoardZoom(float Zoom01);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Camera")
+	float GetBoardZoom() const;
+
 private:
 	void ApplyMasterVolume() const;
 

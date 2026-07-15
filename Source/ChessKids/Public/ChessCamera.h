@@ -40,6 +40,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float Yaw = -90.f;
 
+	// At board-zoom = 1 the spring arm shrinks to this fraction of ArmLength (closest).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (ClampMin = "0.3", ClampMax = "1.0"))
+	float MinZoomArmFraction = 0.55f;
+
+	// Re-apply framing (e.g. after the settings zoom slider changes GetBoardZoom()).
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void RefreshFraming() { ApplyView(); }
+
 private:
 	void ApplyView();
 };

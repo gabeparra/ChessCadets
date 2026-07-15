@@ -130,6 +130,26 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 			VSS->SetPadding(FMargin(36.f, 2.f, 36.f, 10.f));
 			VSS->SetHorizontalAlignment(HAlign_Fill);
 		}
+
+		// Board zoom: label + slider (0 = default distance, 1 = closest). Persisted.
+		ZoomLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		ZoomLabel->SetText(FText::FromString(TEXT("Board Zoom")));
+		ZoomLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+		ZoomLabel->SetJustification(ETextJustify::Center);
+		if (UVerticalBoxSlot* ZLS = Box->AddChildToVerticalBox(ZoomLabel))
+		{
+			ZLS->SetPadding(FMargin(16.f, 6.f, 16.f, 4.f));
+			ZLS->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		ZoomSlider = WidgetTree->ConstructWidget<USlider>();
+		ZoomSlider->SetMinValue(0.f);
+		ZoomSlider->SetMaxValue(1.f);
+		if (UVerticalBoxSlot* ZSS = Box->AddChildToVerticalBox(ZoomSlider))
+		{
+			ZSS->SetPadding(FMargin(36.f, 2.f, 36.f, 10.f));
+			ZSS->SetHorizontalAlignment(HAlign_Fill);
+		}
 	}
 
 	return Super::RebuildWidget();
@@ -157,6 +177,13 @@ void UPauseMenuWidget::NativeConstruct()
 		// Show the saved level without firing OnValueChanged.
 		if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
 			VolumeSlider->SetValue(GI->GetMasterVolume());
+	}
+
+	if (ZoomSlider)
+	{
+		ZoomSlider->OnValueChanged.AddUniqueDynamic(this, &UPauseMenuWidget::OnZoomChanged);
+		if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+			ZoomSlider->SetValue(GI->GetBoardZoom());
 	}
 
 	RefreshDifficultyLabel();
@@ -325,6 +352,13 @@ void UPauseMenuWidget::OnVolumeChanged(float Value)
 	// Applies to the audio device live and persists it — survives level changes and restarts.
 	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
 		GI->SetMasterVolume(Value);
+}
+
+void UPauseMenuWidget::OnZoomChanged(float Value)
+{
+	// Re-frames the live camera closer/farther and persists the choice.
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(Value);
 }
 
 void UPauseMenuWidget::RefreshTwoPlayerButton()

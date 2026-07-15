@@ -60,6 +60,13 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	USlider* VolumeSlider;
 
+	// Board zoom slider (0 = default distance, 1 = closest); persists via the GameInstance.
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* ZoomLabel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	USlider* ZoomSlider;
+
 	// Optional settings panel opened by the Settings button (WBP_Settings).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pause")
 	TSubclassOf<UUserWidget> SettingsWidgetClass;
@@ -74,6 +81,7 @@ protected:
 	UFUNCTION() void OnHardClicked();
 	UFUNCTION() void OnTwoPlayerClicked();
 	UFUNCTION() void OnVolumeChanged(float Value);
+	UFUNCTION() void OnZoomChanged(float Value);
 
 private:
 	UPROPERTY()

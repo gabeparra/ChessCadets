@@ -280,6 +280,11 @@ void AChessPlayerController::OnSelect()
 		{
 			TriggerDelayedAIMove();
 		}
+		else if (!bSuccess)   // clicked a square the piece can't reach — tell the player why
+		{
+			if (UChessHudWidget* Hud = Cast<UChessHudWidget>(HudInstance))
+				Hud->ShowWarning(TEXT("This is not a valid move"));
+		}
 	}
 }
 

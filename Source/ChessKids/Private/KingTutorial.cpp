@@ -82,6 +82,14 @@ void AKingTutorial::SetupRecap()
 {
 	RecapIndex = 0;
 	bPhaseTransitionPending = true; // no clicking during the parade
+
+	// The player's King (from the maze phase) must leave the board — the parade is
+	// about the FRIENDS. (SetupPhase already cleared targets/enemies/walls.) Rebuild
+	// the board so the maze's red danger tints are wiped for a clean stage.
+	if (PlayerPiece) { PlayerPiece->Destroy(); PlayerPiece = nullptr; }
+	DangerSquares.Empty();
+	if (Board) { Board->ClearHighlights(); Board->RebuildBoard(); }
+
 	ShowGuideMessage(TEXT("Your friends are here! One last look at how everyone moves..."));
 	GetWorldTimerManager().SetTimer(RecapTimer, this, &AKingTutorial::ShowNextRecapPiece, RecapIntroSeconds, false);
 }

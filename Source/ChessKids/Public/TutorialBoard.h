@@ -79,6 +79,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tutorial|Board")
 	void ClearHighlights();
 
+	// Rebuild all squares — wipes any runtime TintSquare/DisableSquare recoloring
+	// back to the clean light/dark pattern.
+	UFUNCTION(BlueprintCallable, Category = "Tutorial|Board")
+	void RebuildBoard();
+
 	// Recolor a board square at runtime (e.g. darken unreachable squares, paint visited ones)
 	UFUNCTION(BlueprintCallable, Category = "Tutorial|Board")
 	void TintSquare(int32 File, int32 Rank, FLinearColor Color);
