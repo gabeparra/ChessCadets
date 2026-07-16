@@ -153,6 +153,22 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			CustS->SetAutoSize(true);
 		}
 
+		// Hint — bottom right, just above Customization. Kids won't find the H key.
+		HintButton = WidgetTree->ConstructWidget<UButton>();
+		UTextBlock* HintLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		HintLabel->SetText(FText::FromString(TEXT("Hint")));
+		HintLabel->SetJustification(ETextJustify::Center);
+		HintLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
+		HintLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		HintButton->AddChild(HintLabel);
+		if (UCanvasPanelSlot* HintS = Root->AddChildToCanvas(HintButton))
+		{
+			HintS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+			HintS->SetAlignment(FVector2D(1.f, 1.f));
+			HintS->SetPosition(FVector2D(-24.f, -58.f));   // stacked above Customization
+			HintS->SetAutoSize(true);
+		}
+
 		// Game-over overlay — centered, hidden until OnGameOver.
 		GameOverPanel = WidgetTree->ConstructWidget<UVerticalBox>();
 		GameOverPanel->SetVisibility(ESlateVisibility::Hidden);
@@ -249,6 +265,7 @@ void UChessHudWidget::NativeConstruct()
 	if (PlayAgainButton) PlayAgainButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnPlayAgainClicked);
 	if (MainMenuButton)  MainMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnMainMenuClicked);
 	if (CustomizationButton) CustomizationButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnCustomizationClicked);
+	if (HintButton) HintButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHintClicked);
 	if (SkinUnlockOkButton) SkinUnlockOkButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnSkinUnlockOkClicked);
 
 	if (AChessPlayerController* PC = GetChessPC())
@@ -311,6 +328,14 @@ void UChessHudWidget::ApplyBoardColors()
 
 void UChessHudWidget::OnWhiteColorChanged(float Value) { ApplyBoardColors(); }
 void UChessHudWidget::OnBlackColorChanged(float Value) { ApplyBoardColors(); }
+
+void UChessHudWidget::OnHintClicked()
+{
+	// Route through the controller so its guards apply (no hint on the robot's turn,
+	// while paused, or after the game is over).
+	if (AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer()))
+		PC->RequestHint();
+}
 
 void UChessHudWidget::OnCustomizationClicked()
 {

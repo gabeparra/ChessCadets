@@ -51,6 +51,10 @@ protected:
 	// needing to pause first.
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* CustomizationButton;
 
+	// Bottom-right, above Customization — asks the engine for a suggested move
+	// (kids won't discover the H-key shortcut on their own).
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HintButton;
+
 	// Optional styled skins panel; falls back to the C++ UPieceSkinsMenuWidget.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|HUD")
 	TSubclassOf<UUserWidget> SkinsWidgetClass;
@@ -74,6 +78,7 @@ protected:
 	UFUNCTION() void OnWhiteColorChanged(float Value);
 	UFUNCTION() void OnBlackColorChanged(float Value);
 	UFUNCTION() void OnCustomizationClicked();
+	UFUNCTION() void OnHintClicked();
 	UFUNCTION() void HandleSkinUnlocked(FName SkinId);
 	UFUNCTION() void OnSkinUnlockOkClicked();
 
