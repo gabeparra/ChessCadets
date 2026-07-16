@@ -34,9 +34,6 @@ void UMainMenuWidget::NativeConstruct()
 
 	if (quitButton)      quitButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnQuit);
 
-	UE_LOG(LogTemp, Warning, TEXT("[SkinsButtonDebug] NativeConstruct: skinsButton bound=%s"),
-		skinsButton ? TEXT("YES") : TEXT("NO (null — BindWidgetOptional didn't find a match)"));
-
 	// Duplicated from quitButton in the WBP, so it may have inherited Quit's own
 	// click binding along with its style — Clear() first so it only ever opens Skins.
 	if (skinsButton)
@@ -138,26 +135,11 @@ void UMainMenuWidget::OnSettings()
 void UMainMenuWidget::OnSkins()
 {
 	UClass* Cls = SkinsWidgetClass ? SkinsWidgetClass.Get() : UPieceSkinsMenuWidget::StaticClass();
-	UE_LOG(LogTemp, Warning, TEXT("[SkinsButtonDebug] OnSkins() called. SkinsWidgetClass=%s Cls=%s"),
-		SkinsWidgetClass ? *SkinsWidgetClass->GetName() : TEXT("NULL"), Cls ? *Cls->GetName() : TEXT("NULL"));
 	if (!Cls) return;
 	if (!SkinsInstance)
-	{
 		SkinsInstance = CreateWidget<UUserWidget>(GetOwningPlayer(), Cls);
-		UE_LOG(LogTemp, Warning, TEXT("[SkinsButtonDebug] CreateWidget result: %s"),
-			SkinsInstance ? TEXT("valid") : TEXT("NULL"));
-	}
 	if (SkinsInstance && !SkinsInstance->IsInViewport())
-	{
 		SkinsInstance->AddToViewport(100);
-		UE_LOG(LogTemp, Warning, TEXT("[SkinsButtonDebug] AddToViewport called. IsInViewport=%d"),
-			SkinsInstance->IsInViewport());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[SkinsButtonDebug] Skipped AddToViewport — SkinsInstance=%s IsInViewport=%d"),
-			SkinsInstance ? TEXT("valid") : TEXT("NULL"), SkinsInstance ? SkinsInstance->IsInViewport() : -1);
-	}
 }
 
 void UMainMenuWidget::OnLearn()
