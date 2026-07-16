@@ -691,15 +691,74 @@ void AChessManager::OnBestMoveFound(int BestMove)
 	CheckGameOver();
 }
 
+bool AChessManager::SideHasOnlyKing(int Color) const
+{
+	if (!Engine) return false;
+	const auto& P = Engine->Position;
+	return pulse::bitboard::size(P.pieces[Color][pulse::piecetype::PAWN])   == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::KNIGHT]) == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::BISHOP]) == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::ROOK])   == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::QUEEN])  == 0;
+}
+
+void AChessManager::AwardStoryWin()
+{
+	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+	if (!GI) return;
+
+	// Advance the story ladder (no-op outside the tutorial maps).
+	GI->NotifyStoryVictory(GetWorld()->GetMapName());
+
+	// AXIOM is King's chapter reward, but it's a real chess match (this class) rather
+	// than a scripted tutorial phase, so it hooks the skin-reward system directly and
+	// fires the end-of-game firework show.
+	if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+	{
+		const FName UnlockedSkin = GI->UnlockSkinForTutorial(EChessPieceType::King);
+		if (!UnlockedSkin.IsNone())
+			OnSkinUnlocked.Broadcast(UnlockedSkin);
+
+		if (Board)
+		{
+			FActorSpawnParameters FxParams;
+			FxParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			GetWorld()->SpawnActor<AFireworkShow>(AFireworkShow::StaticClass(),
+				Board->GetBoardCenter() + FVector(0.f, 0.f, 400.f), FRotator::ZeroRotator, FxParams);
+		}
+	}
+}
+
 void AChessManager::CheckGameOver()
 {
 	if (!Engine) return;
 	if (bGameOver) return;
 
+	// "I know you won" mercy rule (vs AI): the moment the robot is reduced to a bare
+	// king and the player still has mating material, award the win — no grinding out
+	// the exact checkmate, no technical draw stealing a clearly-won game.
+	if (!bTwoPlayerMode)
+	{
+		const int AICol = (PlayerColor == EChessColor::White) ? pulse::color::BLACK : pulse::color::WHITE;
+		if (SideHasOnlyKing(AICol) && !Engine->Position.hasInsufficientMaterial())
+		{
+			bGameOver = true;
+			PlaySfx(WinSound);
+			AwardStoryWin();
+			OnGameOver.Broadcast(PlayerColor == EChessColor::White ? TEXT("white") : TEXT("black"));
+			return;
+		}
+	}
 
 	pulse::MoveGenerator Gen;
 	auto& LegalMoves = Gen.getLegalMoves(
 		Engine->Position, 1, Engine->Position.isCheck());
+
+	// The AXIOM finale is designed to be won — a stalemate or technical draw there
+	// still awards the kid the victory (fireworks, King skin, thank-you) rather than
+	// robbing them of the ending with a tie.
+	const bool bAxiomFinale = !bTwoPlayerMode
+		&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
 
 	if (LegalMoves.size == 0)
 	{
@@ -709,39 +768,16 @@ void AChessManager::CheckGameOver()
 				? TEXT("black") : TEXT("white");
 			bGameOver = true;
 			PlaySfx(Winner == TEXT("white") ? WinSound : LoseSound);
-
-			// Story progression: beating the robot in a story arena unlocks the next chapter.
 			if (Winner == TEXT("white") && !bTwoPlayerMode)
-			{
-				if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
-				{
-					GI->NotifyStoryVictory(GetWorld()->GetMapName());
-
-					// AXIOM is King's tutorial chapter reward, but it's a real chess
-					// match (via this class) rather than a scripted tutorial phase, so
-					// it needs its own hook into the same skin-reward system.
-					if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
-					{
-						const FName UnlockedSkin = GI->UnlockSkinForTutorial(EChessPieceType::King);
-						if (!UnlockedSkin.IsNone())
-						{
-							OnSkinUnlocked.Broadcast(UnlockedSkin);
-						}
-
-						// End of the story — celebrate with a firework show above the
-						// board (the HUD adds the "thank you for playing" message).
-						if (Board)
-						{
-							FActorSpawnParameters FxParams;
-							FxParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-							GetWorld()->SpawnActor<AFireworkShow>(AFireworkShow::StaticClass(),
-								Board->GetBoardCenter() + FVector(0.f, 0.f, 400.f), FRotator::ZeroRotator, FxParams);
-						}
-					}
-				}
-			}
-
+				AwardStoryWin();
 			OnGameOver.Broadcast(Winner);
+		}
+		else if (bAxiomFinale)   // stalemate on the finale — still the player's win
+		{
+			bGameOver = true;
+			PlaySfx(WinSound);
+			AwardStoryWin();
+			OnGameOver.Broadcast(TEXT("white"));
 		}
 		else
 		{
@@ -760,8 +796,17 @@ void AChessManager::CheckGameOver()
 		|| Engine->Position.hasInsufficientMaterial())
 	{
 		bGameOver = true;
-		PlaySfx(DrawSound);
-		OnGameOver.Broadcast(TEXT("draw"));
+		if (bAxiomFinale)   // technical draw on the finale — still the player's win
+		{
+			PlaySfx(WinSound);
+			AwardStoryWin();
+			OnGameOver.Broadcast(TEXT("white"));
+		}
+		else
+		{
+			PlaySfx(DrawSound);
+			OnGameOver.Broadcast(TEXT("draw"));
+		}
 		return;
 	}
 
