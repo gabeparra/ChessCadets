@@ -219,6 +219,13 @@ public:
 	// against a bright custom skin. This guarantees a real black piece regardless.
 	const FPieceMeshConfig& GetBlackRivalMeshConfig();
 
+	// Same idea for a friendly/player-team piece whose type isn't the one PieceMeshes
+	// happens to be configured for (PieceMeshes is realistically only ever populated
+	// for TaughtPiece) — e.g. the helper rooks in the checkmate tutorial's ladder-mate
+	// phase, which are never TaughtPiece (King). Guarantees a real white piece instead
+	// of an unstyled default mesh.
+	const FPieceMeshConfig& GetWhitePieceMeshConfig();
+
 protected:
 	UPROPERTY() TMap<int32, AChessPiece*> TargetActors;
 	UPROPERTY() TMap<int32, AChessPiece*> EnemyActors;
@@ -228,6 +235,7 @@ protected:
 
 	int32 PackPos(int32 File, int32 Rank) const;
 
-	// Lazily loaded/cached by GetBlackRivalMeshConfig().
+	// Lazily loaded/cached by GetBlackRivalMeshConfig() / GetWhitePieceMeshConfig().
 	UPROPERTY() FPieceMeshConfig BlackRivalMeshConfig;
+	UPROPERTY() FPieceMeshConfig WhitePieceMeshConfig;
 };

@@ -125,11 +125,11 @@ public:
 	void UnlockPieceSkin(FName SkinId);
 
 	// Unlocks whichever skin (if any) has bUnlockedByTutorial set with
-	// TutorialUnlockPiece == Piece. Returns that skin's id, or NAME_None if there's no
-	// such skin or it was already unlocked before this call — callers use that to
-	// decide whether to show a "new skin!" popup.
+	// TutorialUnlockLessonIndex == LessonIndex. Returns that skin's id, or NAME_None
+	// if there's no such skin or it was already unlocked before this call — callers
+	// use that to decide whether to show a "new skin!" popup.
 	UFUNCTION(BlueprintCallable, Category = "Chess|Skins")
-	FName UnlockSkinForTutorial(EChessPieceType Piece);
+	FName UnlockSkinForTutorial(int32 LessonIndex);
 
 	// Equips SkinId (NAME_None = revert to the piece's default look). Fails (returns
 	// false, no state change) if SkinId is set but not unlocked.

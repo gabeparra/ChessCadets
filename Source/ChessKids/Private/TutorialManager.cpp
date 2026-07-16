@@ -216,6 +216,16 @@ const FPieceMeshConfig& ATutorialManager::GetBlackRivalMeshConfig()
 	return BlackRivalMeshConfig;
 }
 
+const FPieceMeshConfig& ATutorialManager::GetWhitePieceMeshConfig()
+{
+	if (!WhitePieceMeshConfig.MaterialOverride)
+	{
+		WhitePieceMeshConfig.MaterialOverride = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Materials/Pieces/WhitePiece.WhitePiece"));
+	}
+	return WhitePieceMeshConfig;
+}
+
 TArray<FIntPoint> ATutorialManager::GetLegalMoves() const
 {
 	TArray<FIntPoint> Moves;
@@ -550,8 +560,10 @@ void ATutorialManager::GrantBossVictoryRewards()
 	GI->NotifyStoryVictory(GetWorld()->GetMapName());
 
 	// Grant this tutorial's configured skin reward, if any (and it isn't already
-	// owned from a previous playthrough) — the HUD shows a popup.
-	const FName UnlockedSkin = GI->UnlockSkinForTutorial(TaughtPiece);
+	// owned from a previous playthrough) — the HUD shows a popup. Same Lesson index
+	// as the completion tracking above, so any tutorial (piece-focused or a concept
+	// lesson like Checkmate) can have a skin tied to it without a code change.
+	const FName UnlockedSkin = GI->UnlockSkinForTutorial(Lesson);
 	if (!UnlockedSkin.IsNone())
 	{
 		OnSkinUnlocked.Broadcast(UnlockedSkin);

@@ -146,7 +146,15 @@ void ACheckmateTutorial::PlaceWhite(EChessPieceType Type, int32 File, int32 Rank
 	P.Actor = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(),
 		Board->GridToWorldLocation(File, Rank, 5.f), FRotator::ZeroRotator, Params);
 	if (P.Actor)
-		P.Actor->Init(Type, EChessColor::White, File, Rank, PieceMeshes.Find(Type));
+	{
+		// PieceMeshes is realistically only ever configured for TaughtPiece (King
+		// here), but PlaceWhite spawns Rooks/Queens/etc. — never a King — so
+		// PieceMeshes.Find(Type) is null for essentially every call. Fall back to a
+		// guaranteed real white piece instead of an unstyled default mesh.
+		const FPieceMeshConfig* Config = PieceMeshes.Find(Type);
+		if (!Config) Config = &GetWhitePieceMeshConfig();
+		P.Actor->Init(Type, EChessColor::White, File, Rank, Config);
+	}
 
 	WhitePieces.Add(P);
 }
