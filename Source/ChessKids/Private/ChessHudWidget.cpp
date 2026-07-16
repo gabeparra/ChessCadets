@@ -304,8 +304,11 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 				BS->SetHorizontalAlignment(HAlign_Center);
 		}
 
-		// Game-over overlay — centered, hidden until OnGameOver.
-		GameOverPanel = WidgetTree->ConstructWidget<UVerticalBox>();
+		// Game-over overlay — centered, hidden until OnGameOver. Dark backing
+		// panel so the text reads over any arena, matching the intro/help cards.
+		GameOverPanel = WidgetTree->ConstructWidget<UBorder>();
+		GameOverPanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
+		GameOverPanel->SetPadding(FMargin(48.f, 36.f));
 		GameOverPanel->SetVisibility(ESlateVisibility::Hidden);
 		if (UCanvasPanelSlot* GS = Root->AddChildToCanvas(GameOverPanel))
 		{
@@ -313,12 +316,14 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			GS->SetAlignment(FVector2D(0.5f, 0.5f));
 			GS->SetAutoSize(true);
 		}
+		UVerticalBox* GameOverColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		GameOverPanel->AddChild(GameOverColumn);
 
 		GameOverText = WidgetTree->ConstructWidget<UTextBlock>();
 		GameOverText->SetJustification(ETextJustify::Center);
 		GameOverText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 32));
 		GameOverText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.9f, 0.3f)));
-		if (UVerticalBoxSlot* GTS = GameOverPanel->AddChildToVerticalBox(GameOverText))
+		if (UVerticalBoxSlot* GTS = GameOverColumn->AddChildToVerticalBox(GameOverText))
 		{
 			GTS->SetPadding(FMargin(24.f, 16.f));
 			GTS->SetHorizontalAlignment(HAlign_Center);
@@ -331,7 +336,7 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			T->SetText(FText::FromString(Label));
 			T->SetJustification(ETextJustify::Center);
 			OutBtn->AddChild(T);
-			if (UVerticalBoxSlot* BS = GameOverPanel->AddChildToVerticalBox(OutBtn))
+			if (UVerticalBoxSlot* BS = GameOverColumn->AddChildToVerticalBox(OutBtn))
 			{
 				BS->SetPadding(FMargin(32.f, 8.f));
 				BS->SetHorizontalAlignment(HAlign_Fill);
