@@ -345,17 +345,17 @@ void UChessKidsGameInstance::UnlockPieceSkin(FName SkinId)
 	SaveSkinState();
 }
 
-FName UChessKidsGameInstance::UnlockSkinForTutorial(EChessPieceType Piece)
+FName UChessKidsGameInstance::UnlockSkinForTutorial(int32 LessonIndex)
 {
 	UChessPieceSkinRegistry* Registry = LoadSkinRegistry();
-	if (!Registry)
+	if (!Registry || LessonIndex < 0)
 	{
 		return NAME_None;
 	}
 
 	for (const FChessPieceSkinEntry& Entry : Registry->Skins)
 	{
-		if (Entry.bUnlockedByTutorial && Entry.TutorialUnlockPiece == Piece && !Entry.SkinId.IsNone())
+		if (Entry.bUnlockedByTutorial && Entry.TutorialUnlockLessonIndex == LessonIndex && !Entry.SkinId.IsNone())
 		{
 			if (IsPieceSkinUnlocked(Entry.SkinId))
 			{

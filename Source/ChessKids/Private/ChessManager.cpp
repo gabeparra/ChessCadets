@@ -819,7 +819,11 @@ void AChessManager::AwardStoryWin()
 	// fires the end-of-game firework show.
 	if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
 	{
-		const FName UnlockedSkin = GI->UnlockSkinForTutorial(EChessPieceType::King);
+		// Lesson 5 = King (same numbering as MarkTutorialComplete/LessonIndexOverride
+		// — see FChessPieceSkinEntry::TutorialUnlockLessonIndex). Reassigning which
+		// lesson a skin rewards (e.g. to Checkmate's lesson 6 instead) is a registry
+		// edit now, not a code change.
+		const FName UnlockedSkin = GI->UnlockSkinForTutorial(5);
 		if (!UnlockedSkin.IsNone())
 			OnSkinUnlocked.Broadcast(UnlockedSkin);
 

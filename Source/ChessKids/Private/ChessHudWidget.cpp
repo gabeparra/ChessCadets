@@ -447,6 +447,20 @@ void UChessHudWidget::NativeConstruct()
 		CustomizationButton->SetVisibility(bTwoPlayer ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 	}
 
+	// Hint only makes sense once the lesson is "read the board" (king safety,
+	// checkmate patterns) rather than "how does this piece move" — restricted to
+	// King/Checkmate/AXIOM rather than shown on every arena. NativeConstruct can
+	// re-fire, so this actively sets both states each time rather than only ever
+	// collapsing it.
+	if (HintButton)
+	{
+		const FString MapName = GetWorld() ? GetWorld()->GetMapName() : FString();
+		const bool bAdvancedMap = MapName.Contains(TEXT("King"))
+			|| MapName.Contains(TEXT("Checkmate"))
+			|| MapName.Contains(TEXT("Axiom"));
+		HintButton->SetVisibility(bAdvancedMap ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
 	if (WhiteColorSlider) WhiteColorSlider->OnValueChanged.AddUniqueDynamic(this, &UChessHudWidget::OnWhiteColorChanged);
 	if (BlackColorSlider) BlackColorSlider->OnValueChanged.AddUniqueDynamic(this, &UChessHudWidget::OnBlackColorChanged);
 

@@ -149,8 +149,11 @@ void AKingTutorial::StartCPRStep()
 			FriendlyKing = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(),
 				Board->GridToWorldLocation(0, 2, 5.f), FRotator::ZeroRotator, Params);
 			if (FriendlyKing)
-				FriendlyKing->Init(EChessPieceType::King, EChessColor::White, 0, 2,
-					PieceMeshes.Find(EChessPieceType::King));
+			{
+				const FPieceMeshConfig* Config = PieceMeshes.Find(EChessPieceType::King);
+				if (!Config) Config = &GetWhitePieceMeshConfig();
+				FriendlyKing->Init(EChessPieceType::King, EChessColor::White, 0, 2, Config);
+			}
 		}
 		FriendlyKingFile = 0; FriendlyKingRank = 2;
 
@@ -344,12 +347,12 @@ void AKingTutorial::AddThreat(EChessPieceType Type, int32 File, int32 Rank)
 		Board->GridToWorldLocation(File, Rank, 5.f), FRotator::ZeroRotator, Params);
 	if (T.Actor)
 	{
-		// Same guarantee the boss rivals use: a threat whose type matches the
-		// hero's would inherit the equipped skin from PieceMeshes and stop
-		// reading as an enemy.
-		const FPieceMeshConfig* Config = (Type == TaughtPiece)
-			? &GetBlackRivalMeshConfig() : PieceMeshes.Find(Type);
-		T.Actor->Init(Type, EChessColor::Black, File, Rank, Config);
+		// Always the guaranteed-black look, not PieceMeshes.Find(Type) — TaughtPiece
+		// isn't stable here (SwitchPlayerPiece reassigns it as the hero swaps pieces
+		// through the level), so a "same type as the hero" check only ever matched by
+		// accident. PieceMeshes is realistically only ever configured for whatever
+		// piece the hero currently holds anyway, never a fixed set of threat types.
+		T.Actor->Init(Type, EChessColor::Black, File, Rank, &GetBlackRivalMeshConfig());
 	}
 
 	Threats.Add(T);
