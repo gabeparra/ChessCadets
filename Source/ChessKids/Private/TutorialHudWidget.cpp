@@ -62,6 +62,23 @@ TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 			MS->SetAutoSize(true);
 		}
 
+		// HELP button — right under MENU. Replays the current phase's
+		// instructions for kids who missed or forgot them.
+		HelpButton = WidgetTree->ConstructWidget<UButton>();
+		UTextBlock* HelpLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		HelpLabel->SetText(FText::FromString(TEXT("? HELP")));
+		HelpLabel->SetJustification(ETextJustify::Center);
+		HelpLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+		HelpLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		HelpButton->AddChild(HelpLabel);
+		if (UCanvasPanelSlot* HS = Root->AddChildToCanvas(HelpButton))
+		{
+			HS->SetAnchors(FAnchors(1.f, 0.f, 1.f, 0.f));
+			HS->SetAlignment(FVector2D(1.f, 0.f));
+			HS->SetPosition(FVector2D(-24.f, 78.f));
+			HS->SetAutoSize(true);
+		}
+
 		// Level-complete choice panel — centered, hidden until the boss falls.
 		CompletePanel = WidgetTree->ConstructWidget<UBorder>();
 		CompletePanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
@@ -152,6 +169,59 @@ TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 		SkinUnlockOkButton = MakeChoiceButton(TEXT("NICE!"));
 		if (UVerticalBoxSlot* SOS = SkinColumn->AddChildToVerticalBox(SkinUnlockOkButton))
 			SOS->SetHorizontalAlignment(HAlign_Center);
+
+		// Quick-guide popup — HELP opens it. Kids forget what the three words
+		// mean mid-level; this is the always-available cheat sheet.
+		HelpPanel = WidgetTree->ConstructWidget<UBorder>();
+		HelpPanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
+		HelpPanel->SetPadding(FMargin(40.f, 28.f));
+		HelpPanel->SetVisibility(ESlateVisibility::Collapsed);
+		if (UCanvasPanelSlot* HPS = Root->AddChildToCanvas(HelpPanel))
+		{
+			HPS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			HPS->SetAlignment(FVector2D(0.5f, 0.5f));
+			HPS->SetPosition(FVector2D(0.f, 0.f));
+			HPS->SetAutoSize(true);
+		}
+
+		UVerticalBox* HelpColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		HelpPanel->AddChild(HelpColumn);
+
+		UTextBlock* HelpTitle = WidgetTree->ConstructWidget<UTextBlock>();
+		HelpTitle->SetText(FText::FromString(TEXT("QUICK GUIDE")));
+		HelpTitle->SetJustification(ETextJustify::Center);
+		HelpTitle->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 26));
+		HelpTitle->SetColorAndOpacity(FSlateColor(FLinearColor(0.4f, 1.f, 0.8f)));
+		if (UVerticalBoxSlot* HTS = HelpColumn->AddChildToVerticalBox(HelpTitle))
+			HTS->SetPadding(FMargin(0.f, 0.f, 0.f, 18.f));
+
+		auto AddHelpLine = [this, HelpColumn](const TCHAR* Text, const FLinearColor& Color)
+		{
+			UTextBlock* Line = WidgetTree->ConstructWidget<UTextBlock>();
+			Line->SetText(FText::FromString(Text));
+			Line->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 17));
+			Line->SetColorAndOpacity(FSlateColor(Color));
+			Line->SetWrapTextAt(560.f);
+			if (UVerticalBoxSlot* LS = HelpColumn->AddChildToVerticalBox(Line))
+				LS->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
+		};
+		AddHelpLine(TEXT("CHECK — the king is attacked. He must escape NOW."),
+			FLinearColor(0.5f, 0.75f, 1.f));
+		AddHelpLine(TEXT("Escapes: C-P-R. Capture the attacker, Protect (block the path), or Run."),
+			FLinearColor(0.9f, 0.95f, 1.f));
+		AddHelpLine(TEXT("CHECKMATE — check with NO escape. Game over. Attacker wins!"),
+			FLinearColor(1.f, 0.45f, 0.45f));
+		AddHelpLine(TEXT("STALEMATE — NOT in check, but no moves at all. Nobody wins: it's a draw."),
+			FLinearColor(1.f, 0.85f, 0.4f));
+
+		UHorizontalBox* HelpButtons = WidgetTree->ConstructWidget<UHorizontalBox>();
+		if (UVerticalBoxSlot* HBS = HelpColumn->AddChildToVerticalBox(HelpButtons))
+			HBS->SetHorizontalAlignment(HAlign_Center);
+
+		HelpReplayButton = MakeChoiceButton(TEXT("REPLAY INSTRUCTIONS"));
+		HelpButtons->AddChildToHorizontalBox(HelpReplayButton);
+		HelpCloseButton = MakeChoiceButton(TEXT("GOT IT"));
+		HelpButtons->AddChildToHorizontalBox(HelpCloseButton);
 	}
 
 	return Super::RebuildWidget();
@@ -163,6 +233,12 @@ void UTutorialHudWidget::NativeConstruct()
 
 	if (MenuButton)
 		MenuButton->OnClicked.AddUniqueDynamic(this, &UTutorialHudWidget::OnMenuClicked);
+	if (HelpButton)
+		HelpButton->OnClicked.AddUniqueDynamic(this, &UTutorialHudWidget::OnHelpClicked);
+	if (HelpReplayButton)
+		HelpReplayButton->OnClicked.AddUniqueDynamic(this, &UTutorialHudWidget::OnHelpReplayClicked);
+	if (HelpCloseButton)
+		HelpCloseButton->OnClicked.AddUniqueDynamic(this, &UTutorialHudWidget::OnHelpCloseClicked);
 	if (ContinueButton)
 		ContinueButton->OnClicked.AddUniqueDynamic(this, &UTutorialHudWidget::OnContinueClicked);
 	if (CompleteMenuButton)
@@ -322,6 +398,27 @@ void UTutorialHudWidget::OnContinueClicked()
 {
 	if (Manager && Manager->GetNextLevelName() != NAME_None)
 		UGameplayStatics::OpenLevel(this, Manager->GetNextLevelName());
+}
+
+void UTutorialHudWidget::OnHelpClicked()
+{
+	if (HelpPanel)
+		HelpPanel->SetVisibility(HelpPanel->GetVisibility() == ESlateVisibility::Collapsed
+			? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+}
+
+void UTutorialHudWidget::OnHelpReplayClicked()
+{
+	if (HelpPanel)
+		HelpPanel->SetVisibility(ESlateVisibility::Collapsed);
+	if (Manager)
+		Manager->ReplayInstructions();
+}
+
+void UTutorialHudWidget::OnHelpCloseClicked()
+{
+	if (HelpPanel)
+		HelpPanel->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UTutorialHudWidget::OnMenuClicked()

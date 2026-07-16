@@ -18,8 +18,6 @@ void AKingTutorial::SetupPhase(ETutorialPhase Phase)
 	Super::SetupPhase(Phase);
 
 	GetWorldTimerManager().ClearTimer(StepTimer);
-	GetWorldTimerManager().ClearTimer(GuideTimer);
-	GuideQueue.Empty();
 	ClearExtras();
 	DangerSquares.Empty();
 	Step = 0;
@@ -50,29 +48,6 @@ void AKingTutorial::ClearExtras()
 
 	if (IsValid(AxiomKing)) AxiomKing->Destroy();
 	AxiomKing = nullptr;
-}
-
-// Long explanations play as a sequence of short lines so nothing gets cut off
-// and each idea has time to land. Any direct ShowGuideMessage cancels the rest
-// of a running sequence (event feedback beats exposition).
-void AKingTutorial::ShowGuideSequence(TArray<FString> Lines)
-{
-	GetWorldTimerManager().ClearTimer(GuideTimer);
-	GuideQueue = MoveTemp(Lines);
-	ShowNextGuideLine();
-}
-
-void AKingTutorial::ShowNextGuideLine()
-{
-	if (GuideQueue.Num() == 0) return;
-
-	ShowGuideMessage(GuideQueue[0]);
-	GuideQueue.RemoveAt(0);
-
-	if (GuideQueue.Num() > 0)
-		GetWorldTimerManager().SetTimer(GuideTimer,
-			FTimerDelegate::CreateUObject(this, &AKingTutorial::ShowNextGuideLine),
-			GuideLineSeconds, false);
 }
 
 void AKingTutorial::ResetBoardTint()

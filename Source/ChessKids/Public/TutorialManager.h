@@ -61,6 +61,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
 	EChessPieceType TaughtPiece = EChessPieceType::Pawn;
 
+	// Seconds each line of a multi-line guide explanation stays on screen
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial", meta = (ClampMin = "1.0"))
+	float GuideLineSeconds = 3.5f;
+
+	// Lesson slot for MarkTutorialComplete. INDEX_NONE = derive from TaughtPiece
+	// (Pawn=0..King=5). Concept lessons that don't teach a new piece (checkmate=6)
+	// set this explicitly so they don't collide with a piece lesson.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
+	int32 LessonIndexOverride = INDEX_NONE;
+
 	// Level to travel to a few seconds after this lesson completes
 	// (chains the tutorials: Pawn -> Rook -> ... -> King -> Axiom). None = stay.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
@@ -86,9 +96,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Tutorial")
 	int32 PlayerRank = 0;
 
-	// Called when the player clicks a square
+	// Called when the player clicks a square. Virtual so lessons that don't fit
+	// the one-piece-moves model (the checkmate level's quiz pads and two-rook
+	// ladder) can take over click handling entirely.
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
-	void OnSquareClicked(int32 File, int32 Rank);
+	virtual void OnSquareClicked(int32 File, int32 Rank);
 
 	// Advance to next phase
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
@@ -135,6 +147,24 @@ protected:
 	void GrantBossVictoryRewards();
 
 	FString LastGuideMessage;
+
+	// Long explanations play as a sequence of short lines (GuideLineSeconds
+	// apart) so nothing overflows and each idea has time to land. A direct
+	// ShowGuideMessage or a new sequence replaces whatever is still queued.
+	void ShowGuideSequence(TArray<FString> Lines);
+
+	TArray<FString> GuideQueue;
+	FTimerHandle GuideTimer;
+	void ShowNextGuideLine();
+
+	// Multi-line sequences are remembered as "the instructions" so the HUD's
+	// HELP button can replay them; single-line feedback doesn't overwrite them.
+	TArray<FString> LastInstructionLines;
+
+public:
+	// Replay the current phase's instructions (HUD HELP button)
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
+	void ReplayInstructions();
 
 	// Piece mesh config for spawning player piece
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Pieces")

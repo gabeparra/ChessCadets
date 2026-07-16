@@ -26,6 +26,13 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UBorder* GuidePanel;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* GuideText;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* MenuButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HelpButton;
+
+	// Quick-guide popup: brief check/checkmate/stalemate reference + a replay
+	// of the current phase's instructions
+	UPROPERTY(meta = (BindWidgetOptional)) UBorder* HelpPanel;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HelpReplayButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HelpCloseButton;
 
 	// Post-boss choice panel: continue to the next lesson or back to the menu.
 	UPROPERTY(meta = (BindWidgetOptional)) UBorder* CompletePanel;
@@ -43,6 +50,9 @@ protected:
 
 	UFUNCTION() void HandleGuideMessage(const FString& Message);
 	UFUNCTION() void OnMenuClicked();
+	UFUNCTION() void OnHelpClicked();
+	UFUNCTION() void OnHelpReplayClicked();
+	UFUNCTION() void OnHelpCloseClicked();
 	UFUNCTION() void HandleLevelComplete();
 	UFUNCTION() void OnContinueClicked();
 	UFUNCTION() void HandleSkinUnlocked(FName SkinId);

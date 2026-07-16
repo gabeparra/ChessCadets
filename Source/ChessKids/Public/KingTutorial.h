@@ -30,10 +30,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Boss", meta = (ClampMin = "1"))
 	int32 BossChecksToWin = 5;
 
-	// Seconds each line of a multi-line guide explanation stays on screen
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Guide", meta = (ClampMin = "1.0"))
-	float GuideLineSeconds = 3.5f;
-
 protected:
 	virtual void SetupPhase(ETutorialPhase Phase) override;
 	virtual bool IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, int32 ToRank) const override;
@@ -85,12 +81,6 @@ private:
 	mutable bool bRaysIgnoreAxiom = false;
 
 	FTimerHandle StepTimer;
-
-	// Multi-line guide messages, shown one short line at a time
-	TArray<FString> GuideQueue;
-	FTimerHandle GuideTimer;
-	void ShowGuideSequence(TArray<FString> Lines);
-	void ShowNextGuideLine();
 
 	// --- setup ---
 	void SetupBasics();
