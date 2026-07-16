@@ -169,6 +169,141 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			HintS->SetAutoSize(true);
 		}
 
+		// Safe/danger overlay toggle — third in the bottom-right stack
+		// (Customization, Hint, then this). Training wheels the player can
+		// switch on: every square the robot can attack glows red, same
+		// language as the tutorial levels.
+		DangerToggleButton = WidgetTree->ConstructWidget<UButton>();
+		DangerToggleLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		DangerToggleLabel->SetText(FText::FromString(TEXT("Danger view: OFF")));
+		DangerToggleLabel->SetJustification(ETextJustify::Center);
+		DangerToggleLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
+		DangerToggleLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		DangerToggleButton->AddChild(DangerToggleLabel);
+		if (UCanvasPanelSlot* DTS = Root->AddChildToCanvas(DangerToggleButton))
+		{
+			DTS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+			DTS->SetAlignment(FVector2D(1.f, 1.f));
+			DTS->SetPosition(FVector2D(-24.f, -98.f));
+			DTS->SetAutoSize(true);
+		}
+
+		// MENU + HELP — top right, same placement as the tutorial HUD so the
+		// controls feel identical across the whole game.
+		auto MakeTopRightButton = [&](const TCHAR* Text, float PosY) -> UButton*
+		{
+			UButton* Btn = WidgetTree->ConstructWidget<UButton>();
+			UTextBlock* BtnLabel = WidgetTree->ConstructWidget<UTextBlock>();
+			BtnLabel->SetText(FText::FromString(Text));
+			BtnLabel->SetJustification(ETextJustify::Center);
+			BtnLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+			BtnLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			Btn->AddChild(BtnLabel);
+			if (UCanvasPanelSlot* BtnSlot = Root->AddChildToCanvas(Btn))
+			{
+				BtnSlot->SetAnchors(FAnchors(1.f, 0.f, 1.f, 0.f));
+				BtnSlot->SetAlignment(FVector2D(1.f, 0.f));
+				BtnSlot->SetPosition(FVector2D(-24.f, PosY));
+				BtnSlot->SetAutoSize(true);
+			}
+			return Btn;
+		};
+		HudMenuButton = MakeTopRightButton(TEXT("MENU"), 60.f);
+		HudHelpButton = MakeTopRightButton(TEXT("? HELP"), 114.f);
+
+		// Quick-guide popup: the same cheat sheet as the tutorial levels
+		HudHelpPanel = WidgetTree->ConstructWidget<UBorder>();
+		HudHelpPanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
+		HudHelpPanel->SetPadding(FMargin(40.f, 28.f));
+		HudHelpPanel->SetVisibility(ESlateVisibility::Collapsed);
+		if (UCanvasPanelSlot* HHS = Root->AddChildToCanvas(HudHelpPanel))
+		{
+			HHS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			HHS->SetAlignment(FVector2D(0.5f, 0.5f));
+			HHS->SetPosition(FVector2D(0.f, 0.f));
+			HHS->SetAutoSize(true);
+		}
+		{
+			UVerticalBox* HelpColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+			HudHelpPanel->AddChild(HelpColumn);
+
+			auto AddHelpLine = [&](const TCHAR* Text, const FLinearColor& Color, int32 Size)
+			{
+				UTextBlock* Line = WidgetTree->ConstructWidget<UTextBlock>();
+				Line->SetText(FText::FromString(Text));
+				Line->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", Size));
+				Line->SetColorAndOpacity(FSlateColor(Color));
+				Line->SetWrapTextAt(560.f);
+				if (UVerticalBoxSlot* LS = HelpColumn->AddChildToVerticalBox(Line))
+					LS->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
+			};
+			AddHelpLine(TEXT("QUICK GUIDE"), FLinearColor(0.4f, 1.f, 0.8f), 26);
+			AddHelpLine(TEXT("CHECK: the king is attacked. He must escape NOW."), FLinearColor(0.5f, 0.75f, 1.f), 17);
+			AddHelpLine(TEXT("Escapes: C-P-R. Capture the attacker, Protect (block the path), or Run."), FLinearColor(0.9f, 0.95f, 1.f), 17);
+			AddHelpLine(TEXT("CHECKMATE: check with NO escape. Game over. Attacker wins!"), FLinearColor(1.f, 0.45f, 0.45f), 17);
+			AddHelpLine(TEXT("STALEMATE: NOT in check, but no moves at all. Nobody wins, it's a draw."), FLinearColor(1.f, 0.85f, 0.4f), 17);
+			AddHelpLine(TEXT("Keys: P pauses, Z undoes a move, H shows a hint."), FLinearColor(0.6f, 0.65f, 0.75f), 14);
+
+			HudHelpCloseButton = WidgetTree->ConstructWidget<UButton>();
+			UTextBlock* CloseLabel = WidgetTree->ConstructWidget<UTextBlock>();
+			CloseLabel->SetText(FText::FromString(TEXT("GOT IT")));
+			CloseLabel->SetJustification(ETextJustify::Center);
+			CloseLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
+			CloseLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			HudHelpCloseButton->AddChild(CloseLabel);
+			if (UVerticalBoxSlot* CBS2 = HelpColumn->AddChildToVerticalBox(HudHelpCloseButton))
+				CBS2->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		// Final-battle intro — centered, only made visible on the Axiom map.
+		// Explains the handicap so the missing pieces read as story, not a bug.
+		// Wrapped in a dark border so it reads as a panel, not text soup over
+		// the pieces.
+		IntroPanel = WidgetTree->ConstructWidget<UBorder>();
+		IntroPanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
+		IntroPanel->SetPadding(FMargin(48.f, 36.f));
+		IntroPanel->SetVisibility(ESlateVisibility::Collapsed);
+		UVerticalBox* IntroColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		IntroPanel->AddChild(IntroColumn);
+		if (UCanvasPanelSlot* IPS = Root->AddChildToCanvas(IntroPanel))
+		{
+			IPS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			IPS->SetAlignment(FVector2D(0.5f, 0.5f));
+			IPS->SetPosition(FVector2D(0.f, 0.f));
+			IPS->SetAutoSize(true);
+		}
+		{
+			auto AddIntroLine = [this](UVerticalBox* Box, const TCHAR* Text, int32 Size, FLinearColor Color)
+			{
+				UTextBlock* Line = WidgetTree->ConstructWidget<UTextBlock>();
+				Line->SetText(FText::FromString(Text));
+				Line->SetJustification(ETextJustify::Center);
+				Line->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", Size));
+				Line->SetColorAndOpacity(FSlateColor(Color));
+				Line->SetWrapTextAt(700.f);
+				if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(Line))
+				{
+					S->SetPadding(FMargin(0.f, 0.f, 0.f, 10.f));
+					S->SetHorizontalAlignment(HAlign_Center);
+				}
+			};
+			AddIntroLine(IntroColumn, TEXT("THE FINAL BATTLE"), 32, FLinearColor(0.4f, 1.f, 0.8f));
+			AddIntroLine(IntroColumn, TEXT("AXIOM: \"So the little cadet made it to my core.\""), 18, FLinearColor(1.f, 0.5f, 0.5f));
+			AddIntroLine(IntroColumn, TEXT("Your friends already hacked his army. His QUEEN and a ROOK are gone!"), 18, FLinearColor(0.9f, 0.95f, 1.f));
+			AddIntroLine(IntroColumn, TEXT("Now finish it the only way that counts: CHECKMATE."), 18, FLinearColor(0.9f, 0.95f, 1.f));
+			AddIntroLine(IntroColumn, TEXT("(Stuck? Turn on Danger view to see his reach.)"), 14, FLinearColor(0.6f, 0.65f, 0.75f));
+
+			IntroBeginButton = WidgetTree->ConstructWidget<UButton>();
+			UTextBlock* BeginLabel = WidgetTree->ConstructWidget<UTextBlock>();
+			BeginLabel->SetText(FText::FromString(TEXT("BEGIN")));
+			BeginLabel->SetJustification(ETextJustify::Center);
+			BeginLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
+			BeginLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			IntroBeginButton->AddChild(BeginLabel);
+			if (UVerticalBoxSlot* BS = IntroColumn->AddChildToVerticalBox(IntroBeginButton))
+				BS->SetHorizontalAlignment(HAlign_Center);
+		}
+
 		// Game-over overlay — centered, hidden until OnGameOver.
 		GameOverPanel = WidgetTree->ConstructWidget<UVerticalBox>();
 		GameOverPanel->SetVisibility(ESlateVisibility::Hidden);
@@ -266,6 +401,15 @@ void UChessHudWidget::NativeConstruct()
 	if (MainMenuButton)  MainMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnMainMenuClicked);
 	if (CustomizationButton) CustomizationButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnCustomizationClicked);
 	if (HintButton) HintButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHintClicked);
+	if (DangerToggleButton) DangerToggleButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnDangerToggleClicked);
+	if (IntroBeginButton) IntroBeginButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnIntroBeginClicked);
+	if (HudMenuButton) HudMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudMenuClicked);
+	if (HudHelpButton) HudHelpButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpClicked);
+	if (HudHelpCloseButton) HudHelpCloseButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpCloseClicked);
+
+	// The final battle opens on the story explanation for the missing pieces
+	if (IntroPanel && GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+		IntroPanel->SetVisibility(ESlateVisibility::Visible);
 	if (SkinUnlockOkButton) SkinUnlockOkButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnSkinUnlockOkClicked);
 
 	if (AChessPlayerController* PC = GetChessPC())
@@ -307,6 +451,55 @@ void UChessHudWidget::NativeConstruct()
 		if (WhiteColorSlider) WhiteColorSlider->SetValue(GI->LightSquareHue);
 		if (BlackColorSlider) BlackColorSlider->SetValue(GI->DarkSquareHue);
 	}
+}
+
+void UChessHudWidget::OnHudMenuClicked()
+{
+	if (AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer()))
+		PC->TogglePause();
+}
+
+void UChessHudWidget::OnHudHelpClicked()
+{
+	if (HudHelpPanel)
+		HudHelpPanel->SetVisibility(HudHelpPanel->GetVisibility() == ESlateVisibility::Collapsed
+			? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+}
+
+void UChessHudWidget::OnHudHelpCloseClicked()
+{
+	if (HudHelpPanel)
+		HudHelpPanel->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UChessHudWidget::OnIntroBeginClicked()
+{
+	if (IntroPanel)
+		IntroPanel->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UChessHudWidget::OnDangerToggleClicked()
+{
+	bShowDanger = !bShowDanger;
+	if (DangerToggleLabel)
+		DangerToggleLabel->SetText(FText::FromString(
+			bShowDanger ? TEXT("Danger view: ON") : TEXT("Danger view: OFF")));
+
+	LastDangerVersion = -1; // force a refresh on the next tick when enabling
+	if (!bShowDanger)
+		RefreshDangerOverlay(); // clears immediately
+}
+
+void UChessHudWidget::RefreshDangerOverlay()
+{
+	AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer());
+	AChessBoard* Board = PC ? PC->Board : nullptr;
+	if (!Board) return;
+
+	if (bShowDanger && Manager)
+		Board->SetDangerOverlay(Manager->GetSquaresAttackedByOpponent());
+	else
+		Board->ClearDangerOverlay();
 }
 
 void UChessHudWidget::ApplyBoardColors()
@@ -425,6 +618,13 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	// Captured trays: the 64-square scan runs only when a move/undo actually
 	// happened (version bump), not every frame.
+	// Danger overlay follows the position while enabled
+	if (bShowDanger && Manager->GetPositionVersion() != LastDangerVersion)
+	{
+		LastDangerVersion = Manager->GetPositionVersion();
+		RefreshDangerOverlay();
+	}
+
 	const int32 Version = Manager->GetPositionVersion();
 	if (Version != LastPositionVersion)
 	{
@@ -484,8 +684,9 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 			&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
 		FString Msg;
 		if (Result == TEXT("white"))
+			// The story's final beat: beating AXIOM earns the title.
 			Msg = bTwoPlayer ? TEXT("P1 wins! Great game!")
-			    : bAxiomFinale ? TEXT("AXIOM is defeated — Neo City is free!\nTHANK YOU FOR PLAYING!")
+			    : bAxiomFinale ? TEXT("CHECKMATE! AXIOM is defeated and Neo City is free.\nYou are a CHESS CADET! Thank you for playing!")
 			    : TEXT("You win! Amazing game!");
 		else if (Result == TEXT("black")) Msg = bTwoPlayer ? TEXT("P2 wins! Great game!") : TEXT("Good try! You'll get the robot next time!");
 		else                              Msg = TEXT("It's a draw — what a battle!");

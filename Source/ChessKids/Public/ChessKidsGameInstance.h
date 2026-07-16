@@ -84,6 +84,11 @@ public:
 	// Chapter for a story map name (0 if not a story map).
 	static int32 StoryChapterForMap(const FString& MapName);
 
+	// The level a story chapter opens (NAME_None if out of range). Single
+	// source of truth for the 8-chapter ladder — used by the level select
+	// menu and by tutorials to chain into the next lesson.
+	static FName MapForChapter(int32 Chapter);
+
 	// Free board recoloring via the settings hue sliders (overrides themes when set).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	bool bCustomBoardColors = false;

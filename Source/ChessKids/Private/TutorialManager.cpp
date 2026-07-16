@@ -414,9 +414,47 @@ void ATutorialManager::ResetPhase()
 	SetupPhase(CurrentPhase);
 }
 
+void ATutorialManager::ShowGuideSequence(TArray<FString> Lines)
+{
+	GetWorldTimerManager().ClearTimer(GuideTimer);
+	if (Lines.Num() >= 2)
+		LastInstructionLines = Lines;
+	GuideQueue = MoveTemp(Lines);
+	ShowNextGuideLine();
+}
+
+void ATutorialManager::ReplayInstructions()
+{
+	if (LastInstructionLines.Num() > 0)
+	{
+		TArray<FString> Copy = LastInstructionLines;
+		ShowGuideSequence(MoveTemp(Copy));
+	}
+	else if (!LastGuideMessage.IsEmpty())
+	{
+		ShowGuideMessage(LastGuideMessage);
+	}
+}
+
+void ATutorialManager::ShowNextGuideLine()
+{
+	if (GuideQueue.Num() == 0) return;
+
+	ShowGuideMessage(GuideQueue[0]);
+	GuideQueue.RemoveAt(0);
+
+	if (GuideQueue.Num() > 0)
+		GetWorldTimerManager().SetTimer(GuideTimer,
+			FTimerDelegate::CreateUObject(this, &ATutorialManager::ShowNextGuideLine),
+			GuideLineSeconds, false);
+}
+
 void ATutorialManager::SetupPhase(ETutorialPhase Phase)
 {
 	// Clear existing state
+	GetWorldTimerManager().ClearTimer(GuideTimer);
+	GuideQueue.Empty();
+
 	for (auto& Pair : TargetActors)
 		if (IsValid(Pair.Value)) Pair.Value->Destroy();
 	TargetActors.Empty();
@@ -470,6 +508,17 @@ void ATutorialManager::OnPhaseComplete()
 	}
 }
 
+FName ATutorialManager::GetNextLevelName() const
+{
+	if (NextLevelName != NAME_None)
+		return NextLevelName;
+
+	// Fall back to the story ladder so every lesson chains into the next
+	// without per-map editor wiring.
+	const int32 Chapter = UChessKidsGameInstance::StoryChapterForMap(GetWorld()->GetMapName());
+	return (Chapter > 0) ? UChessKidsGameInstance::MapForChapter(Chapter + 1) : NAME_None;
+}
+
 void ATutorialManager::GrantBossVictoryRewards()
 {
 	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
@@ -478,8 +527,10 @@ void ATutorialManager::GrantBossVictoryRewards()
 		return;
 	}
 
-	// Persist lesson completion (Pawn=0 Rook=1 Bishop=2 Knight=3 Queen=4 King=5).
-	int32 Lesson = -1;
+	// Persist lesson completion (Pawn=0 Rook=1 Bishop=2 Knight=3 Queen=4 King=5;
+	// concept lessons set LessonIndexOverride, e.g. checkmate=6).
+	int32 Lesson = LessonIndexOverride;
+	if (Lesson < 0)
 	switch (TaughtPiece)
 	{
 	case EChessPieceType::Pawn:   Lesson = 0; break;
