@@ -29,8 +29,8 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* TurnText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* CheckText;
-	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* HintText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* HintResultText;   // "Hint: e2 → e4"
+	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WarningText;      // "This is not a valid move"
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WhiteCapturedText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* BlackCapturedText;
 	UPROPERTY(meta = (BindWidgetOptional)) UVerticalBox* GameOverPanel;
@@ -50,6 +50,10 @@ protected:
 	// Bottom-right, always available in-game — opens the piece skins locker without
 	// needing to pause first.
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* CustomizationButton;
+
+	// Bottom-right, above Customization — asks the engine for a suggested move
+	// (kids won't discover the H-key shortcut on their own).
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HintButton;
 
 	// Optional styled skins panel; falls back to the C++ UPieceSkinsMenuWidget.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|HUD")
@@ -80,11 +84,18 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UBorder* IntroPanel;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* IntroBeginButton;
 	UFUNCTION() void HandleHintReady(FString FromSquare, FString ToSquare);
+
+public:
+	// Flash a transient warning (e.g. "This is not a valid move") that fades on its own.
+	// Public so the player controller can call it on a rejected move.
+	UFUNCTION(BlueprintCallable, Category = "Chess|HUD") void ShowWarning(const FString& Message);
+protected:
 	UFUNCTION() void OnPlayAgainClicked();
 	UFUNCTION() void OnMainMenuClicked();
 	UFUNCTION() void OnWhiteColorChanged(float Value);
 	UFUNCTION() void OnBlackColorChanged(float Value);
 	UFUNCTION() void OnCustomizationClicked();
+	UFUNCTION() void OnHintClicked();
 	UFUNCTION() void HandleSkinUnlocked(FName SkinId);
 	UFUNCTION() void OnSkinUnlockOkClicked();
 
@@ -102,6 +113,7 @@ private:
 	void ShowSkinUnlockPopup();
 
 	FTimerHandle HintHideTimer;
+	FTimerHandle WarningHideTimer;
 	int32 LastPositionVersion = -1;   // gates the captured-tray board scan to actual moves
 
 	// Safe/danger overlay toggle — training wheels the player opts into.

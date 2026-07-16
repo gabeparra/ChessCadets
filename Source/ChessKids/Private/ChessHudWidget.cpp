@@ -71,6 +71,20 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			HRS->SetAutoSize(true);
 		}
 
+		// Invalid-move warning — center screen, red/orange, hidden until a bad click.
+		WarningText = WidgetTree->ConstructWidget<UTextBlock>();
+		WarningText->SetJustification(ETextJustify::Center);
+		WarningText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 26));
+		WarningText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.35f, 0.15f)));
+		WarningText->SetVisibility(ESlateVisibility::Hidden);
+		if (UCanvasPanelSlot* WS = Root->AddChildToCanvas(WarningText))
+		{
+			WS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			WS->SetAlignment(FVector2D(0.5f, 0.5f));
+			WS->SetPosition(FVector2D(0.f, -120.f));
+			WS->SetAutoSize(true);
+		}
+
 		// Captured-piece trays — top corners.
 		auto MakeTray = [&](UTextBlock*& OutText, float AnchorX, float AlignX, float PosX)
 		{
@@ -88,20 +102,10 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		MakeTray(WhiteCapturedText, 0.f, 0.f, 24.f);    // left: pieces YOU/P1 captured
 		MakeTray(BlackCapturedText, 1.f, 1.f, -24.f);   // right: pieces the robot/P2 captured
 
-		// Key hints — bottom left.
-		HintText = WidgetTree->ConstructWidget<UTextBlock>();
-		HintText->SetText(FText::FromString(TEXT("P — Pause    Z — Undo    H — Hint")));
-		HintText->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 12));
-		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.55f)));
-		if (UCanvasPanelSlot* HS = Root->AddChildToCanvas(HintText))
-		{
-			HS->SetAnchors(FAnchors(0.f, 1.f, 0.f, 1.f));
-			HS->SetAlignment(FVector2D(0.f, 1.f));
-			HS->SetPosition(FVector2D(24.f, -18.f));
-			HS->SetAutoSize(true);
-		}
+		// (Keyboard-shortcut hint text removed — Marco's WBP_InGameHud shows the
+		// controls as buttons, and the text kept colliding with the undo button.)
 
-		// Board color sliders — bottom left, stacked above the key hints.
+		// Board color sliders — bottom left.
 		UVerticalBox* ColorBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		if (UCanvasPanelSlot* CBS = Root->AddChildToCanvas(ColorBox))
 		{
@@ -149,9 +153,26 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			CustS->SetAutoSize(true);
 		}
 
-		// Safe/danger overlay toggle — stacked above Customization. Training
-		// wheels the player can switch on: every square black can attack
-		// glows red, same language as the tutorial levels.
+		// Hint — bottom right, just above Customization. Kids won't find the H key.
+		HintButton = WidgetTree->ConstructWidget<UButton>();
+		UTextBlock* HintLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		HintLabel->SetText(FText::FromString(TEXT("Hint")));
+		HintLabel->SetJustification(ETextJustify::Center);
+		HintLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
+		HintLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		HintButton->AddChild(HintLabel);
+		if (UCanvasPanelSlot* HintS = Root->AddChildToCanvas(HintButton))
+		{
+			HintS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+			HintS->SetAlignment(FVector2D(1.f, 1.f));
+			HintS->SetPosition(FVector2D(-24.f, -58.f));   // stacked above Customization
+			HintS->SetAutoSize(true);
+		}
+
+		// Safe/danger overlay toggle — third in the bottom-right stack
+		// (Customization, Hint, then this). Training wheels the player can
+		// switch on: every square the robot can attack glows red, same
+		// language as the tutorial levels.
 		DangerToggleButton = WidgetTree->ConstructWidget<UButton>();
 		DangerToggleLabel = WidgetTree->ConstructWidget<UTextBlock>();
 		DangerToggleLabel->SetText(FText::FromString(TEXT("Danger view: OFF")));
@@ -163,7 +184,7 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		{
 			DTS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
 			DTS->SetAlignment(FVector2D(1.f, 1.f));
-			DTS->SetPosition(FVector2D(-24.f, -58.f));
+			DTS->SetPosition(FVector2D(-24.f, -98.f));
 			DTS->SetAutoSize(true);
 		}
 
@@ -379,6 +400,7 @@ void UChessHudWidget::NativeConstruct()
 	if (PlayAgainButton) PlayAgainButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnPlayAgainClicked);
 	if (MainMenuButton)  MainMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnMainMenuClicked);
 	if (CustomizationButton) CustomizationButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnCustomizationClicked);
+	if (HintButton) HintButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHintClicked);
 	if (DangerToggleButton) DangerToggleButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnDangerToggleClicked);
 	if (IntroBeginButton) IntroBeginButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnIntroBeginClicked);
 	if (HudMenuButton) HudMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudMenuClicked);
@@ -499,6 +521,14 @@ void UChessHudWidget::ApplyBoardColors()
 
 void UChessHudWidget::OnWhiteColorChanged(float Value) { ApplyBoardColors(); }
 void UChessHudWidget::OnBlackColorChanged(float Value) { ApplyBoardColors(); }
+
+void UChessHudWidget::OnHintClicked()
+{
+	// Route through the controller so its guards apply (no hint on the robot's turn,
+	// while paused, or after the game is over).
+	if (AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer()))
+		PC->RequestHint();
+}
 
 void UChessHudWidget::OnCustomizationClicked()
 {
@@ -650,12 +680,14 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 	if (GameOverText)
 	{
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();
-		const bool bAxiom = GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Axiom"));
+		const bool bAxiomFinale = !bTwoPlayer && GetWorld()
+			&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
 		FString Msg;
-		if (Result == TEXT("white") && !bTwoPlayer && bAxiom)
+		if (Result == TEXT("white"))
 			// The story's final beat: beating AXIOM earns the title.
-			Msg = TEXT("CHECKMATE! AXIOM IS DEFEATED!\nNeo City is free. You are a CHESS CADET!");
-		else if (Result == TEXT("white")) Msg = bTwoPlayer ? TEXT("P1 wins! Great game!") : TEXT("You win! Amazing game!");
+			Msg = bTwoPlayer ? TEXT("P1 wins! Great game!")
+			    : bAxiomFinale ? TEXT("CHECKMATE! AXIOM is defeated and Neo City is free.\nYou are a CHESS CADET! Thank you for playing!")
+			    : TEXT("You win! Amazing game!");
 		else if (Result == TEXT("black")) Msg = bTwoPlayer ? TEXT("P2 wins! Great game!") : TEXT("Good try! You'll get the robot next time!");
 		else                              Msg = TEXT("It's a draw — what a battle!");
 		GameOverText->SetText(FText::FromString(Msg));
@@ -681,6 +713,24 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 				if (W != Self && W->GetClass()->GetName().StartsWith(TEXT("WBP_GameOver")))
 					W->RemoveFromParent();
 		});
+	}
+}
+
+void UChessHudWidget::ShowWarning(const FString& Message)
+{
+	if (!WarningText) return;
+	WarningText->SetText(FText::FromString(Message));
+	WarningText->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (UWorld* World = GetWorld())
+	{
+		TWeakObjectPtr<UChessHudWidget> WeakThis(this);
+		World->GetTimerManager().SetTimer(WarningHideTimer, [WeakThis]()
+		{
+			if (UChessHudWidget* Self = WeakThis.Get())
+				if (Self->WarningText)
+					Self->WarningText->SetVisibility(ESlateVisibility::Hidden);
+		}, 1.6f, false);
 	}
 }
 

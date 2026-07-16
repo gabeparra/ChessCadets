@@ -50,6 +50,8 @@ void AKingTutorial::ClearExtras()
 	AxiomKing = nullptr;
 }
 
+// The maze/recap King level was replaced by the ALARM check tutorial; the old
+// SetupMaze/SetupRecap flow (and main's tweaks to it) went with it.
 void AKingTutorial::ResetBoardTint()
 {
 	if (!Board) return;

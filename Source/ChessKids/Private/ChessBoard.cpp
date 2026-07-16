@@ -569,6 +569,12 @@ void AChessBoard::HoverSquare(const FString& SquareStr)
     UStaticMeshComponent* Hl = GetHighlightMesh(File, Rank);
     if (!Hl) return;
 
+    // If this square is already lit as a legal move or selection, leave it alone.
+    // Overwriting it with the dim hover material (then hiding it in ClearHover) is
+    // what made glowing squares vanish the moment the cursor touched them.
+    if (Hl->IsVisible() && Hl->GetMaterial(0) != HoverMaterial)
+        return;
+
     Hl->SetMaterial(0, HoverMaterial);
     Hl->SetVisibility(true);
 
