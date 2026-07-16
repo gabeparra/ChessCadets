@@ -205,13 +205,13 @@ TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 			if (UVerticalBoxSlot* LS = HelpColumn->AddChildToVerticalBox(Line))
 				LS->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
 		};
-		AddHelpLine(TEXT("CHECK — the king is attacked. He must escape NOW."),
+		AddHelpLine(TEXT("CHECK: the king is attacked. He must escape NOW."),
 			FLinearColor(0.5f, 0.75f, 1.f));
 		AddHelpLine(TEXT("Escapes: C-P-R. Capture the attacker, Protect (block the path), or Run."),
 			FLinearColor(0.9f, 0.95f, 1.f));
-		AddHelpLine(TEXT("CHECKMATE — check with NO escape. Game over. Attacker wins!"),
+		AddHelpLine(TEXT("CHECKMATE: check with NO escape. Game over. Attacker wins!"),
 			FLinearColor(1.f, 0.45f, 0.45f));
-		AddHelpLine(TEXT("STALEMATE — NOT in check, but no moves at all. Nobody wins: it's a draw."),
+		AddHelpLine(TEXT("STALEMATE: NOT in check, but no moves at all. Nobody wins, it's a draw."),
 			FLinearColor(1.f, 0.85f, 0.4f));
 
 		UHorizontalBox* HelpButtons = WidgetTree->ConstructWidget<UHorizontalBox>();

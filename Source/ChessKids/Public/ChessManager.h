@@ -69,6 +69,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
 	FString StartingFEN;
 
+	// Final-battle handicap: on AXIOM's map (name contains "Axiom") and with no
+	// explicit StartingFEN, the game opens from this position instead — AXIOM
+	// is missing his queen and a rook, so the kid focuses on delivering mate,
+	// not surviving (Dinosaur Chess insight from the design doc). Empty = off.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
+	FString AxiomAdvantageFEN = TEXT("rnb1kbn1/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQq - 0 1");
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
 	AChessBoard* Board = nullptr;
 
@@ -151,6 +158,22 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
 	FString GetPieceOnSquare(const FString& SquareStr) const;
+
+	// Every square black could capture on next move — the HUD's toggleable
+	// safe/danger overlay. Computed from the board, independent of whose turn
+	// it is (the engine only generates moves for the side to move).
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
+	TArray<FString> GetSquaresAttackedByBlack() const;
+
+	// Same, but for whichever side the human ISN'T playing — what the danger
+	// overlay actually wants, regardless of the player's color.
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
+	TArray<FString> GetSquaresAttackedByOpponent() const;
+
+private:
+	TArray<FString> ComputeAttackedSquares(bool bByBlack) const;
+
+public:
 
 	UFUNCTION(BlueprintCallable, Category = "Chess")
 	void UndoLastMove();

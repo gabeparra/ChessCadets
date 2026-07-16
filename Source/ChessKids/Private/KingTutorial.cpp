@@ -96,7 +96,7 @@ void AKingTutorial::OnTargetCollected(int32 File, int32 Rank)
 		ShowGuideSequence({
 			TEXT("Enemies! RED shows every square they can attack."),
 			TEXT("If your king stands on red, they could capture him next turn. That's called CHECK."),
-			TEXT("Get the last token — without stepping on red!"),
+			TEXT("Get the last token without stepping on red!"),
 		});
 	}
 	else if (TargetsCollected > 3)
@@ -129,9 +129,9 @@ void AKingTutorial::StartCPRStep()
 		AddThreat(EChessPieceType::Bishop, 3, 3);
 		RefreshDanger();
 		ShowGuideSequence({
-			TEXT("CHECK — that bishop is one move from taking your king!"),
+			TEXT("CHECK! That bishop is one move from taking your king!"),
 			TEXT("In chess you must escape check RIGHT NOW. There are 3 ways: C-P-R."),
-			TEXT("C = CAPTURE. The bishop is close enough — take it!"),
+			TEXT("C = CAPTURE. The bishop is close enough, take it!"),
 		});
 		break;
 
@@ -155,7 +155,7 @@ void AKingTutorial::StartCPRStep()
 		AddThreat(EChessPieceType::Rook, 5, 2);
 		RefreshDanger();
 		ShowGuideSequence({
-			TEXT("CHECK — this rook attacks from across the board. Too far to capture!"),
+			TEXT("CHECK! This rook attacks from across the board. Too far to capture!"),
 			TEXT("P = PROTECT: block the path with another piece."),
 			TEXT("Slide your rook between them, like a shield!"),
 		});
@@ -167,7 +167,7 @@ void AKingTutorial::StartCPRStep()
 		AddThreat(EChessPieceType::Queen, 2, 5);
 		RefreshDanger();
 		ShowGuideSequence({
-			TEXT("CHECK — too far to capture, and nothing can block!"),
+			TEXT("CHECK! Too far to capture, and nothing can block!"),
 			TEXT("R = RUN: move your king to any square that isn't red."),
 		});
 		break;
@@ -193,11 +193,11 @@ namespace
 	// Enemy king sits on (3,4); every start position has at least one clean
 	// one-move check available on a 6x6 board.
 	const FGiveCheckStep GGiveCheckSteps[] = {
-		{ EChessPieceType::Rook,   0, 0, TEXT("Now flip it — YOU give the check! Move your rook so its path hits AXIOM's king.") },
+		{ EChessPieceType::Rook,   0, 0, TEXT("Now flip it: YOU give the check! Move your rook so its path hits AXIOM's king.") },
 		{ EChessPieceType::Bishop, 0, 1, TEXT("Now the bishop! Check the king on a diagonal.") },
 		{ EChessPieceType::Knight, 0, 1, TEXT("Luna's turn! One L-hop to check the king.") },
 		{ EChessPieceType::Queen,  0, 0, TEXT("The queen can check ANY way. Pick your path!") },
-		{ EChessPieceType::Pawn,   2, 1, TEXT("Even the pawn can check! Pawns hit diagonally — march up!") },
+		{ EChessPieceType::Pawn,   2, 1, TEXT("Even the pawn can check! Pawns hit diagonally. March up!") },
 	};
 	constexpr int32 NumGiveCheckSteps = 5;
 }
@@ -247,8 +247,8 @@ void AKingTutorial::SetupBoss()
 	RefreshDanger(); // red = squares AXIOM's king guards — park your queen there and lose her
 	ShowGuideSequence({
 		FString::Printf(TEXT("AXIOM: \"Alarms can't stop me!\" Check his king %d times to win!"), BossChecksToWin),
-		TEXT("You can't capture a king — no one can. Threaten him, over and over."),
-		TEXT("The red squares are HIS reach — leave your queen there and he'll capture her."),
+		TEXT("You can't capture a king. No one can! Threaten him, over and over."),
+		TEXT("The red squares are HIS reach. Leave your queen there and he'll capture her!"),
 	});
 }
 
@@ -279,8 +279,8 @@ void AKingTutorial::AxiomEscape()
 			SpawnWallAt(BlockF, BlockR);
 			RefreshDanger();
 			ShowGuideSequence({
-				FString::Printf(TEXT("CHECK %d of %d — %d more to win!"), ChecksGiven, BossChecksToWin, BossChecksToWin - ChecksGiven),
-				TEXT("AXIOM blocks it — that's P, Protect!"),
+				FString::Printf(TEXT("CHECK %d of %d! %d more to win!"), ChecksGiven, BossChecksToWin, BossChecksToWin - ChecksGiven),
+				TEXT("AXIOM blocks it. That's P, Protect!"),
 				TEXT("He knows C-P-R too..."),
 			});
 			return;
@@ -311,8 +311,8 @@ void AKingTutorial::AxiomEscape()
 		Board->GlideActorToSquare(AxiomKing, BestF, BestR, 5.f);
 		RefreshDanger();
 		ShowGuideSequence({
-			FString::Printf(TEXT("CHECK %d of %d — %d more to win!"), ChecksGiven, BossChecksToWin, BossChecksToWin - ChecksGiven),
-			TEXT("AXIOM runs away — that's R, Run!"),
+			FString::Printf(TEXT("CHECK %d of %d! %d more to win!"), ChecksGiven, BossChecksToWin, BossChecksToWin - ChecksGiven),
+			TEXT("AXIOM runs away. That's R, Run!"),
 			TEXT("Keep chasing him!"),
 		});
 	}
@@ -543,7 +543,7 @@ void AKingTutorial::AfterPlayerMove(int32 File, int32 Rank)
 					Step = 1;
 					RefreshDanger();
 					ShowGuideSequence({
-						TEXT("CAPTURED! The attacker is gone — so the check is gone."),
+						TEXT("CAPTURED! The attacker is gone, so the check is gone."),
 					});
 					bPhaseTransitionPending = true;
 					GetWorldTimerManager().SetTimer(StepTimer,
@@ -582,14 +582,14 @@ void AKingTutorial::AfterPlayerMove(int32 File, int32 Rank)
 			if (Step >= NumGiveCheckSteps)
 			{
 				CompletePhaseSteps({
-					TEXT("CHECK — five ways!"),
+					TEXT("CHECK, five ways!"),
 					TEXT("Every piece can do it."),
 					TEXT("AXIOM has noticed you..."),
 				});
 			}
 			else
 			{
-				ShowGuideMessage(TEXT("CHECK! The alarm rings — next piece!"));
+				ShowGuideMessage(TEXT("CHECK! The alarm rings. Next piece!"));
 				bPhaseTransitionPending = true;
 				GetWorldTimerManager().SetTimer(StepTimer,
 					FTimerDelegate::CreateUObject(this, &AKingTutorial::StartGiveCheckStep), 2.0f, false);
@@ -619,7 +619,7 @@ void AKingTutorial::AfterPlayerMove(int32 File, int32 Rank)
 				// The point of the whole level: check is not victory.
 				CurrentPhase = ETutorialPhase::Complete;
 				ShowGuideSequence({
-					TEXT("Five checks — and AXIOM escaped every single one."),
+					TEXT("Five checks, and AXIOM escaped every single one."),
 					TEXT("That's the secret: check can always be answered with C-P-R."),
 					TEXT("CHECKMATE is a check with NO escape. That's how you win. LEVEL 7: THE FIREWALL!"),
 				});
@@ -638,7 +638,7 @@ void AKingTutorial::AfterPlayerMove(int32 File, int32 Rank)
 			ShowGuideSequence({
 				TEXT("He took your queen! That's C, Capture!"),
 				TEXT("Don't stop on red squares."),
-				TEXT("Here's a new queen — try again!"),
+				TEXT("Here's a new queen. Try again!"),
 			});
 			if (PlayerPiece) PlayerPiece->StartCaptureFling();
 			PlayerPiece = nullptr;

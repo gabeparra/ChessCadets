@@ -136,6 +136,9 @@ void AChessManager::BeginPlay()
 	const FString LessonFEN = StartingFEN.TrimStartAndEnd();
 	if (!LessonFEN.IsEmpty())
 		SetPositionFromFEN(LessonFEN);
+	else if (GetWorld()->GetMapName().Contains(TEXT("Axiom")) && !AxiomAdvantageFEN.TrimStartAndEnd().IsEmpty())
+		// Final battle: the kid starts a queen and a rook up (see AxiomAdvantageFEN)
+		SetPositionFromFEN(AxiomAdvantageFEN.TrimStartAndEnd());
 
 	// Difficulty + mode are the player's persisted choices (GameInstance survives level travel).
 	int32 Level = 1;
@@ -145,6 +148,18 @@ void AChessManager::BeginPlay()
 		Level = GI->Difficulty;
 		bTwoPlayerMode = GI->bTwoPlayerMode;
 	}
+
+	// The final battle enforces its own rules regardless of how the map was
+	// entered (level select, PIE, console): the kid plays White, solo, vs an
+	// Easy AXIOM. The handicap FEN and danger overlay both assume White.
+	if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+	{
+		Level = 1;
+		bTwoPlayerMode = false;
+		PlayerColorMode = EPlayerColorMode::Fixed;
+		PlayerColor = EChessColor::White;
+	}
+
 	SetDifficulty(Level);
 
 	// Resolve which side the human plays for this arena.
@@ -616,6 +631,95 @@ FString AChessManager::GetPieceOnSquare(const FString& SquareStr) const
 	const int Sq = SquareFromString(SquareStr);
 	if (Sq < 0) return TEXT("");
 	return PieceToChar(Engine->Position.board[Sq]);
+}
+
+TArray<FString> AChessManager::GetSquaresAttackedByBlack() const
+{
+	return ComputeAttackedSquares(true);
+}
+
+TArray<FString> AChessManager::GetSquaresAttackedByOpponent() const
+{
+	return ComputeAttackedSquares(PlayerColor == EChessColor::White);
+}
+
+TArray<FString> AChessManager::ComputeAttackedSquares(bool bByBlack) const
+{
+	TArray<FString> Result;
+	if (!Engine) return Result;
+
+	// Snapshot the board as FEN letters (lowercase = black)
+	TCHAR Grid[8][8];
+	for (int32 F = 0; F < 8; ++F)
+	{
+		for (int32 R = 0; R < 8; ++R)
+		{
+			const FString Sq = FString::Printf(TEXT("%c%d"), 'a' + F, R + 1);
+			const FString P = GetPieceOnSquare(Sq);
+			Grid[F][R] = P.IsEmpty() ? TEXT('\0') : P[0];
+		}
+	}
+
+	TSet<int32> Attacked;
+	auto Add = [&Attacked](int32 F, int32 R)
+	{
+		if (F >= 0 && F < 8 && R >= 0 && R < 8) Attacked.Add(F * 8 + R);
+	};
+	auto Ray = [&](int32 F, int32 R, int32 FS, int32 RS)
+	{
+		F += FS; R += RS;
+		while (F >= 0 && F < 8 && R >= 0 && R < 8)
+		{
+			Attacked.Add(F * 8 + R);
+			if (Grid[F][R] != TEXT('\0')) break; // attacks include the blocker, not past it
+			F += FS; R += RS;
+		}
+	};
+
+	// Black pawns capture toward rank 1, white pawns toward rank 8
+	const int32 PawnDir = bByBlack ? -1 : 1;
+
+	for (int32 F = 0; F < 8; ++F)
+	{
+		for (int32 R = 0; R < 8; ++R)
+		{
+			const TCHAR C = Grid[F][R];
+			if (C == TEXT('\0')) continue;
+			if (FChar::IsLower(C) != bByBlack) continue; // FEN: lowercase = black
+
+			switch (FChar::ToLower(C))
+			{
+			case TEXT('p'):
+				Add(F - 1, R + PawnDir); Add(F + 1, R + PawnDir);
+				break;
+			case TEXT('n'):
+				Add(F + 2, R + 1); Add(F + 2, R - 1); Add(F - 2, R + 1); Add(F - 2, R - 1);
+				Add(F + 1, R + 2); Add(F + 1, R - 2); Add(F - 1, R + 2); Add(F - 1, R - 2);
+				break;
+			case TEXT('k'):
+				for (int32 DF = -1; DF <= 1; ++DF)
+					for (int32 DR = -1; DR <= 1; ++DR)
+						if (DF != 0 || DR != 0) Add(F + DF, R + DR);
+				break;
+			case TEXT('r'):
+				Ray(F, R, 1, 0); Ray(F, R, -1, 0); Ray(F, R, 0, 1); Ray(F, R, 0, -1);
+				break;
+			case TEXT('b'):
+				Ray(F, R, 1, 1); Ray(F, R, 1, -1); Ray(F, R, -1, 1); Ray(F, R, -1, -1);
+				break;
+			case TEXT('q'):
+				Ray(F, R, 1, 0); Ray(F, R, -1, 0); Ray(F, R, 0, 1); Ray(F, R, 0, -1);
+				Ray(F, R, 1, 1); Ray(F, R, 1, -1); Ray(F, R, -1, 1); Ray(F, R, -1, -1);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	for (int32 Packed : Attacked)
+		Result.Add(FString::Printf(TEXT("%c%d"), 'a' + Packed / 8, Packed % 8 + 1));
+	return Result;
 }
 
 void AChessManager::OnBestMoveFound(int BestMove)

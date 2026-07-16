@@ -40,9 +40,16 @@ void ULevelSelectMenuWidget::OpenChapter(int32 Chapter)
 {
 	const FName Map = UChessKidsGameInstance::MapForChapter(Chapter);
 	if (Map == NAME_None) return;
-	// Story mode is always you vs the robot.
+	// Story mode is always you vs the robot, always as White — the handicap
+	// FEN and the danger overlay both assume the kid plays the white army.
 	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+	{
 		GI->bTwoPlayerMode = false;
+		GI->PlayerColor = EChessColor::White;
+		// The Core: AXIOM plays on Easy — the kid is meant to win this one.
+		if (Chapter == 8)
+			GI->Difficulty = 1;
+	}
 	UGameplayStatics::OpenLevel(this, Map);
 }
 

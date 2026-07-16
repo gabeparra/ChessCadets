@@ -175,6 +175,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chess|Board")
 	void ClearHighlights();
 
+	// Safe/danger overlay: paints the given squares red until cleared. Survives
+	// ClearHighlights (selection churn) — it's a standing layer, not a flash.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Board")
+	void SetDangerOverlay(const TArray<FString>& Squares);
+
+	UFUNCTION(BlueprintCallable, Category = "Chess|Board")
+	void ClearDangerOverlay();
+
 	UFUNCTION(BlueprintCallable, Category = "Chess|Board")  
 	void HoverSquare(const FString& SquareStr);             
 
@@ -215,6 +223,13 @@ public:
 private:
 	UPROPERTY() TArray<UStaticMeshComponent*> SquareMeshes;
 	UPROPERTY() TArray<UStaticMeshComponent*> HighlightMeshes;
+
+	// Danger overlay state (see SetDangerOverlay)
+	UPROPERTY(EditAnywhere, Category = "Chess|Board")
+	FLinearColor DangerOverlayColor = FLinearColor(0.85f, 0.08f, 0.08f);
+	UPROPERTY() UMaterialInstanceDynamic* DangerDMI = nullptr;
+	TSet<int32> DangerOverlaySquares; // File * 8 + Rank
+	void ApplyDangerOverlay();
 	UPROPERTY() UStaticMeshComponent* GridOverlayMesh = nullptr;
 	UPROPERTY() UStaticMeshComponent* ScanPlaneMesh = nullptr;
 	UPROPERTY() TArray<UPointLightComponent*> EdgeLights;

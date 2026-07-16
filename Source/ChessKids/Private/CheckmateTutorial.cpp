@@ -288,7 +288,7 @@ void ACheckmateTutorial::SetupHuntedKing()
 	StartHuntedRound();
 	ShowGuideSequence({
 		TEXT("This time, YOU are the hunted king!"),
-		TEXT("The rook has you in CHECK — the red squares are its reach."),
+		TEXT("The rook has you in CHECK! The red squares show its reach."),
 		TEXT("Click your king, then click a safe square. RUN!"),
 	});
 }
@@ -322,7 +322,7 @@ void ACheckmateTutorial::HandleBlackKingClick(int32 File, int32 Rank)
 			Board->ShowLegalMoves(BlackKingMoves());
 		}
 		if (BlackKingMoves().Num() == 0)
-			ShowGuideMessage(TEXT("...no squares glow. Try clicking around — is ANY square safe?"));
+			ShowGuideMessage(TEXT("...no squares glow. Try clicking around. Is ANY square safe?"));
 		return;
 	}
 
@@ -362,7 +362,7 @@ void ACheckmateTutorial::HandleBlackKingClick(int32 File, int32 Rank)
 	if (FailedTries < 3)
 	{
 		ShowGuideMessage(bStalemateRound
-			? TEXT("Can't go there. Keep trying — find ANY legal move...")
+			? TEXT("Can't go there. Keep trying, find ANY legal move...")
 			: TEXT("That square is guarded! Try another..."));
 		return;
 	}
@@ -373,7 +373,7 @@ void ACheckmateTutorial::HandleBlackKingClick(int32 File, int32 Rank)
 		// Phase 3 step 0 → hand over to the queen trap round
 		Step = 1;
 		ShowGuideSequence({
-			TEXT("Nothing works — but look: you're NOT in check!"),
+			TEXT("Nothing works! But look: you're NOT in check."),
 			TEXT("No check + no moves = STALEMATE. Nobody wins. It's a DRAW."),
 			TEXT("When YOU'RE winning, stalemate is a trap. Never leave him move-less without check!"),
 		});
@@ -404,7 +404,7 @@ void ACheckmateTutorial::SetupLadderMate()
 	PlaceWhite(EChessPieceType::Rook, 5, 0, true);
 
 	ShowGuideSequence({
-		TEXT("The LADDER MATE — the first checkmate every cadet learns."),
+		TEXT("The LADDER MATE! It's the first checkmate every cadet learns."),
 		TEXT("One rook guards a row like a wall. The other pushes the king up."),
 		TEXT("Walk him to the top edge! Click a rook, then click where it goes."),
 	});
@@ -474,7 +474,7 @@ void ACheckmateTutorial::ShowLadderHint()
 
 	Board->TintSquare(WhitePieces[BestPiece].File, WhitePieces[BestPiece].Rank, HintColor);
 	Board->TintSquare(BestDest.X, BestDest.Y, HintColor);
-	ShowGuideMessage(TEXT("Hint: try the GOLD move — click the gold rook, then the gold square!"));
+	ShowGuideMessage(TEXT("Hint: try the GOLD move! Click the gold rook, then the gold square."));
 }
 
 void ACheckmateTutorial::ShowSelection()
@@ -569,8 +569,8 @@ void ACheckmateTutorial::HandleLadderClick(int32 File, int32 Rank)
 	{
 		LadderFails++;
 		ShowGuideSequence({
-			TEXT("Whoa — STALEMATE! He's NOT in check, but he has no moves."),
-			TEXT("That's a DRAW, not a win. Always leave him a path — into your trap."),
+			TEXT("Whoa, STALEMATE! He's NOT in check, but he has no moves."),
+			TEXT("That's a DRAW, not a win. Always leave him a path... right into your trap."),
 			TEXT("Let's try again."),
 		});
 		bPhaseTransitionPending = true;
@@ -603,7 +603,7 @@ void ACheckmateTutorial::BlackKingRespond()
 
 			ShowGuideSequence({
 				TEXT("He grabbed your rook! It stood too close, with no one guarding it."),
-				TEXT("Keep the rooks far along their rows — the wall works from ANY distance."),
+				TEXT("Keep the rooks far along their rows. The wall works from ANY distance."),
 			});
 			bPhaseTransitionPending = true;
 			GetWorldTimerManager().SetTimer(StepTimer,
@@ -662,7 +662,7 @@ void ACheckmateTutorial::StartTrapRound()
 	PlaceWhite(EChessPieceType::Queen, 0, 4, true);
 
 	ShowGuideSequence({
-		TEXT("Now YOU have the queen — don't fall for the trap you just felt!"),
+		TEXT("Now YOU have the queen. Don't fall for the trap you just felt!"),
 		TEXT("One queen move is CHECKMATE. Another is that STALEMATE. Choose!"),
 	});
 }
@@ -690,7 +690,7 @@ void ACheckmateTutorial::HandleMoveClick(int32 File, int32 Rank)
 
 	if (!LegalMovesFor(WhitePieces[MoverIdx]).Contains(FIntPoint(File, Rank)))
 	{
-		ShowGuideMessage(TEXT("That square isn't reachable — pick a glowing one!"));
+		ShowGuideMessage(TEXT("That square isn't reachable. Pick a glowing one!"));
 		return;
 	}
 
@@ -706,7 +706,7 @@ void ACheckmateTutorial::HandleMoveClick(int32 File, int32 Rank)
 		if (!bBossPhase)
 		{
 			CompletePhaseSteps({
-				TEXT("CHECKMATE — attacked AND trapped. That's the winning move!"),
+				TEXT("CHECKMATE! Attacked AND trapped. That's the winning move!"),
 				TEXT("You dodged the stalemate trap. AXIOM's firewall is next."),
 			});
 			return;
@@ -736,14 +736,14 @@ void ACheckmateTutorial::HandleMoveClick(int32 File, int32 Rank)
 	if (V == EPositionVerdict::Stalemate)
 	{
 		ShowGuideSequence({
-			TEXT("STALEMATE! No check, no moves — that's only a DRAW."),
+			TEXT("STALEMATE! No check and no moves is only a DRAW."),
 			TEXT("So close! The winning move traps him IN check. Again!"),
 		});
 	}
 	else
 	{
 		ShowGuideSequence({
-			TEXT("He can still escape — that wasn't a lockdown."),
+			TEXT("He can still escape. That wasn't a lockdown."),
 			TEXT("Look for the move that leaves NO safe squares. Again!"),
 		});
 	}
@@ -788,7 +788,7 @@ void ACheckmateTutorial::StartBossPuzzle()
 	PlaceWhite(P.Mover, P.MoverF, P.MoverR, true);
 
 	if (Step > 0)
-		ShowGuideMessage(FString::Printf(TEXT("Firewall %d of %d — find the checkmate!"), Step + 1, NumBoss));
+		ShowGuideMessage(FString::Printf(TEXT("Firewall %d of %d. Find the checkmate!"), Step + 1, NumBoss));
 }
 
 // ---------------------------------------------------------------------------

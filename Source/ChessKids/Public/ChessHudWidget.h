@@ -62,6 +62,23 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) USlider* BlackColorSlider;
 
 	UFUNCTION() void HandleGameOver(FString Result);
+	UFUNCTION() void OnDangerToggleClicked();
+	UFUNCTION() void OnHudMenuClicked();
+	UFUNCTION() void OnHudHelpClicked();
+	UFUNCTION() void OnHudHelpCloseClicked();
+
+	// MENU (opens the pause menu) with a quick-guide HELP popup under it,
+	// mirroring the tutorial HUD so the layout feels the same in level 8.
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HudMenuButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HudHelpButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UBorder* HudHelpPanel;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* HudHelpCloseButton;
+	UFUNCTION() void OnIntroBeginClicked();
+
+	// Final-battle intro: explains WHY AXIOM's army is missing pieces before
+	// the first move. Only shown on the Axiom map.
+	UPROPERTY(meta = (BindWidgetOptional)) UBorder* IntroPanel;
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* IntroBeginButton;
 	UFUNCTION() void HandleHintReady(FString FromSquare, FString ToSquare);
 	UFUNCTION() void OnPlayAgainClicked();
 	UFUNCTION() void OnMainMenuClicked();
@@ -86,6 +103,14 @@ private:
 
 	FTimerHandle HintHideTimer;
 	int32 LastPositionVersion = -1;   // gates the captured-tray board scan to actual moves
+
+	// Safe/danger overlay toggle — training wheels the player opts into.
+	// Refreshed on every position change while enabled.
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* DangerToggleButton;
+	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* DangerToggleLabel;
+	bool bShowDanger = false;
+	int32 LastDangerVersion = -1;
+	void RefreshDangerOverlay();
 
 	FName PendingUnlockedSkinId = NAME_None;
 	FString PendingGameOverResult;

@@ -409,6 +409,48 @@ void AChessBoard::ClearHighlights()
 {
 	for (UStaticMeshComponent* Hl : HighlightMeshes)
 		if (IsValid(Hl)) Hl->SetVisibility(false);
+
+	// The danger overlay is a standing layer — selection churn must not eat it
+	ApplyDangerOverlay();
+}
+
+void AChessBoard::SetDangerOverlay(const TArray<FString>& Squares)
+{
+	DangerOverlaySquares.Empty();
+	for (const FString& Sq : Squares)
+	{
+		int32 File, Rank;
+		if (ParseSquare(Sq, File, Rank))
+			DangerOverlaySquares.Add(File * 8 + Rank);
+	}
+	// Repaint from scratch: hides stale danger squares, then re-applies
+	ClearHighlights();
+}
+
+void AChessBoard::ClearDangerOverlay()
+{
+	DangerOverlaySquares.Empty();
+	ClearHighlights();
+}
+
+void AChessBoard::ApplyDangerOverlay()
+{
+	if (DangerOverlaySquares.Num() == 0) return;
+	if (!LegalMoveMaterial) return; // same guard as the move markers
+
+	if (!DangerDMI)
+	{
+		DangerDMI = UMaterialInstanceDynamic::Create(LegalMoveMaterial, this);
+		DangerDMI->SetVectorParameterValue(TEXT("Color"), DangerOverlayColor);
+	}
+
+	for (int32 Packed : DangerOverlaySquares)
+	{
+		UStaticMeshComponent* Hl = GetHighlightMesh(Packed / 8, Packed % 8);
+		if (!Hl) continue;
+		Hl->SetMaterial(0, DangerDMI);
+		Hl->SetVisibility(true);
+	}
 }
 
 void AChessBoard::SelectSquare(const FString& SquareStr)
