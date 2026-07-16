@@ -332,6 +332,7 @@ void UChessKidsGameInstance::SaveSkinState() const
 
 bool UChessKidsGameInstance::IsPieceSkinUnlocked(FName SkinId) const
 {
+	if (bDevUnlockAll) return true;
 	return UnlockedPieceSkins.Contains(SkinId);
 }
 
