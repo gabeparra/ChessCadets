@@ -34,6 +34,14 @@ void UMainMenuWidget::NativeConstruct()
 
 	if (quitButton)      quitButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnQuit);
 
+	// Duplicated from quitButton in the WBP, so it may have inherited Quit's own
+	// click binding along with its style — Clear() first so it only ever opens Skins.
+	if (skinsButton)
+	{
+		skinsButton->OnClicked.Clear();
+		skinsButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnSkins);
+	}
+
 	InjectSettingsButton();
 	InjectSkinsButton();
 	InjectLearnButton();
