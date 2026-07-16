@@ -111,9 +111,11 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Tutorial")
 	FString GetLastGuideMessage() const { return LastGuideMessage; }
 
-	// Where the post-boss "continue" choice should travel (NAME_None = no next level)
+	// Where the post-boss "continue" choice should travel. An explicit
+	// NextLevelName wins; otherwise derived from the story-chapter ladder
+	// (this map's chapter + 1). NAME_None = no next level.
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Tutorial")
-	FName GetNextLevelName() const { return NextLevelName; }
+	FName GetNextLevelName() const;
 
 protected:
 	// Override in subclasses for level-specific logic

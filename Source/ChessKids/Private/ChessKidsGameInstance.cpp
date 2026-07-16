@@ -55,14 +55,36 @@ int32 UChessKidsGameInstance::StoryChapterForMap(const FString& MapName)
 {
 	// Matches both the arena maps (L_Pawn) and the tutorial builds
 	// (L_Tutorial_Pawn / L_Tutorial_Pawn_v2) — chapter is keyed by piece.
-	// Teaching order: Pawn -> Rook -> Bishop -> Knight -> Queen -> King.
+	// 8-chapter ladder: pieces 1-5, then King+check (6), checkmate (7),
+	// AXIOM final battle (8). Checkmate must be tested before King/check
+	// ("Checkmate" contains "Check"). "Grid" is deliberately NOT a key:
+	// L_Grid is a free-play venue, and a win there must not advance story.
+	if (MapName.Contains(TEXT("Axiom")) || MapName.Contains(TEXT("Core"))) return 8;
+	if (MapName.Contains(TEXT("Checkmate")) || MapName.Contains(TEXT("Firewall"))) return 7;
 	if (MapName.Contains(TEXT("Pawn")))    return 1;
 	if (MapName.Contains(TEXT("Rook")))    return 2;
 	if (MapName.Contains(TEXT("Bishop")))  return 3;
 	if (MapName.Contains(TEXT("Knight")))  return 4;
 	if (MapName.Contains(TEXT("Royalty")) || MapName.Contains(TEXT("Queen"))) return 5;
-	if (MapName.Contains(TEXT("King")))    return 6;
+	if (MapName.Contains(TEXT("King")) || MapName.Contains(TEXT("Check"))) return 6;
 	return 0;
+}
+
+FName UChessKidsGameInstance::MapForChapter(int32 Chapter)
+{
+	// Chapters 1-6 open the existing tutorial builds; 7 is the upcoming
+	// checkmate lesson; 8 is the real match vs AXIOM.
+	static const FName ChapterMaps[] = {
+		TEXT("L_Tutorial_Pawn_v2"),
+		TEXT("L_Tutorial_Rook_v2"),
+		TEXT("L_Tutorial_Bishop_v2"),
+		TEXT("L_Tutorial_Knight_v2"),
+		TEXT("L_Tutorial_Queen_v2"),
+		TEXT("L_Tutorial_King"),
+		TEXT("L_Tutorial_Checkmate"),
+		TEXT("L_Axiom"),
+	};
+	return (Chapter >= 1 && Chapter <= 8) ? ChapterMaps[Chapter - 1] : NAME_None;
 }
 
 bool UChessKidsGameInstance::IsStoryChapterUnlocked(int32 Chapter) const
@@ -77,7 +99,7 @@ void UChessKidsGameInstance::NotifyStoryVictory(const FString& MapName)
 	const int32 Chapter = StoryChapterForMap(MapName);
 	if (Chapter <= 0 || !Progress) return;
 
-	const int32 Next = FMath::Clamp(Chapter + 1, 1, 6);
+	const int32 Next = FMath::Clamp(Chapter + 1, 1, 8);
 	if (Next > Progress->UnlockedStoryChapters)
 	{
 		Progress->UnlockedStoryChapters = Next;

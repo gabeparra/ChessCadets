@@ -470,6 +470,17 @@ void ATutorialManager::OnPhaseComplete()
 	}
 }
 
+FName ATutorialManager::GetNextLevelName() const
+{
+	if (NextLevelName != NAME_None)
+		return NextLevelName;
+
+	// Fall back to the story ladder so every lesson chains into the next
+	// without per-map editor wiring.
+	const int32 Chapter = UChessKidsGameInstance::StoryChapterForMap(GetWorld()->GetMapName());
+	return (Chapter > 0) ? UChessKidsGameInstance::MapForChapter(Chapter + 1) : NAME_None;
+}
+
 void ATutorialManager::GrantBossVictoryRewards()
 {
 	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());

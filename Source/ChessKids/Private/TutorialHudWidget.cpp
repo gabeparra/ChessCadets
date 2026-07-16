@@ -38,6 +38,10 @@ TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 		}
 		GuideText = WidgetTree->ConstructWidget<UTextBlock>();
 		GuideText->SetJustification(ETextJustify::Center);
+		// Fixed wrap width: the auto-sized panel otherwise grows as wide as the
+		// longest line and stacks wrapped text upward over the board. This keeps
+		// the speech bubble a consistent size at the bottom of the screen.
+		GuideText->SetWrapTextAt(820.f);
 		GuideText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
 		GuideText->SetColorAndOpacity(FSlateColor(FLinearColor(0.95f, 0.98f, 1.f)));
 		GuidePanel->AddChild(GuideText);
