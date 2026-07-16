@@ -682,14 +682,22 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();
 		const bool bAxiomFinale = !bTwoPlayer && GetWorld()
 			&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
+		// Win/lose is decided by whether the side the PLAYER chose won — not by
+		// assuming the player is always white (arcade lets you pick black).
+		const FString PlayerSide = (Manager && Manager->PlayerColor == EChessColor::Black)
+			? TEXT("black") : TEXT("white");
+
 		FString Msg;
-		if (Result == TEXT("white"))
+		if (Result == TEXT("draw"))
+			Msg = TEXT("It's a draw — what a battle!");
+		else if (bTwoPlayer)
+			Msg = (Result == TEXT("white")) ? TEXT("P1 wins! Great game!") : TEXT("P2 wins! Great game!");
+		else if (Result == PlayerSide)
 			// The story's final beat: beating AXIOM earns the title.
-			Msg = bTwoPlayer ? TEXT("P1 wins! Great game!")
-			    : bAxiomFinale ? TEXT("CHECKMATE! AXIOM is defeated and Neo City is free.\nYou are a CHESS CADET! Thank you for playing!")
-			    : TEXT("You win! Amazing game!");
-		else if (Result == TEXT("black")) Msg = bTwoPlayer ? TEXT("P2 wins! Great game!") : TEXT("Good try! You'll get the robot next time!");
-		else                              Msg = TEXT("It's a draw — what a battle!");
+			Msg = bAxiomFinale ? TEXT("CHECKMATE! AXIOM is defeated and Neo City is free.\nYou are a CHESS CADET! Thank you for playing!")
+			                   : TEXT("You win! Amazing game!");
+		else
+			Msg = TEXT("Good try! You'll get the robot next time!");
 		GameOverText->SetText(FText::FromString(Msg));
 	}
 	if (TurnText)  TurnText->SetVisibility(ESlateVisibility::Hidden);
