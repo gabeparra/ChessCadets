@@ -139,7 +139,7 @@ void AKingTutorial::StartCPRStep()
 
 	case 1: // P — protect (block) with another piece
 	{
-		SwitchPlayerPiece(EChessPieceType::Rook, 2, 0);
+		SwitchPlayerPiece(EChessPieceType::Rook, 1, 0);
 
 		// A friendly king pinned on the back file, checked along its rank
 		if (Board)
@@ -199,7 +199,7 @@ namespace
 	// one-move check available on a 6x6 board.
 	const FGiveCheckStep GGiveCheckSteps[] = {
 		{ EChessPieceType::Rook,   0, 0, TEXT("Now flip it: YOU give the check! Move your rook so its path hits AXIOM's king.") },
-		{ EChessPieceType::Bishop, 0, 1, TEXT("Now the bishop! Check the king on a diagonal.") },
+		{ EChessPieceType::Bishop, 1, 0, TEXT("Now the bishop! Check the king on a diagonal.") },
 		{ EChessPieceType::Knight, 0, 1, TEXT("Luna's turn! One L-hop to check the king.") },
 		{ EChessPieceType::Queen,  0, 0, TEXT("The queen can check ANY way. Pick your path!") },
 		{ EChessPieceType::Pawn,   2, 1, TEXT("Even the pawn can check! Pawns hit diagonally. March up!") },
@@ -247,7 +247,7 @@ void AKingTutorial::SpawnAxiomKing(int32 File, int32 Rank)
 void AKingTutorial::SetupBoss()
 {
 	ChecksGiven = 0;
-	SwitchPlayerPiece(EChessPieceType::Queen, 0, 0);
+	SwitchPlayerPiece(EChessPieceType::Queen, 0, 1);
 	SpawnAxiomKing(4, 4);
 	RefreshDanger(); // red = squares AXIOM's king guards — park your queen there and lose her
 	ShowGuideSequence({
@@ -499,7 +499,7 @@ bool AKingTutorial::IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, 
 			if (!(bOnThreat)) return false;
 			break;
 		case 1: // P: the only lesson move is stepping into the attack line
-			if (!(ToFile == 2 && ToRank == 2)) return false;
+			if (!(ToFile == 1 && ToRank == 2)) return false;
 			break;
 		case 2: // R: never let the king run INTO another attacked square
 			if (DangerSquares.Contains(PackPos(ToFile, ToRank))) return false;
