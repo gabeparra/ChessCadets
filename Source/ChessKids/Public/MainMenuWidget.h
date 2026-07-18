@@ -24,6 +24,10 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* chessModeButton;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* quitButton;
 
+	// Piece Skins entry point, duplicated from quitButton in the WBP so it already
+	// matches its font/style — sits between the mode buttons and Quit.
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* skinsButton;
+
 	// Optional styled settings panel; falls back to the C++ USettingsMenuWidget.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
 	TSubclassOf<UUserWidget> SettingsWidgetClass;

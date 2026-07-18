@@ -139,7 +139,7 @@ void AKingTutorial::StartCPRStep()
 
 	case 1: // P — protect (block) with another piece
 	{
-		SwitchPlayerPiece(EChessPieceType::Rook, 2, 0);
+		SwitchPlayerPiece(EChessPieceType::Rook, 1, 0);
 
 		// A friendly king pinned on the back file, checked along its rank
 		if (Board)
@@ -149,8 +149,11 @@ void AKingTutorial::StartCPRStep()
 			FriendlyKing = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(),
 				Board->GridToWorldLocation(0, 2, 5.f), FRotator::ZeroRotator, Params);
 			if (FriendlyKing)
-				FriendlyKing->Init(EChessPieceType::King, EChessColor::White, 0, 2,
-					PieceMeshes.Find(EChessPieceType::King));
+			{
+				const FPieceMeshConfig* Config = PieceMeshes.Find(EChessPieceType::King);
+				if (!Config) Config = &GetWhitePieceMeshConfig();
+				FriendlyKing->Init(EChessPieceType::King, EChessColor::White, 0, 2, Config);
+			}
 		}
 		FriendlyKingFile = 0; FriendlyKingRank = 2;
 
@@ -196,7 +199,7 @@ namespace
 	// one-move check available on a 6x6 board.
 	const FGiveCheckStep GGiveCheckSteps[] = {
 		{ EChessPieceType::Rook,   0, 0, TEXT("Now flip it: YOU give the check! Move your rook so its path hits AXIOM's king.") },
-		{ EChessPieceType::Bishop, 0, 1, TEXT("Now the bishop! Check the king on a diagonal.") },
+		{ EChessPieceType::Bishop, 1, 0, TEXT("Now the bishop! Check the king on a diagonal.") },
 		{ EChessPieceType::Knight, 0, 1, TEXT("Luna's turn! One L-hop to check the king.") },
 		{ EChessPieceType::Queen,  0, 0, TEXT("The queen can check ANY way. Pick your path!") },
 		{ EChessPieceType::Pawn,   2, 1, TEXT("Even the pawn can check! Pawns hit diagonally. March up!") },
@@ -244,7 +247,7 @@ void AKingTutorial::SpawnAxiomKing(int32 File, int32 Rank)
 void AKingTutorial::SetupBoss()
 {
 	ChecksGiven = 0;
-	SwitchPlayerPiece(EChessPieceType::Queen, 0, 0);
+	SwitchPlayerPiece(EChessPieceType::Queen, 0, 1);
 	SpawnAxiomKing(4, 4);
 	RefreshDanger(); // red = squares AXIOM's king guards — park your queen there and lose her
 	ShowGuideSequence({
@@ -344,12 +347,12 @@ void AKingTutorial::AddThreat(EChessPieceType Type, int32 File, int32 Rank)
 		Board->GridToWorldLocation(File, Rank, 5.f), FRotator::ZeroRotator, Params);
 	if (T.Actor)
 	{
-		// Same guarantee the boss rivals use: a threat whose type matches the
-		// hero's would inherit the equipped skin from PieceMeshes and stop
-		// reading as an enemy.
-		const FPieceMeshConfig* Config = (Type == TaughtPiece)
-			? &GetBlackRivalMeshConfig() : PieceMeshes.Find(Type);
-		T.Actor->Init(Type, EChessColor::Black, File, Rank, Config);
+		// Always the guaranteed-black look, not PieceMeshes.Find(Type) — TaughtPiece
+		// isn't stable here (SwitchPlayerPiece reassigns it as the hero swaps pieces
+		// through the level), so a "same type as the hero" check only ever matched by
+		// accident. PieceMeshes is realistically only ever configured for whatever
+		// piece the hero currently holds anyway, never a fixed set of threat types.
+		T.Actor->Init(Type, EChessColor::Black, File, Rank, &GetBlackRivalMeshConfig());
 	}
 
 	Threats.Add(T);
@@ -496,7 +499,7 @@ bool AKingTutorial::IsMoveAllowed(int32 FromFile, int32 FromRank, int32 ToFile, 
 			if (!(bOnThreat)) return false;
 			break;
 		case 1: // P: the only lesson move is stepping into the attack line
-			if (!(ToFile == 2 && ToRank == 2)) return false;
+			if (!(ToFile == 1 && ToRank == 2)) return false;
 			break;
 		case 2: // R: never let the king run INTO another attacked square
 			if (DangerSquares.Contains(PackPos(ToFile, ToRank))) return false;

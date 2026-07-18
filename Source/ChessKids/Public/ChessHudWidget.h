@@ -33,7 +33,7 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WarningText;      // "This is not a valid move"
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WhiteCapturedText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* BlackCapturedText;
-	UPROPERTY(meta = (BindWidgetOptional)) UVerticalBox* GameOverPanel;
+	UPROPERTY(meta = (BindWidgetOptional)) UBorder* GameOverPanel;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* GameOverText;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* PlayAgainButton;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* MainMenuButton;

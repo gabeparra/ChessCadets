@@ -36,15 +36,23 @@ struct FChessPieceSkinEntry
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Skin")
 	bool bUnlockedByDefault = false;
 
-	// If set, completing TutorialUnlockPiece's tutorial (the boss phase) automatically
-	// unlocks this skin and shows the "new skin!" popup. At most one skin should set
-	// this per piece — UChessKidsGameInstance::UnlockSkinForTutorial grants the first
-	// match it finds.
+	// If set, completing TutorialUnlockLessonIndex's tutorial (the boss phase)
+	// automatically unlocks this skin and shows the "new skin!" popup. At most one
+	// skin should set this per lesson — UChessKidsGameInstance::UnlockSkinForTutorial
+	// grants the first match it finds.
+	//
+	// Keyed by lesson index rather than piece type so it scales to any tutorial the
+	// story ladder ever gains, not just the six piece lessons — same numbering as
+	// ATutorialManager::LessonIndexOverride and UChessKidsGameInstance::
+	// MarkTutorialComplete/CompletedTutorials (Pawn=0 Rook=1 Bishop=2 Knight=3
+	// Queen=4 King=5; concept lessons like Checkmate=6 set LessonIndexOverride to
+	// their own slot). Adding a new tutorial never needs a new field here — just
+	// point this at whatever LessonIndexOverride that tutorial already uses.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Skin")
 	bool bUnlockedByTutorial = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Skin", meta = (EditCondition = "bUnlockedByTutorial"))
-	EChessPieceType TutorialUnlockPiece = EChessPieceType::Pawn;
+	int32 TutorialUnlockLessonIndex = -1;
 };
 
 // Data-driven catalog of collectible piece skins. Create one instance
