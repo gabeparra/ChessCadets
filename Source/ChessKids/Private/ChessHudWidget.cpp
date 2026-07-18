@@ -1,5 +1,6 @@
 #include "ChessHudWidget.h"
 #include "ChessManager.h"
+#include "ChessVoice.h"
 #include "ChessPlayerController.h"
 #include "ChessBoard.h"
 #include "ChessKidsGameInstance.h"
@@ -292,6 +293,7 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			AddIntroLine(IntroColumn, TEXT("Your friends already hacked his army. His QUEEN and a ROOK are gone!"), 18, FLinearColor(0.9f, 0.95f, 1.f));
 			AddIntroLine(IntroColumn, TEXT("Now finish it the only way that counts: CHECKMATE."), 18, FLinearColor(0.9f, 0.95f, 1.f));
 			AddIntroLine(IntroColumn, TEXT("(Stuck? Turn on Danger view to see his reach.)"), 14, FLinearColor(0.6f, 0.65f, 0.75f));
+			FChessVoice::PlayLine(this, TEXT("axiom_core_intro"));
 
 			IntroBeginButton = WidgetTree->ConstructWidget<UButton>();
 			UTextBlock* BeginLabel = WidgetTree->ConstructWidget<UTextBlock>();
@@ -699,6 +701,10 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 		else
 			Msg = TEXT("Good try! You'll get the robot next time!");
 		GameOverText->SetText(FText::FromString(Msg));
+		if (bAxiomFinale && Result == PlayerSide)
+		{
+			FChessVoice::PlayLine(this, TEXT("finale_victory"));
+		}
 	}
 	if (TurnText)  TurnText->SetVisibility(ESlateVisibility::Hidden);
 	if (CheckText) CheckText->SetVisibility(ESlateVisibility::Hidden);
