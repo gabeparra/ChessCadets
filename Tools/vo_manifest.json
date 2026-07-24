@@ -38,8 +38,9 @@
       "id": "pawn_diagonal",
       "character": "Guide",
       "text": "Pawns capture diagonally! Zigzag through all the enemies!",
-      "source": "PawnTutorial.cpp:91"
-    },
+      "source": "PawnTutorial.cpp:91",
+      "match": "Pawns capture DIAGONALLY! Zigzag through all the enemies!"
+    }
     {
       "id": "pawn_boss",
       "character": "Guide",
