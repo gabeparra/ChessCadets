@@ -293,7 +293,6 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			AddIntroLine(IntroColumn, TEXT("Your friends already hacked his army. His QUEEN and a ROOK are gone!"), 18, FLinearColor(0.9f, 0.95f, 1.f));
 			AddIntroLine(IntroColumn, TEXT("Now finish it the only way that counts: CHECKMATE."), 18, FLinearColor(0.9f, 0.95f, 1.f));
 			AddIntroLine(IntroColumn, TEXT("(Stuck? Turn on Danger view to see his reach.)"), 14, FLinearColor(0.6f, 0.65f, 0.75f));
-			FChessVoice::PlayLine(this, TEXT("axiom_core_intro"));
 
 			IntroBeginButton = WidgetTree->ConstructWidget<UButton>();
 			UTextBlock* BeginLabel = WidgetTree->ConstructWidget<UTextBlock>();
@@ -409,9 +408,13 @@ void UChessHudWidget::NativeConstruct()
 	if (HudHelpButton) HudHelpButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpClicked);
 	if (HudHelpCloseButton) HudHelpCloseButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpCloseClicked);
 
-	// The final battle opens on the story explanation for the missing pieces
+	// The final battle opens on the story explanation for the missing pieces.
+	// Keep VO playback in this same Axiom-only path.
 	if (IntroPanel && GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+	{
 		IntroPanel->SetVisibility(ESlateVisibility::Visible);
+		FChessVoice::PlayLine(this, TEXT("axiom_core_intro"));
+	}
 	if (SkinUnlockOkButton) SkinUnlockOkButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnSkinUnlockOkClicked);
 
 	if (AChessPlayerController* PC = GetChessPC())
