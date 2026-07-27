@@ -26,18 +26,23 @@ namespace
 	TWeakObjectPtr<UWorld>          GVoiceWorld;
 	TWeakObjectPtr<UAudioComponent> GActiveVoice;
 	TArray<const FVoiceLineEntry*>  GQueue;      // entries point into the static GVoiceLines table
-	TArray<TWeakObjectPtr<UAudioComponent>> GDucked;
+	struct FDuckedComponent
+	{
+		TWeakObjectPtr<UAudioComponent> Comp;
+		float OriginalVolume = 1.f;
+	};
+	TArray<FDuckedComponent> GDucked;
 	FTimerHandle                    GVoiceTimer;
 
 	void StartEntry(UWorld* World, const FVoiceLineEntry& Entry);
 
 	void RestoreDucked()
 	{
-		for (TWeakObjectPtr<UAudioComponent>& Comp : GDucked)
+		for (FDuckedComponent& Ducked : GDucked)
 		{
-			if (Comp.IsValid())
+			if (Ducked.Comp.IsValid())
 			{
-				Comp->AdjustVolume(0.5f, 1.f);
+				Ducked.Comp->AdjustVolume(0.5f, Ducked.OriginalVolume);
 			}
 		}
 		GDucked.Empty();
@@ -49,10 +54,15 @@ namespace
 		{
 			UAudioComponent* Comp = *It;
 			if (Comp && Comp->GetWorld() == World && Comp->IsPlaying()
-				&& Comp != GActiveVoice.Get() && !GDucked.Contains(Comp))
+				&& Comp != GActiveVoice.Get()
+				&& !GDucked.ContainsByPredicate([Comp](const FDuckedComponent& Ducked)
+				{
+					return Ducked.Comp == Comp;
+				}))
 			{
+				const float OriginalVolume = Comp->VolumeMultiplier;
 				Comp->AdjustVolume(0.3f, DuckLevel);
-				GDucked.Add(Comp);
+				GDucked.Add({Comp, OriginalVolume});
 			}
 		}
 	}
