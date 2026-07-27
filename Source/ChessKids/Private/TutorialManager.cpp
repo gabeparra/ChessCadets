@@ -1,6 +1,7 @@
 #include "TutorialManager.h"
 #include "TutorialBoard.h"
 #include "ChessPiece.h"
+#include "ChessVoice.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -51,6 +52,7 @@ void ATutorialManager::ShowGuideMessage(const FString& Message)
 {
 	LastGuideMessage = Message;          // cached for late-binding HUDs
 	OnGuideMessage.Broadcast(Message);   // rendered by UTutorialHudWidget
+	FChessVoice::PlayForMessage(this, Message);
 
 	if (false)   // debug fallback retired — the guide panel owns messaging now
 	{
