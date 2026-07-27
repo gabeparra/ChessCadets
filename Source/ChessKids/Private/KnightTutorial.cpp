@@ -92,7 +92,7 @@ void AKnightTutorial::SetupBoss()
 	Luna = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Luna)
 	{
-		Luna->Init(EChessPieceType::Knight, EChessColor::Black, LunaFile, LunaRank, &GetBlackRivalMeshConfig());
+		Luna->Init(EChessPieceType::Knight, EChessColor::Black, LunaFile, LunaRank, nullptr);
 		Luna->SetActorScale3D(FVector(0.8f));
 	}
 
@@ -116,7 +116,6 @@ void AKnightTutorial::AfterPlayerMove(int32 File, int32 Rank)
 		ShowGuideMessage(TEXT("TAG! You got her! Nobody escapes a knight!"));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
-		GrantBossVictoryRewards();
 		return;
 	}
 

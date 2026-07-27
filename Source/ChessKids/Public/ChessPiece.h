@@ -5,9 +5,6 @@
 #include "Engine/SkeletalMesh.h"
 #include "ChessPiece.generated.h"
 
-class UMaterialInterface;
-class UMaterialInstanceDynamic;
-
 
 UENUM(BlueprintType)
 enum class EChessPieceType : uint8
@@ -86,28 +83,8 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	USkeletalMeshComponent* MeshComp = nullptr;
 
-	// Swaps the equipped collectible skin onto this piece's material slot, preserving
-	// the white/black tint. SkinMaterial == nullptr reverts to the piece's own default
-	// material (BaseMaterial), as set up by SetupMeshAndMaterial.
-	UFUNCTION(BlueprintCallable, Category = "Chess")
-	void ApplyPieceSkin(UMaterialInterface* SkinMaterial);
-
-	// The white/black "BaseColor" tint applied to every piece's dynamic material
-	// instance. Shared with the UI (e.g. the skins picker's "Default" swatch preview)
-	// so both stay in sync with a single source of truth.
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
-	static FLinearColor GetTintColor(EChessColor Color);
-
 private:
 	void SetupMeshAndMaterial(const FPieceMeshConfig* MeshOverride);
-
-	// The piece's own material before any skin/tint wrapping — what ApplyPieceSkin(nullptr)
-	// rebuilds the dynamic instance from.
-	UPROPERTY()
-	UMaterialInterface* BaseMaterial = nullptr;
-
-	UPROPERTY()
-	UMaterialInstanceDynamic* DynamicMaterial = nullptr;
 
 	// Glide state
 	FVector GlideStart = FVector::ZeroVector;

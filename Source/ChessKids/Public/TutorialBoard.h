@@ -16,7 +16,6 @@ class CHESSKIDS_API ATutorialBoard : public AActor
 public:
 	ATutorialBoard();
 	virtual void OnConstruction(const FTransform& Transform) override;
-	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial|Board")
 	int32 NumFiles = 4;
@@ -79,11 +78,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tutorial|Board")
 	void ClearHighlights();
 
-	// Rebuild all squares — wipes any runtime TintSquare/DisableSquare recoloring
-	// back to the clean light/dark pattern.
-	UFUNCTION(BlueprintCallable, Category = "Tutorial|Board")
-	void RebuildBoard();
-
 	// Recolor a board square at runtime (e.g. darken unreachable squares, paint visited ones)
 	UFUNCTION(BlueprintCallable, Category = "Tutorial|Board")
 	void TintSquare(int32 File, int32 Rank, FLinearColor Color);
@@ -102,13 +96,10 @@ private:
 	UPROPERTY() TArray<UStaticMeshComponent*> HighlightMeshes;
 	UPROPERTY() UMaterialInstanceDynamic* LightTintDMI = nullptr;
 	UPROPERTY() UMaterialInstanceDynamic* DarkTintDMI = nullptr;
-	UPROPERTY() UMaterialInstanceDynamic* LegalMoveDMI = nullptr;
-	UPROPERTY() UMaterialInstanceDynamic* SelectionDMI = nullptr;
 
 	void BuildBoard();
 	void EnsureTintDMIs();
 	void AutoLoadMaterials();
-	void UpdateHighlightContrastColor();
 	UStaticMeshComponent* GetHighlightMesh(int32 File, int32 Rank) const;
 	int32 GridIndex(int32 File, int32 Rank) const;
 };

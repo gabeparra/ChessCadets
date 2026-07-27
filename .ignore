@@ -1,14 +1,8 @@
-/.claude
 /.git
+/.github
 /.vs
 /.vscode
 /Content
 /DerivedDataCache
-/Docs
-/Fonts
 /Intermediate
 /Saved
-/Scripts
-/Tools
-/_local
-/Plugins/UnrealMCP/Intermediate

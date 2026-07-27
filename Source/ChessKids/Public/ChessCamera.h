@@ -33,20 +33,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float PitchAngle = 55.f;
 
-	// White-side camera angle (also the editor-preview default before PlayerColor is
-	// resolved at runtime). Tune this per-level to frame that level's board; the
-	// Black-side view is always derived as the exact opposite (Yaw + 180), so it
-	// stays correct without needing a second value tuned per level.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-	float Yaw = -90.f;
-
-	// At board-zoom = 1 the spring arm shrinks to this fraction of ArmLength (closest).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (ClampMin = "0.3", ClampMax = "1.0"))
-	float MinZoomArmFraction = 0.55f;
-
-	// Re-apply framing (e.g. after the settings zoom slider changes GetBoardZoom()).
-	UFUNCTION(BlueprintCallable, Category = "Camera")
-	void RefreshFraming() { ApplyView(); }
+	float Yaw = -90.f; // -90 = white side, 90 = black side
 
 private:
 	void ApplyView();

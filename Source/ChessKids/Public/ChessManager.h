@@ -8,7 +8,6 @@
 class AChessBoard;
 class USoundBase;
 class UAudioComponent;
-class UMaterialInterface;
 
 namespace pulse
 {
@@ -20,16 +19,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAIMoveReady,   FString, FromSqua
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (FOnGameOver,      FString, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMoveMade,      FString, FromSquare, FString, ToSquare);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHintReady,     FString, FromSquare, FString, ToSquare);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (FOnArenaSkinUnlocked, FName, SkinId);
-
-// How an arena decides which side the human plays.
-UENUM(BlueprintType)
-enum class EPlayerColorMode : uint8
-{
-	ChooseAtStart,  // use UChessKidsGameInstance::PlayerColor, set by the mode-select screen
-	Random,         // re-rolled at the start of every game (including Restart)
-	Fixed           // always PlayerColor below — set this for story/tutorial/puzzle levels
-};
 
 UCLASS()
 class CHESSKIDS_API AChessManager : public AActor
@@ -54,13 +43,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Chess")
 	FOnHintReady OnHintReady;
 
-	// Fired alongside OnGameOver when winning this arena granted a piece skin (the
-	// AXIOM battle is King's tutorial chapter reward, but resolves as a real chess
-	// match here rather than through ATutorialManager — see UChessKidsGameInstance::
-	// UnlockSkinForTutorial). Not fired on replays once the skin is already owned.
-	UPROPERTY(BlueprintAssignable, Category = "Chess")
-	FOnArenaSkinUnlocked OnSkinUnlocked;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess", meta = (ClampMin = "1", ClampMax = "20"))
 	int32 AISearchDepth = 5;
 
@@ -68,13 +50,6 @@ public:
 	// Story maps use it to teach one piece at a time (pawn battles in L_Pawn, etc).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
 	FString StartingFEN;
-
-	// Final-battle handicap: on AXIOM's map (name contains "Axiom") and with no
-	// explicit StartingFEN, the game opens from this position instead — AXIOM
-	// is missing his queen and a rook, so the kid focuses on delivering mate,
-	// not surviving (Dinosaur Chess insight from the design doc). Empty = off.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
-	FString AxiomAdvantageFEN = TEXT("rnb1kbn1/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQq - 0 1");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
 	AChessBoard* Board = nullptr;
@@ -84,19 +59,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Pieces")
 	TMap<EChessPieceType, FPieceMeshConfig> BlackPieceMeshes;
-
-	// How this arena decides which side the human plays. Set per-level so story/
-	// tutorial/puzzle maps can hardcode a side (Fixed) or always randomize (Random),
-	// while normal arenas defer to whatever the player picked on the mode-select
-	// screen (ChooseAtStart, the default).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess")
-	EPlayerColorMode PlayerColorMode = EPlayerColorMode::ChooseAtStart;
-
-	// The side the human plays. Resolved from PlayerColorMode at BeginPlay except in
-	// Fixed mode, where this is the level-configured value used as-is.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess",
-	          meta = (EditCondition = "PlayerColorMode == EPlayerColorMode::Fixed"))
-	EChessColor PlayerColor = EChessColor::White;
 
 	// --- Audio (defaults resolved from the sound packs at BeginPlay when unset) ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Audio") USoundBase* MoveSound = nullptr;
@@ -159,22 +121,6 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
 	FString GetPieceOnSquare(const FString& SquareStr) const;
 
-	// Every square black could capture on next move — the HUD's toggleable
-	// safe/danger overlay. Computed from the board, independent of whose turn
-	// it is (the engine only generates moves for the side to move).
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
-	TArray<FString> GetSquaresAttackedByBlack() const;
-
-	// Same, but for whichever side the human ISN'T playing — what the danger
-	// overlay actually wants, regardless of the player's color.
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
-	TArray<FString> GetSquaresAttackedByOpponent() const;
-
-private:
-	TArray<FString> ComputeAttackedSquares(bool bByBlack) const;
-
-public:
-
 	UFUNCTION(BlueprintCallable, Category = "Chess")
 	void UndoLastMove();
 
@@ -200,13 +146,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Chess")
 	void SwapPromotedPiece(const FString& Square, const FString& PieceLetter);
-
-	// Live-refreshes every spawned piece with the given skin material (or nullptr to
-	// revert to each piece's own default). Persisting the selection is the caller's
-	// job (see UChessKidsGameInstance::SelectPieceSkin) — this only pushes it to
-	// actors already on the board.
-	UFUNCTION(BlueprintCallable, Category = "Chess")
-	void ApplyPieceSkin(UMaterialInterface* SkinMaterial);
 
 	// The 3D actor currently standing on a square (nullptr if empty).
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")
@@ -236,13 +175,6 @@ private:
 	static FString SquareToString(int Square);
 
 	void CheckGameOver();
-
-	// Story/AXIOM victory side-effects (chapter unlock, King skin reward, fireworks).
-	// Reused by a real checkmate, the finale's draw-becomes-a-win, and the mercy rule.
-	void AwardStoryWin();
-
-	// True if the given pulse color has nothing left but its king (bare king).
-	bool SideHasOnlyKing(int Color) const;
 
 	UPROPERTY() TMap<FString, AChessPiece*> PieceActors;
 
