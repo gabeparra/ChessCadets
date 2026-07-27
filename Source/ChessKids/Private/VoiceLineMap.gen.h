@@ -3,7 +3,7 @@
 static const FVoiceLineEntry GVoiceLines[] = {
 	{ TEXT("Pawns only go forward! Click the glowing square to move."), TEXT("Guide"), TEXT("pawn_intro") },
 	{ TEXT("On your first step, you can sprint two squares!"), TEXT("Guide"), TEXT("pawn_sprint") },
-	{ TEXT("Pawns capture diagonally! Zigzag through all the enemies!"), TEXT("Guide"), TEXT("pawn_diagonal") },
+	{ TEXT("Pawns capture DIAGONALLY! Zigzag through all the enemies!"), TEXT("Guide"), TEXT("pawn_diagonal") },
 	{ TEXT("BOSS: Race to the top! The enemy pawn is coming toward you — dodge or capture it!"), TEXT("Guide"), TEXT("pawn_boss") },
 	{ TEXT("You captured the enemy pawn! You win the race!"), TEXT("Guide"), TEXT("pawn_win_capture") },
 	{ TEXT("You won the race! You've mastered the pawn!"), TEXT("Guide"), TEXT("pawn_win_race") },

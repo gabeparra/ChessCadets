@@ -1,6 +1,7 @@
 #include "TutorialPlayerController.h"
 #include "TutorialBoard.h"
 #include "TutorialManager.h"
+#include "ChessKidsGameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Camera/CameraActor.h"
@@ -69,6 +70,20 @@ void ATutorialPlayerController::BeginPlay()
 void ATutorialPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+	InputComponent->BindKey(EKeys::MouseScrollUp,   IE_Pressed, this, &ATutorialPlayerController::ZoomIn);
+	InputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &ATutorialPlayerController::ZoomOut);
+}
+
+void ATutorialPlayerController::ZoomIn()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() + 0.08f);
+}
+
+void ATutorialPlayerController::ZoomOut()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() - 0.08f);
 }
 
 void ATutorialPlayerController::Tick(float DeltaTime)

@@ -25,6 +25,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Materials/MaterialInterface.h"
 #include "InputCoreTypes.h"
+#include "ChessKidsUiStyle.h"
 
 TSharedRef<SWidget> UPieceSkinsMenuWidget::RebuildWidget()
 {
@@ -101,11 +102,9 @@ TSharedRef<SWidget> UPieceSkinsMenuWidget::RebuildWidget()
 		}
 
 		EquipButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(EquipButton);
 		UTextBlock* EquipLabel = WidgetTree->ConstructWidget<UTextBlock>();
-		EquipLabel->SetText(FText::FromString(TEXT("Equip")));
-		EquipLabel->SetJustification(ETextJustify::Center);
-		EquipLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 15));
-		EquipLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		ChessKidsUi::StyleButtonLabel(EquipLabel, FString(TEXT("Equip")), 15);
 		EquipButton->AddChild(EquipLabel);
 		if (UVerticalBoxSlot* EBS = PreviewBox->AddChildToVerticalBox(EquipButton))
 		{
@@ -154,11 +153,9 @@ TSharedRef<SWidget> UPieceSkinsMenuWidget::RebuildWidget()
 		LockedSizeBox->AddChild(LockedListBox);
 
 		BackButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(BackButton);
 		UTextBlock* BackLabel = WidgetTree->ConstructWidget<UTextBlock>();
-		BackLabel->SetText(FText::FromString(TEXT("Back")));
-		BackLabel->SetJustification(ETextJustify::Center);
-		BackLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
-		BackLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		ChessKidsUi::StyleButtonLabel(BackLabel, FString(TEXT("Back")), 14);
 		BackButton->AddChild(BackLabel);
 		if (UVerticalBoxSlot* S = MainBox->AddChildToVerticalBox(BackButton))
 		{

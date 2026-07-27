@@ -5,6 +5,7 @@
 #include "ChessKidsGameInstance.h"
 #include "Async/Async.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -180,11 +181,30 @@ void AChessManager::BeginPlay()
 
 	if (!Board)
 		Board = Cast<AChessBoard>(UGameplayStatics::GetActorOfClass(this, AChessBoard::StaticClass()));
-	SpawnAllPieces();
-	if (GI)
-		ApplyPieceSkin(GI->GetSelectedPieceMaterial());
+	SpawnAllPieces();   // applies the selected skin internally
 
 	OnMoveMade.AddDynamic(this, &AChessManager::HandleMoveMade);
+
+	// Traffic never crosses the board plane — no exceptions. Placed OrbitCars
+	// (L_Field has dozens hand-scattered at various heights) get their orbit
+	// pushed below the board at startup, whatever height they were authored at.
+	if (Board)
+	{
+		const float MaxCarZ = Board->GetBoardCenter().Z - 600.f;
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (Actor && Actor->GetClass()->GetName().Contains(TEXT("OrbitCar")))
+			{
+				FVector Loc = Actor->GetActorLocation();
+				if (Loc.Z > MaxCarZ)
+				{
+					Loc.Z = MaxCarZ;
+					Actor->SetActorLocation(Loc);
+				}
+			}
+		}
+	}
 
 	ResolveDefaultSounds();
 	if (BackgroundMusic)
@@ -1005,6 +1025,11 @@ void AChessManager::SpawnAllPieces()
 			}
 		}
 	}
+
+	// Re-skin here, not in the callers: every rebuild path (new game, undo,
+	// FEN reload) must keep the player's selected skin — undo used to lose it.
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		ApplyPieceSkin(GI->GetSelectedPieceMaterial());
 }
 
 AChessPiece* AChessManager::FindPieceOnSquare(const FString& Square) const

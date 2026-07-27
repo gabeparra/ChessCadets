@@ -2,6 +2,7 @@
 #include "ChessBoard.h"
 #include "ChessManager.h"
 #include "ChessPiece.h"
+#include "ChessKidsGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
@@ -96,6 +97,8 @@ void AChessPlayerController::SetupInputComponent()
 
 	// Z = take back the last move (lets a child recover from a mistake).
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &AChessPlayerController::UndoMove);
+	InputComponent->BindKey(EKeys::MouseScrollUp,   IE_Pressed, this, &AChessPlayerController::ZoomIn);
+	InputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &AChessPlayerController::ZoomOut);
 
 	// H = hint (engine suggests a move and highlights it).
 	InputComponent->BindKey(EKeys::H, IE_Pressed, this, &AChessPlayerController::RequestHint);
@@ -178,6 +181,18 @@ void AChessPlayerController::HandleHintReady(FString FromSquare, FString ToSquar
 	Board->ClearHighlights();
 	SelectPieceOnSquare(FromSquare);
 	Board->SelectSquare(ToSquare);   // make the suggested target stand out
+}
+
+void AChessPlayerController::ZoomIn()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() + 0.08f);
+}
+
+void AChessPlayerController::ZoomOut()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() - 0.08f);
 }
 
 void AChessPlayerController::UndoMove()
