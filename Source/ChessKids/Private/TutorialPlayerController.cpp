@@ -50,7 +50,7 @@ void ATutorialPlayerController::BeginPlay()
 	{
 		const float Extent = FMath::Max(Board->NumFiles, Board->NumRanks) * Board->SquareSize;
 		const FVector Center = Board->GetActorLocation();
-		const FVector CamLoc = Center + FVector(0.f, Extent * 0.85f, Extent * 1.25f);
+		const FVector CamLoc = Center + FVector(0.f, -Extent * 0.85f, Extent * 1.25f);
 
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;

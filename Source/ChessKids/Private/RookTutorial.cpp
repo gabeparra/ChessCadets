@@ -9,16 +9,6 @@ ARookTutorial::ARookTutorial()
 	TaughtPiece = EChessPieceType::Rook;
 }
 
-bool ARookTutorial::IsSquareBlocked(int32 File, int32 Rank) const
-{
-	// The Runner isn't in EnemyActors (see SetupBoss) — without this, a rook slide
-	// could pass straight through it to a square further along the same line,
-	// without ever blocking on or capturing it.
-	if (Runner && File == RunnerFile && Rank == RunnerRank)
-		return true;
-	return Super::IsSquareBlocked(File, Rank);
-}
-
 void ARookTutorial::SetupPhase(ETutorialPhase Phase)
 {
 	Super::SetupPhase(Phase);
@@ -102,7 +92,7 @@ void ARookTutorial::SetupBoss()
 	Runner = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Runner)
 	{
-		Runner->Init(EChessPieceType::Pawn, EChessColor::Black, RunnerFile, RunnerRank, &GetBlackRivalMeshConfig());
+		Runner->Init(EChessPieceType::Pawn, EChessColor::Black, RunnerFile, RunnerRank, nullptr);
 		Runner->SetActorScale3D(FVector(0.8f));
 	}
 
@@ -122,7 +112,6 @@ void ARookTutorial::AfterPlayerMove(int32 File, int32 Rank)
 		ShowGuideMessage(TEXT("You caught the runner! Straight lines, unstoppable!"));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
-		GrantBossVictoryRewards();
 		return;
 	}
 

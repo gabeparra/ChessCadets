@@ -30,7 +30,6 @@ protected:
 	virtual void AfterPlayerMove(int32 File, int32 Rank) override;
 	virtual void OnTargetCollected(int32 File, int32 Rank) override;
 	virtual void OnPhaseComplete() override;
-	virtual bool IsSquareBlocked(int32 File, int32 Rank) const override;
 
 private:
 	UPROPERTY() AChessPiece* Runner = nullptr;

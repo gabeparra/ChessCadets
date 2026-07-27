@@ -15,6 +15,6 @@ public class ChessKids : ModuleRules
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Engine"));
 
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG", "Slate", "SlateCore" });
-        PrivateDependencyModuleNames.AddRange(new string[] { "RenderCore" });
+        PrivateDependencyModuleNames.AddRange(new string[] { });
 	}
 }

@@ -121,7 +121,7 @@ void ABishopTutorial::SpawnDecoyAt(int32 File, int32 Rank)
 	AChessPiece* Decoy = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Decoy)
 	{
-		Decoy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, PieceMeshes.Find(EChessPieceType::Pawn));
+		Decoy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, nullptr);
 		Decoy->SetActorScale3D(FVector(0.6f));
 		DecoyActors.Add(Decoy);
 	}
@@ -165,7 +165,6 @@ void ABishopTutorial::AfterPlayerMove(int32 File, int32 Rank)
 			PaintedCount, TotalOwnSquares));
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
-		GrantBossVictoryRewards();
 		return;
 	}
 
