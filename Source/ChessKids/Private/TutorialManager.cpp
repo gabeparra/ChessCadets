@@ -1,6 +1,7 @@
 #include "TutorialManager.h"
 #include "TutorialBoard.h"
 #include "ChessPiece.h"
+#include "ChessVoice.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -51,6 +52,7 @@ void ATutorialManager::ShowGuideMessage(const FString& Message)
 {
 	LastGuideMessage = Message;          // cached for late-binding HUDs
 	OnGuideMessage.Broadcast(Message);   // rendered by UTutorialHudWidget
+	FChessVoice::PlayForMessage(this, Message);
 
 	if (false)   // debug fallback retired — the guide panel owns messaging now
 	{
@@ -414,18 +416,23 @@ void ATutorialManager::AdvancePhase()
 	default: return;
 	}
 
+	FChessVoice::Interrupt(this);   // new phase: stale coaching stops mid-word
 	OnPhaseChanged.Broadcast(CurrentPhase);
 	SetupPhase(CurrentPhase);
 }
 
 void ATutorialManager::ResetPhase()
 {
+	FChessVoice::Interrupt(this);   // retry restarts the beat, not the backlog
 	OnTryAgain.Broadcast();
 	SetupPhase(CurrentPhase);
 }
 
 void ATutorialManager::ShowGuideSequence(TArray<FString> Lines)
 {
+	// A sequence REPLACES whatever guidance was queued (text and voice alike),
+	// so its first line speaks immediately instead of waiting out old lines.
+	FChessVoice::Interrupt(this);
 	GetWorldTimerManager().ClearTimer(GuideTimer);
 	if (Lines.Num() >= 2)
 		LastInstructionLines = Lines;

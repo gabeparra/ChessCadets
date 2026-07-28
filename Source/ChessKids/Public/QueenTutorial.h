@@ -25,7 +25,7 @@ protected:
 	virtual void OnPhaseComplete() override;
 
 private:
-	// Where the player was before the current move (to sweep orbs along the slide)
+	// Where the player was before the current move (to sweep pieces along the slide)
 	int32 PrevFile = 0;
 	int32 PrevRank = 0;
 

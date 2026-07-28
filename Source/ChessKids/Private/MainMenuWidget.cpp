@@ -16,6 +16,7 @@
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Styling/CoreStyle.h"
+#include "ChessKidsUiStyle.h"
 
 void UMainMenuWidget::NativeConstruct()
 {
@@ -158,11 +159,9 @@ void UMainMenuWidget::InjectLearnButton()
 	if (!Canvas) return;
 
 	InjectedLearnButton = WidgetTree->ConstructWidget<UButton>();
+	ChessKidsUi::StyleButton(InjectedLearnButton);
 	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
-	Label->SetText(FText::FromString(TEXT("LEARN CHESS")));
-	Label->SetJustification(ETextJustify::Center);
-	Label->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
-	Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+	ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("LEARN CHESS")), 16);
 	InjectedLearnButton->AddChild(Label);
 	InjectedLearnButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnLearn);
 
@@ -183,9 +182,9 @@ void UMainMenuWidget::InjectSettingsButton()
 	if (!Canvas) return;
 
 	InjectedSettingsButton = WidgetTree->ConstructWidget<UButton>();
+	ChessKidsUi::StyleButton(InjectedSettingsButton);
 	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
-	Label->SetText(FText::FromString(TEXT("Settings")));
-	Label->SetJustification(ETextJustify::Center);
+	ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("Settings")), 24);
 	InjectedSettingsButton->AddChild(Label);
 	InjectedSettingsButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnSettings);
 
@@ -206,9 +205,9 @@ void UMainMenuWidget::InjectSkinsButton()
 	if (!Canvas) return;
 
 	InjectedSkinsButton = WidgetTree->ConstructWidget<UButton>();
+	ChessKidsUi::StyleButton(InjectedSkinsButton);
 	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
-	Label->SetText(FText::FromString(TEXT("Piece Skins")));
-	Label->SetJustification(ETextJustify::Center);
+	ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("Piece Skins")), 24);
 	InjectedSkinsButton->AddChild(Label);
 	InjectedSkinsButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnSkins);
 

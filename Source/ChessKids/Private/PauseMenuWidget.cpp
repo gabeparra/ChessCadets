@@ -17,6 +17,7 @@
 #include "SettingsMenuWidget.h"
 #include "InputCoreTypes.h"
 #include "Styling/CoreStyle.h"
+#include "ChessKidsUiStyle.h"
 
 TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 {
@@ -54,11 +55,9 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 		auto MakeButton = [&](UButton*& OutBtn, const TCHAR* Label)
 		{
 			OutBtn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(OutBtn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
-			T->SetText(FText::FromString(Label));
-			T->SetJustification(ETextJustify::Center);
-			T->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 18));
-			T->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			ChessKidsUi::StyleButtonLabel(T, FString(Label), 18);
 			OutBtn->AddChild(T);
 			if (UVerticalBoxSlot* BS = Box->AddChildToVerticalBox(OutBtn))
 			{
@@ -95,11 +94,9 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 		auto MakeDifficultyButton = [&](UButton*& OutBtn, const TCHAR* Label)
 		{
 			OutBtn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(OutBtn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
-			T->SetText(FText::FromString(Label));
-			T->SetJustification(ETextJustify::Center);
-			T->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
-			T->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			ChessKidsUi::StyleButtonLabel(T, FString(Label), 16);
 			OutBtn->AddChild(T);
 			if (UHorizontalBoxSlot* HS = Row->AddChildToHorizontalBox(OutBtn))
 			{

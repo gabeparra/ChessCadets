@@ -16,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
 #include "TimerManager.h"
+#include "ChessKidsUiStyle.h"
 
 TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 {
@@ -48,11 +49,9 @@ TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 
 		// MENU button — top right, always available.
 		MenuButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(MenuButton);
 		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
-		Label->SetText(FText::FromString(TEXT("MENU")));
-		Label->SetJustification(ETextJustify::Center);
-		Label->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
-		Label->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("MENU")), 16);
 		MenuButton->AddChild(Label);
 		if (UCanvasPanelSlot* MS = Root->AddChildToCanvas(MenuButton))
 		{
@@ -65,11 +64,9 @@ TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 		// HELP button — right under MENU. Replays the current phase's
 		// instructions for kids who missed or forgot them.
 		HelpButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(HelpButton);
 		UTextBlock* HelpLabel = WidgetTree->ConstructWidget<UTextBlock>();
-		HelpLabel->SetText(FText::FromString(TEXT("? HELP")));
-		HelpLabel->SetJustification(ETextJustify::Center);
-		HelpLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
-		HelpLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		ChessKidsUi::StyleButtonLabel(HelpLabel, FString(TEXT("? HELP")), 16);
 		HelpButton->AddChild(HelpLabel);
 		if (UCanvasPanelSlot* HS = Root->AddChildToCanvas(HelpButton))
 		{
@@ -109,11 +106,9 @@ TSharedRef<SWidget> UTutorialHudWidget::RebuildWidget()
 		auto MakeChoiceButton = [this](const TCHAR* Text) -> UButton*
 		{
 			UButton* Btn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(Btn);
 			UTextBlock* BtnLabel = WidgetTree->ConstructWidget<UTextBlock>();
-			BtnLabel->SetText(FText::FromString(Text));
-			BtnLabel->SetJustification(ETextJustify::Center);
-			BtnLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
-			BtnLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			ChessKidsUi::StyleButtonLabel(BtnLabel, FString(Text), 20);
 			BtnLabel->SetMargin(FMargin(20.f, 10.f));
 			Btn->AddChild(BtnLabel);
 			return Btn;

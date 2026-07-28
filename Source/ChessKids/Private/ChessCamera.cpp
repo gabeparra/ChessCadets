@@ -56,18 +56,9 @@ void AChessCamera::BeginPlay()
 		AChessCamera* Self = WeakThis.Get();
 		if (!Self) return;
 
-		AChessManager* Manager = Cast<AChessManager>(UGameplayStatics::GetActorOfClass(Self, AChessManager::StaticClass()));
-		if (Manager && Manager->PlayerColor == EChessColor::Black)
-		{
-			// Mirror to the opposite side of the board by spinning the already-correct
-			// default pose 180° around the world vertical axis. Done in world space
-			// (not by negating the local Yaw property) so it's correct regardless of
-			// whatever rotation this level's camera actor itself was placed with —
-			// a pure world-up rotation can never flip/invert an existing valid view,
-			// it only orbits it, so the level-authored tilt/framing is preserved.
-			const FQuat FlipYaw180(FVector::UpVector, PI);
-			Self->SpringArm->SetWorldRotation(FlipYaw180 * Self->SpringArm->GetComponentQuat());
-		}
+		// ApplyView is side-aware and idempotent, so re-running it here lands on
+		// the correct (possibly Black) view once PlayerColor is known.
+		Self->ApplyView();
 	});
 }
 
@@ -84,4 +75,18 @@ void AChessCamera::ApplyView()
 
 	SpringArm->TargetArmLength = ArmLength * Frac;
 	SpringArm->SetRelativeRotation(FRotator(-PitchAngle, Yaw, 0.f));
+
+	// Mirror to the Black side of the board when the human plays Black. Done in
+	// world space by spinning the already-correct default pose 180° around the
+	// world vertical axis — a pure world-up rotation can never flip/invert a
+	// valid view, it only orbits it, so level-authored tilt/framing is kept.
+	// Because the relative rotation is reset above, re-running ApplyView (e.g.
+	// on every zoom change) stays idempotent instead of flipping repeatedly.
+	AChessManager* Manager = Cast<AChessManager>(
+		UGameplayStatics::GetActorOfClass(this, AChessManager::StaticClass()));
+	if (Manager && Manager->PlayerColor == EChessColor::Black)
+	{
+		const FQuat FlipYaw180(FVector::UpVector, PI);
+		SpringArm->SetWorldRotation(FlipYaw180 * SpringArm->GetComponentQuat());
+	}
 }

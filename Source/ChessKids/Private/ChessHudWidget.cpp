@@ -1,5 +1,6 @@
 #include "ChessHudWidget.h"
 #include "ChessManager.h"
+#include "ChessVoice.h"
 #include "ChessPlayerController.h"
 #include "ChessBoard.h"
 #include "ChessKidsGameInstance.h"
@@ -19,6 +20,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
 #include "TimerManager.h"
+#include "ChessKidsUiStyle.h"
 
 TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 {
@@ -139,11 +141,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 
 		// Customization — bottom right, mirroring the board-color cluster on the left.
 		CustomizationButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(CustomizationButton);
 		UTextBlock* CustomizationLabel = WidgetTree->ConstructWidget<UTextBlock>();
-		CustomizationLabel->SetText(FText::FromString(TEXT("Customization")));
-		CustomizationLabel->SetJustification(ETextJustify::Center);
-		CustomizationLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
-		CustomizationLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		ChessKidsUi::StyleButtonLabel(CustomizationLabel, FString(TEXT("Customization")), 14);
 		CustomizationButton->AddChild(CustomizationLabel);
 		if (UCanvasPanelSlot* CustS = Root->AddChildToCanvas(CustomizationButton))
 		{
@@ -155,11 +155,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 
 		// Hint — bottom right, just above Customization. Kids won't find the H key.
 		HintButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(HintButton);
 		UTextBlock* HintLabel = WidgetTree->ConstructWidget<UTextBlock>();
-		HintLabel->SetText(FText::FromString(TEXT("Hint")));
-		HintLabel->SetJustification(ETextJustify::Center);
-		HintLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
-		HintLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		ChessKidsUi::StyleButtonLabel(HintLabel, FString(TEXT("Hint")), 14);
 		HintButton->AddChild(HintLabel);
 		if (UCanvasPanelSlot* HintS = Root->AddChildToCanvas(HintButton))
 		{
@@ -174,11 +172,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		// switch on: every square the robot can attack glows red, same
 		// language as the tutorial levels.
 		DangerToggleButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(DangerToggleButton);
 		DangerToggleLabel = WidgetTree->ConstructWidget<UTextBlock>();
-		DangerToggleLabel->SetText(FText::FromString(TEXT("Danger view: OFF")));
-		DangerToggleLabel->SetJustification(ETextJustify::Center);
-		DangerToggleLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 14));
-		DangerToggleLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+		ChessKidsUi::StyleButtonLabel(DangerToggleLabel, FString(TEXT("Danger view: OFF")), 14);
 		DangerToggleButton->AddChild(DangerToggleLabel);
 		if (UCanvasPanelSlot* DTS = Root->AddChildToCanvas(DangerToggleButton))
 		{
@@ -193,11 +189,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		auto MakeTopRightButton = [&](const TCHAR* Text, float PosY) -> UButton*
 		{
 			UButton* Btn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(Btn);
 			UTextBlock* BtnLabel = WidgetTree->ConstructWidget<UTextBlock>();
-			BtnLabel->SetText(FText::FromString(Text));
-			BtnLabel->SetJustification(ETextJustify::Center);
-			BtnLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
-			BtnLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			ChessKidsUi::StyleButtonLabel(BtnLabel, FString(Text), 16);
 			Btn->AddChild(BtnLabel);
 			if (UCanvasPanelSlot* BtnSlot = Root->AddChildToCanvas(Btn))
 			{
@@ -245,11 +239,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			AddHelpLine(TEXT("Keys: P pauses, Z undoes a move, H shows a hint."), FLinearColor(0.6f, 0.65f, 0.75f), 14);
 
 			HudHelpCloseButton = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(HudHelpCloseButton);
 			UTextBlock* CloseLabel = WidgetTree->ConstructWidget<UTextBlock>();
-			CloseLabel->SetText(FText::FromString(TEXT("GOT IT")));
-			CloseLabel->SetJustification(ETextJustify::Center);
-			CloseLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
-			CloseLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			ChessKidsUi::StyleButtonLabel(CloseLabel, FString(TEXT("GOT IT")), 20);
 			HudHelpCloseButton->AddChild(CloseLabel);
 			if (UVerticalBoxSlot* CBS2 = HelpColumn->AddChildToVerticalBox(HudHelpCloseButton))
 				CBS2->SetHorizontalAlignment(HAlign_Center);
@@ -294,11 +286,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			AddIntroLine(IntroColumn, TEXT("(Stuck? Turn on Danger view to see his reach.)"), 14, FLinearColor(0.6f, 0.65f, 0.75f));
 
 			IntroBeginButton = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(IntroBeginButton);
 			UTextBlock* BeginLabel = WidgetTree->ConstructWidget<UTextBlock>();
-			BeginLabel->SetText(FText::FromString(TEXT("BEGIN")));
-			BeginLabel->SetJustification(ETextJustify::Center);
-			BeginLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
-			BeginLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+			ChessKidsUi::StyleButtonLabel(BeginLabel, FString(TEXT("BEGIN")), 20);
 			IntroBeginButton->AddChild(BeginLabel);
 			if (UVerticalBoxSlot* BS = IntroColumn->AddChildToVerticalBox(IntroBeginButton))
 				BS->SetHorizontalAlignment(HAlign_Center);
@@ -332,9 +322,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		auto MakeButton = [&](UButton*& OutBtn, const TCHAR* Label)
 		{
 			OutBtn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(OutBtn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
-			T->SetText(FText::FromString(Label));
-			T->SetJustification(ETextJustify::Center);
+			ChessKidsUi::StyleButtonLabel(T, FString(Label), 24);
 			OutBtn->AddChild(T);
 			if (UVerticalBoxSlot* BS = GameOverColumn->AddChildToVerticalBox(OutBtn))
 			{
@@ -386,9 +376,9 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			SNS->SetPadding(FMargin(0.f, 0.f, 0.f, 20.f));
 
 		SkinUnlockOkButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(SkinUnlockOkButton);
 		UTextBlock* SkinOkLabel = WidgetTree->ConstructWidget<UTextBlock>();
-		SkinOkLabel->SetText(FText::FromString(TEXT("NICE!")));
-		SkinOkLabel->SetJustification(ETextJustify::Center);
+		ChessKidsUi::StyleButtonLabel(SkinOkLabel, FString(TEXT("NICE!")), 24);
 		SkinUnlockOkButton->AddChild(SkinOkLabel);
 		if (UVerticalBoxSlot* SOS = SkinColumn->AddChildToVerticalBox(SkinUnlockOkButton))
 			SOS->SetHorizontalAlignment(HAlign_Center);
@@ -412,9 +402,13 @@ void UChessHudWidget::NativeConstruct()
 	if (HudHelpButton) HudHelpButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpClicked);
 	if (HudHelpCloseButton) HudHelpCloseButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpCloseClicked);
 
-	// The final battle opens on the story explanation for the missing pieces
+	// The final battle opens on the story explanation for the missing pieces.
+	// Keep VO playback in this same Axiom-only path.
 	if (IntroPanel && GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+	{
 		IntroPanel->SetVisibility(ESlateVisibility::Visible);
+		FChessVoice::PlayLine(this, TEXT("axiom_core_intro"));
+	}
 	if (SkinUnlockOkButton) SkinUnlockOkButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnSkinUnlockOkClicked);
 
 	if (AChessPlayerController* PC = GetChessPC())
@@ -696,20 +690,35 @@ void UChessHudWidget::HandleGameOver(FString Result)
 
 void UChessHudWidget::ShowGameOverPanel(FString Result)
 {
+	// Game over trumps any narration in flight (and lets finale_victory start clean).
+	FChessVoice::Interrupt(this);
+
 	if (GameOverText)
 	{
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();
 		const bool bAxiomFinale = !bTwoPlayer && GetWorld()
 			&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
+		// Win/lose is decided by whether the side the PLAYER chose won — not by
+		// assuming the player is always white (arcade lets you pick black).
+		const FString PlayerSide = (Manager && Manager->PlayerColor == EChessColor::Black)
+			? TEXT("black") : TEXT("white");
+
 		FString Msg;
-		if (Result == TEXT("white"))
+		if (Result == TEXT("draw"))
+			Msg = TEXT("It's a draw — what a battle!");
+		else if (bTwoPlayer)
+			Msg = (Result == TEXT("white")) ? TEXT("P1 wins! Great game!") : TEXT("P2 wins! Great game!");
+		else if (Result == PlayerSide)
 			// The story's final beat: beating AXIOM earns the title.
-			Msg = bTwoPlayer ? TEXT("P1 wins! Great game!")
-			    : bAxiomFinale ? TEXT("CHECKMATE! AXIOM is defeated and Neo City is free.\nYou are a CHESS CADET! Thank you for playing!")
-			    : TEXT("You win! Amazing game!");
-		else if (Result == TEXT("black")) Msg = bTwoPlayer ? TEXT("P2 wins! Great game!") : TEXT("Good try! You'll get the robot next time!");
-		else                              Msg = TEXT("It's a draw — what a battle!");
+			Msg = bAxiomFinale ? TEXT("CHECKMATE! AXIOM is defeated and Neo City is free.\nYou are a CHESS CADET! Thank you for playing!")
+			                   : TEXT("You win! Amazing game!");
+		else
+			Msg = TEXT("Good try! You'll get the robot next time!");
 		GameOverText->SetText(FText::FromString(Msg));
+		if (bAxiomFinale && Result == PlayerSide)
+		{
+			FChessVoice::PlayLine(this, TEXT("finale_victory"));
+		}
 	}
 	if (TurnText)  TurnText->SetVisibility(ESlateVisibility::Hidden);
 	if (CheckText) CheckText->SetVisibility(ESlateVisibility::Hidden);

@@ -37,7 +37,7 @@ void ARookTutorial::SetupPhase(ETutorialPhase Phase)
 	UpdateHighlights();
 }
 
-// Phase 1: Orbs in a single row — slide sideways to collect
+// Phase 1: Pieces in a single row — slide sideways to collect
 //   Col:  0  1  2  3  4  5
 //   R2:   P  .  O  .  O  O
 void ARookTutorial::SetupPhase1()
@@ -48,10 +48,10 @@ void ARookTutorial::SetupPhase1()
 	SpawnTargetAt(4, 2);
 	SpawnTargetAt(5, 2);
 
-	ShowGuideMessage(TEXT("Rooks slide in straight lines! Slide across to grab the orbs!"));
+	ShowGuideMessage(TEXT("Rooks slide in straight lines! Slide across to grab the pieces!"));
 }
 
-// Phase 2: Orbs in rows AND columns — mix horizontal and vertical slides
+// Phase 2: Pieces in rows AND columns — mix horizontal and vertical slides
 //   R4:   O  .  .  O  .  .
 //   ...
 //   R0:   P  .  .  O  .  .
@@ -178,7 +178,7 @@ void ARookTutorial::MoveRunner()
 void ARookTutorial::OnTargetCollected(int32 File, int32 Rank)
 {
 	if (TargetPositions.Num() > 0)
-		ShowGuideMessage(FString::Printf(TEXT("Orb collected! %d to go!"), TargetPositions.Num()));
+		ShowGuideMessage(FString::Printf(TEXT("Piece collected! %d to go!"), TargetPositions.Num()));
 }
 
 void ARookTutorial::OnPhaseComplete()
