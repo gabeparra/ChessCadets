@@ -17,15 +17,14 @@
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
 #include "InputCoreTypes.h"
+#include "ChessKidsUiStyle.h"
 
 static UButton* MakeLabeledButton(UWidgetTree* Tree, const TCHAR* Label, UTextBlock*& OutText, int32 FontSize = 18)
 {
 	UButton* Btn = Tree->ConstructWidget<UButton>();
+	ChessKidsUi::StyleButton(Btn);
 	OutText = Tree->ConstructWidget<UTextBlock>();
-	OutText->SetText(FText::FromString(Label));
-	OutText->SetJustification(ETextJustify::Center);
-	OutText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", FontSize));
-	OutText->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+	ChessKidsUi::StyleButtonLabel(OutText, FString(Label), FontSize);
 	Btn->AddChild(OutText);
 	return Btn;
 }

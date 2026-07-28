@@ -10,6 +10,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
+#include "ChessKidsUiStyle.h"
 
 namespace
 {
@@ -32,10 +33,9 @@ namespace
 	                const TCHAR* Label, int32 FontSize)
 	{
 		OutBtn = Tree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(OutBtn);
 		UTextBlock* T = Tree->ConstructWidget<UTextBlock>();
-		T->SetText(FText::FromString(Label));
-		T->SetJustification(ETextJustify::Center);
-		T->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", FontSize));
+		ChessKidsUi::StyleButtonLabel(T, FString(Label), FontSize);
 		OutBtn->AddChild(T);
 		if (UVerticalBoxSlot* BS = Box->AddChildToVerticalBox(OutBtn))
 		{

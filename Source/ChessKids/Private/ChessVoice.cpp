@@ -19,7 +19,7 @@ namespace
 
 #include "VoiceLineMap.gen.h"
 
-	constexpr float VoiceVolume   = 1.6f;   // voice sits above the mix
+	constexpr float VoiceVolume   = 1.85f;  // voice sits above the mix
 	constexpr float DuckLevel     = 0.15f;  // music/sfx volume scale while a voice line plays
 	constexpr int32 MaxQueuedLines = 4;
 
@@ -154,4 +154,23 @@ bool FChessVoice::PlayForMessage(UObject* WorldContext, const FString& Message)
 		}
 	}
 	return false;
+}
+
+void FChessVoice::Interrupt(UObject* WorldContext)
+{
+	GQueue.Empty();
+
+	if (UWorld* World = GEngine
+			? GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::ReturnNull)
+			: nullptr)
+	{
+		World->GetTimerManager().ClearTimer(GVoiceTimer);
+	}
+
+	if (GActiveVoice.IsValid())
+	{
+		GActiveVoice->Stop();
+	}
+	GActiveVoice = nullptr;
+	RestoreDucked();
 }

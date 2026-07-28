@@ -10,6 +10,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
+#include "ChessKidsUiStyle.h"
 
 namespace
 {
@@ -61,12 +62,11 @@ TSharedRef<SWidget> UTutorialSelectWidget::RebuildWidget()
 		{
 			UButton*& Btn = *Buttons[i];
 			Btn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(Btn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
 			const bool bDone = GI && GI->IsTutorialComplete(i);
-			T->SetText(FText::FromString(FString::Printf(TEXT("%s%s"),
-				LessonNames[i], bDone ? TEXT("   *") : TEXT(""))));
-			T->SetJustification(ETextJustify::Center);
-			T->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
+			ChessKidsUi::StyleButtonLabel(T, FString::Printf(TEXT("%s%s"),
+				LessonNames[i], bDone ? TEXT("   *") : TEXT("")), 20);
 			Btn->AddChild(T);
 			if (UVerticalBoxSlot* BS = Box->AddChildToVerticalBox(Btn))
 			{
@@ -76,10 +76,9 @@ TSharedRef<SWidget> UTutorialSelectWidget::RebuildWidget()
 		}
 
 		BackButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(BackButton);
 		UTextBlock* BT = WidgetTree->ConstructWidget<UTextBlock>();
-		BT->SetText(FText::FromString(TEXT("BACK")));
-		BT->SetJustification(ETextJustify::Center);
-		BT->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+		ChessKidsUi::StyleButtonLabel(BT, FString(TEXT("BACK")), 16);
 		BackButton->AddChild(BT);
 		if (UVerticalBoxSlot* BS = Box->AddChildToVerticalBox(BackButton))
 		{

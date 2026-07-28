@@ -15,4 +15,9 @@ struct FChessVoice
 	// Play the clip whose source text equals this guide message, if one
 	// exists. Returns true if a clip started.
 	static bool PlayForMessage(UObject* WorldContext, const FString& Message);
+
+	// Scene change: stop the current line and drop everything queued. Call at
+	// any beat boundary (phase advance, retry, undo, new game, game over) so
+	// stale coaching never plays over the new context.
+	static void Interrupt(UObject* WorldContext);
 };

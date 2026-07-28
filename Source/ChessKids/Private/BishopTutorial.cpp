@@ -63,7 +63,7 @@ void ABishopTutorial::SetupPhase1()
 	SpawnTargetAt(5, 4);
 	SpawnTargetAt(0, 3);
 
-	ShowGuideMessage(TEXT("Bishops only move diagonally! Stay on your color and grab the orbs!"));
+	ShowGuideMessage(TEXT("Bishops only move diagonally! Stay on your color and grab the pieces!"));
 }
 
 // Phase 2: Decoy targets on the wrong color — visibly out of reach
@@ -79,7 +79,7 @@ void ABishopTutorial::SetupPhase2()
 	SpawnDecoyAt(2, 2);
 	SpawnDecoyAt(4, 4);
 
-	ShowGuideMessage(TEXT("Some orbs are on purple squares — I can't reach those, they're not my color!"));
+	ShowGuideMessage(TEXT("Some pieces are on purple squares — I can't reach those, they're not my color!"));
 }
 
 // Phase 3: Walls on the diagonals — plan a longer route

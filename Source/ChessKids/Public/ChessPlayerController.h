@@ -55,6 +55,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chess")
 	void UndoMove();
 
+	// Mouse-wheel board zoom. Steps the same persisted zoom the settings slider
+	// uses (UChessKidsGameInstance::SetBoardZoom), which live-refreshes the camera.
+	void ZoomIn();
+	void ZoomOut();
+
 	// Asks the engine to suggest a move (bound to H).
 	UFUNCTION(BlueprintCallable, Category = "Chess")
 	void RequestHint();
