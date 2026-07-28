@@ -874,17 +874,6 @@ void AChessManager::OnBestMoveFound(int BestMove)
 	CheckGameOver();
 }
 
-bool AChessManager::SideHasOnlyKing(int Color) const
-{
-	if (!Engine) return false;
-	const auto& P = Engine->Position;
-	return pulse::bitboard::size(P.pieces[Color][pulse::piecetype::PAWN])   == 0
-		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::KNIGHT]) == 0
-		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::BISHOP]) == 0
-		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::ROOK])   == 0
-		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::QUEEN])  == 0;
-}
-
 void AChessManager::AwardStoryWin()
 {
 	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
@@ -920,22 +909,6 @@ void AChessManager::CheckGameOver()
 {
 	if (!Engine) return;
 	if (bGameOver) return;
-
-	// "I know you won" mercy rule (vs AI): the moment the robot is reduced to a bare
-	// king and the player still has mating material, award the win — no grinding out
-	// the exact checkmate, no technical draw stealing a clearly-won game.
-	if (!bTwoPlayerMode)
-	{
-		const int AICol = (PlayerColor == EChessColor::White) ? pulse::color::BLACK : pulse::color::WHITE;
-		if (SideHasOnlyKing(AICol) && !Engine->Position.hasInsufficientMaterial())
-		{
-			bGameOver = true;
-			PlaySfx(WinSound);
-			AwardStoryWin();
-			OnGameOver.Broadcast(PlayerColor == EChessColor::White ? TEXT("white") : TEXT("black"));
-			return;
-		}
-	}
 
 	pulse::MoveGenerator Gen;
 	auto& LegalMoves = Gen.getLegalMoves(
