@@ -172,6 +172,88 @@ set. `WBP_LevelSelect` lists those entries; choosing one calls
 3. Add an `FChessMapEntry` to `DA_MapRegistry` (`MapId`, `DisplayName`, `Level`).
 4. If it should be packaged, add it to `MapsToCook` in `Config/DefaultEngine.ini`.
 
+Per‑level knobs worth knowing (all on the placed actors, no code needed):
+
+- **`AChessManager`** — `StartingFEN` (a FEN string turns the arena into a lesson
+  position, e.g. L_Pawn's pawns‑only battle; empty = standard chess),
+  `PlayerColorMode` (ChooseAtStart / Random / Fixed), `AISearchDepth`, the audio
+  slots (`BackgroundMusic`, move/capture/check/win sounds), and the
+  `White/BlackPieceMeshes` maps (mesh + material per piece type).
+- **`AChessCamera`** — `ArmLength`, `PitchAngle`, `Yaw`, `MinZoomArmFraction`
+  (how close the mouse‑wheel zoom can get). It auto‑finds the board and frames it.
+- **`AChessBoard` → Holographic category** — `GridOverlayMaterial`
+  (`M_HoloGrid`), `HolographicScanMaterial`, `NeonPulseMin/Max/Speed`,
+  `ScanSpeed/Height`. Set these to give the board the holo look; crank
+  `NeonPulseMin/Max` on brightly‑lit maps or the glow washes out.
+- To appear in the arcade picker, add a button in `ModeSelectWidget.cpp`; to be a
+  story chapter, extend `UChessKidsGameInstance::MapForChapter()`.
+
+### Creating a tutorial level (scripted events)
+
+The tutorials are C++‑scripted sequences, one class per lesson, all driven by the
+same tiny framework — this is where the "scripted events" live.
+
+**1. The manager class.** Subclass `ATutorialManager` (see `PawnTutorial`,
+`RookTutorial`, … `KingTutorial`, `CheckmateTutorial` as references, simplest
+first). Your entire lesson is the override of:
+
+```cpp
+virtual void SetupPhase(ETutorialPhase Phase) override;
+```
+
+The phase ladder is the event script: `Phase1 → Phase2 → Phase3 → Boss →
+Complete`. Call `AdvancePhase()` when the player finishes a beat and
+`ResetPhase()` to retry the current one (both auto‑cut any queued narration).
+Inside a phase you compose the scene with the base‑class helpers:
+
+- `SpawnPlayerPiece(File, Rank)` — the piece being taught (`TaughtPiece` property)
+- `SpawnTargetAt / SpawnEnemyAt / SpawnWallAt (File, Rank)` — collectibles,
+  capturable rivals, and blockers; `RemoveTargetAt` / `RemoveEnemyAt` to clear
+- `IsMoveAllowed(...)` — override to constrain which moves count for this lesson
+- `MovePlayerTo(File, Rank)` — glide the piece (also bumps `MoveCount`)
+
+**2. Guide narration.** `ShowGuideMessage(Text)` shows (and speaks) one line;
+`ShowGuideSequence({...})` plays a timed multi‑line explanation
+(`GuideLineSeconds` apart). Static lines are voiced automatically **if** they
+exist in `Tools/vo_manifest.json` — see "Voice‑over pipeline" below. Lines built
+with `Printf` (dynamic counters) display as text only.
+
+**3. The map.** Create `Content/Maps/L_Tutorial_<Name>` containing a
+`TutorialBoard` and one instance of your manager class, using the `GM_Tutorial`
+game mode (its `TutorialPlayerController` spawns the tutorial HUD
+automatically). Key properties on the placed manager: `TaughtPiece`,
+`GuideLineSeconds`, `NextLevelName` (which lesson follows on "Continue"), and
+`TutorialCompletionIndex` (save‑slot for the ✓ star and skin reward).
+
+**4. Wire it into the menu.** Add the lesson's label and map name to the arrays
+at the top of `TutorialSelectWidget.cpp`. Completion stars come from
+`UChessKidsSaveGame::CompletedTutorials`; skin rewards route through
+`UChessKidsGameInstance::UnlockSkinForTutorial`.
+
+**Editing existing scripted events** is even easier: the entire script for each
+lesson is plain `TEXT("...")` strings and spawn calls in its one `.cpp` file
+(`Source/ChessKids/Private/<Piece>Tutorial.cpp`). Change the strings, rebuild,
+done — but if a changed line was voiced, update its entry in
+`Tools/vo_manifest.json` too (see below) so the audio matches.
+
+### Voice‑over pipeline (ElevenLabs)
+
+All narration audio is generated, not recorded:
+
+1. `Tools/vo_manifest.json` — one entry per line: `id`, `character`
+   (`Guide`/`AXIOM`), `text` (what is spoken), optional `match` (the exact
+   in‑game string when it differs from the spoken text).
+2. `python Tools/generate_vo.py` — synthesizes missing clips to
+   `Content/Audio/VO/` (needs `ELEVENLABS_API_KEY` in `.env`; existing clips are
+   skipped, `--force`/`--only id` to redo).
+3. `python Tools/normalize_vo.py` — levels all clips to a common loudness.
+4. `python Tools/generate_vo.py --emit-cpp` — regenerates
+   `Source/.../VoiceLineMap.gen.h`, the compiled text→clip table. Rebuild after.
+
+At runtime `FChessVoice` matches every guide message against that table, queues
+lines so they never talk over each other, ducks the music while speaking, and
+drops stale narration at scene changes (phase advance, retry, undo, game over).
+
 ---
 
 ## Notable project settings (`Config/DefaultEngine.ini`)
