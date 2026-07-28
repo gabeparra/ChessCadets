@@ -411,6 +411,448 @@
       "text": "...No safe squares?!",
       "source": "KingTutorial.cpp:326",
       "match": "AXIOM: \"...no safe squares?!\" Interesting. Remember this feeling, cadet."
+    },
+    {
+      "id": "cm_hunted",
+      "character": "Guide",
+      "text": "This time, YOU are the hunted king!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_rook_check",
+      "character": "Guide",
+      "text": "The rook has you in CHECK! The red squares show its reach.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_run",
+      "character": "Guide",
+      "text": "Click your king, then click a safe square. RUN!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_escaped",
+      "character": "Guide",
+      "text": "You escaped! When the king CAN get away, it's only CHECK.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_goes_on",
+      "character": "Guide",
+      "text": "The game goes on. But what if there were NOWHERE to run...",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_cant_go",
+      "character": "Guide",
+      "text": "Can't go there. Keep trying, find ANY legal move...",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_guarded",
+      "character": "Guide",
+      "text": "That square is guarded! Try another...",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_nothing_works",
+      "character": "Guide",
+      "text": "Nothing works! But look: you're NOT in check.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_stalemate_rule",
+      "character": "Guide",
+      "text": "No check plus no moves equals STALEMATE. Nobody wins. It's a draw.",
+      "source": "CheckmateTutorial.cpp",
+      "match": "No check + no moves = STALEMATE. Nobody wins. It's a DRAW."
+    },
+    {
+      "id": "cm_every_guarded",
+      "character": "Guide",
+      "text": "Every square is guarded. There IS no escape.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_checkmate_rule",
+      "character": "Guide",
+      "text": "Check plus no way out equals CHECKMATE. The game ends right there.",
+      "source": "CheckmateTutorial.cpp",
+      "match": "Check + no way out = CHECKMATE. The game ends right there."
+    },
+    {
+      "id": "cm_how_won",
+      "character": "Guide",
+      "text": "That's how chess is won. Now YOU learn to build one.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_ladder",
+      "character": "Guide",
+      "text": "The LADDER MATE! It's the first checkmate every cadet learns.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_wall",
+      "character": "Guide",
+      "text": "One rook guards a row like a wall. The other pushes the king up.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_walk",
+      "character": "Guide",
+      "text": "Walk him to the top edge! Click a rook, then click where it goes.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_lockdown",
+      "character": "Guide",
+      "text": "CHECKMATE! Attacked, and nowhere to go. LOCKDOWN!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_built",
+      "character": "Guide",
+      "text": "The ladder mate: wall, push, wall, push. You built it yourself.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_whoa_stale",
+      "character": "Guide",
+      "text": "Whoa, STALEMATE! He's NOT in check, but he has no moves.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_leave_path",
+      "character": "Guide",
+      "text": "That's a DRAW, not a win. Always leave him a path... right into your trap.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_one_move",
+      "character": "Guide",
+      "text": "Each board has ONE move that locks his king down. Find it!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "tutorial_welcome",
+      "character": "Guide",
+      "text": "Hey! Fellow player, welcome to the grid! Here you will learn the basics of how to use each of the chess pieces. Go ahead and give it a try!",
+      "source": "WBP_TutorialIntro",
+      "match": null
+    },
+    {
+      "id": "king_your_king_moves_one",
+      "character": "Guide",
+      "text": "Your king moves one square in any direction.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_grab_the_data_tokens",
+      "character": "Guide",
+      "text": "Grab the data tokens to power up the grid!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_enemies_red_shows_every",
+      "character": "Guide",
+      "text": "Enemies! RED shows every square they can attack.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_if_your_king_stands",
+      "character": "Guide",
+      "text": "If your king stands on red, they could capture him next turn. That's called CHECK.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_get_the_last_token",
+      "character": "Guide",
+      "text": "Get the last token without stepping on red!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_check_that_bishop_is",
+      "character": "Guide",
+      "text": "CHECK! That bishop is one move from taking your king!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_in_chess_you_must",
+      "character": "Guide",
+      "text": "In chess you must escape check RIGHT NOW. There are 3 ways: C, P, R.",
+      "source": "KingTutorial.cpp",
+      "match": "In chess you must escape check RIGHT NOW. There are 3 ways: C-P-R."
+    },
+    {
+      "id": "king_c_capture_the_bishop",
+      "character": "Guide",
+      "text": "C means CAPTURE. The bishop is close enough, take it!",
+      "source": "KingTutorial.cpp",
+      "match": "C = CAPTURE. The bishop is close enough, take it!"
+    },
+    {
+      "id": "king_check_this_rook_attacks",
+      "character": "Guide",
+      "text": "CHECK! This rook attacks from across the board. Too far to capture!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_p_protect_block_the",
+      "character": "Guide",
+      "text": "P means PROTECT: block the path with another piece.",
+      "source": "KingTutorial.cpp",
+      "match": "P = PROTECT: block the path with another piece."
+    },
+    {
+      "id": "king_slide_your_rook_between",
+      "character": "Guide",
+      "text": "Slide your rook between them, like a shield!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_check_too_far_to",
+      "character": "Guide",
+      "text": "CHECK! Too far to capture, and nothing can block!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_r_run_move_your",
+      "character": "Guide",
+      "text": "R means RUN: move your king to any square that isn't red.",
+      "source": "KingTutorial.cpp",
+      "match": "R = RUN: move your king to any square that isn't red."
+    },
+    {
+      "id": "king_now_the_bishop_check",
+      "character": "Guide",
+      "text": "Now the bishop! Check the king on a diagonal.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_luna_s_turn_one",
+      "character": "Guide",
+      "text": "Luna's turn! One L-hop to check the king.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_the_queen_can_check",
+      "character": "Guide",
+      "text": "The queen can check ANY way. Pick your path!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_even_the_pawn_can",
+      "character": "Guide",
+      "text": "Even the pawn can check! Pawns hit diagonally. March up!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_you_can_t_capture",
+      "character": "Guide",
+      "text": "You can't capture a king. No one can! Threaten him, over and over.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_the_red_squares_are",
+      "character": "Guide",
+      "text": "The red squares are HIS reach. Leave your queen there and he'll capture her!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_he_knows_c_p",
+      "character": "Guide",
+      "text": "He knows C, P, R too...",
+      "source": "KingTutorial.cpp",
+      "match": "He knows C-P-R too..."
+    },
+    {
+      "id": "king_keep_chasing_him",
+      "character": "Guide",
+      "text": "Keep chasing him!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_captured_the_attacker_is",
+      "character": "Guide",
+      "text": "CAPTURED! The attacker is gone, so the check is gone.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_blocked_your_rook_stands",
+      "character": "Guide",
+      "text": "BLOCKED! Your rook stands in the attack's path.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_see_the_red_disappear",
+      "character": "Guide",
+      "text": "See the red disappear behind it? Your king is safe.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_safe_that_s_all",
+      "character": "Guide",
+      "text": "Safe! That's all three escapes: Capture, Protect, Run.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_remember_in_chess_you",
+      "character": "Guide",
+      "text": "Remember: in chess you can NEVER ignore check. Fix it first, always.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_check_five_ways",
+      "character": "Guide",
+      "text": "CHECK, five ways!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_every_piece_can_do",
+      "character": "Guide",
+      "text": "Every piece can do it.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_no_check_yet",
+      "character": "Guide",
+      "text": "No check yet...",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_pick_a_square_that",
+      "character": "Guide",
+      "text": "Pick a square that can HIT the king!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_that_s_the_secret",
+      "character": "Guide",
+      "text": "That's the secret: check can always be answered with C, P, R.",
+      "source": "KingTutorial.cpp",
+      "match": "That's the secret: check can always be answered with C-P-R."
+    },
+    {
+      "id": "king_checkmate_is_a_check",
+      "character": "Guide",
+      "text": "CHECKMATE is a check with NO escape. That's how you win. LEVEL 7: THE FIREWALL!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_he_took_your_queen",
+      "character": "Guide",
+      "text": "He took your queen! That's C, Capture!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_don_t_stop_on",
+      "character": "Guide",
+      "text": "Don't stop on red squares.",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "king_here_s_a_new",
+      "character": "Guide",
+      "text": "Here's a new queen. Try again!",
+      "source": "KingTutorial.cpp"
+    },
+    {
+      "id": "cm_when_you_re_winning",
+      "character": "Guide",
+      "text": "When YOU'RE winning, stalemate is a trap. Never leave him move-less without check!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_let_s_try_again",
+      "character": "Guide",
+      "text": "Let's try again.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_he_grabbed_your_rook",
+      "character": "Guide",
+      "text": "He grabbed your rook! It stood too close, with no one guarding it.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_keep_the_rooks_far",
+      "character": "Guide",
+      "text": "Keep the rooks far along their rows. The wall works from ANY distance.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_one_more_secret_you",
+      "character": "Guide",
+      "text": "One more secret. You're the black king again.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_here_s_the_strange",
+      "character": "Guide",
+      "text": "Here's the strange part: you are NOT in check right now.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_it_s_your_turn",
+      "character": "Guide",
+      "text": "It's your turn. Click your king and try to move ANYWHERE...",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_now_you_have_the",
+      "character": "Guide",
+      "text": "Now YOU have the queen. Don't fall for the trap you just felt!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_one_queen_move_is",
+      "character": "Guide",
+      "text": "One queen move is CHECKMATE. Another is that STALEMATE. Choose!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_checkmate_attacked_and_trapped",
+      "character": "Guide",
+      "text": "CHECKMATE! Attacked AND trapped. That's the winning move!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_the_firewall_is_down",
+      "character": "Guide",
+      "text": "The firewall is DOWN!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_you_can_spot_mate",
+      "character": "Guide",
+      "text": "You can spot mate, build mate, and dodge the stalemate trap.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_stalemate_no_check_and",
+      "character": "Guide",
+      "text": "STALEMATE! No check and no moves is only a draw.",
+      "source": "CheckmateTutorial.cpp",
+      "match": "STALEMATE! No check and no moves is only a DRAW."
+    },
+    {
+      "id": "cm_so_close_the_winning",
+      "character": "Guide",
+      "text": "So close! The winning move traps him IN check. Again!",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_he_can_still_escape",
+      "character": "Guide",
+      "text": "He can still escape. That wasn't a lockdown.",
+      "source": "CheckmateTutorial.cpp"
+    },
+    {
+      "id": "cm_look_for_the_move",
+      "character": "Guide",
+      "text": "Look for the move that leaves NO safe squares. Again!",
+      "source": "CheckmateTutorial.cpp"
     }
   ]
 }

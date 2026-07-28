@@ -36,6 +36,23 @@ namespace ChessKidsUi
 		Button->SetStyle(Style);
 	}
 
+	// Menu screens use the same purple as the in-game HUD — one aesthetic
+	// everywhere (kept as a separate entry point in case menus diverge again).
+	inline void StyleMenuButton(UButton* Button)
+	{
+		StyleButton(Button);
+	}
+
+	// Rounded translucent purple chip for NON-interactive text (titles, hints,
+	// score readout) so free-floating labels share the button language.
+	inline FSlateBrush MakeChipBrush()
+	{
+		FSlateBrush Brush = MakeButtonBrush(
+			FLinearColor(0.106915f, 0.035592f, 0.846956f, 0.55f),
+			FLinearColor(0.695111f, 0.695111f, 0.695111f, 0.8f));
+		return Brush;
+	}
+
 	// White UPPERCASE label in the HUD's Cyberpunks Italic font (falls back to the
 	// engine bold face if the font asset is missing).
 	inline void StyleButtonLabel(UTextBlock* Label, const FString& Text, int32 FontSize)

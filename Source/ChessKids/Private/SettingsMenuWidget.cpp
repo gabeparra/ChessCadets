@@ -1,6 +1,8 @@
 #include "SettingsMenuWidget.h"
 #include "ChessBoard.h"
 #include "ChessKidsGameInstance.h"
+#include "ChessManager.h"
+#include "ChessPlayerController.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
@@ -22,7 +24,7 @@
 static UButton* MakeLabeledButton(UWidgetTree* Tree, const TCHAR* Label, UTextBlock*& OutText, int32 FontSize = 18)
 {
 	UButton* Btn = Tree->ConstructWidget<UButton>();
-	ChessKidsUi::StyleButton(Btn);
+	ChessKidsUi::StyleMenuButton(Btn);
 	OutText = Tree->ConstructWidget<UTextBlock>();
 	ChessKidsUi::StyleButtonLabel(OutText, FString(Label), FontSize);
 	Btn->AddChild(OutText);
@@ -56,7 +58,13 @@ TSharedRef<SWidget> USettingsMenuWidget::RebuildWidget()
 		Title->SetText(FText::FromString(TEXT("SETTINGS")));
 		Title->SetJustification(ETextJustify::Center);
 		Title->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 34));
-		if (UVerticalBoxSlot* TS = Box->AddChildToVerticalBox(Title)) { TS->SetPadding(FMargin(16.f, 12.f)); TS->SetHorizontalAlignment(HAlign_Center); }
+		UBorder* TitleChip = WidgetTree->ConstructWidget<UBorder>();
+		TitleChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		TitleChip->SetPadding(FMargin(22.f, 6.f));
+		TitleChip->SetHorizontalAlignment(HAlign_Center);
+		TitleChip->SetVerticalAlignment(VAlign_Center);
+		TitleChip->AddChild(Title);
+		if (UVerticalBoxSlot* TS = Box->AddChildToVerticalBox(TitleChip)) { TS->SetPadding(FMargin(16.f, 12.f)); TS->SetHorizontalAlignment(HAlign_Center); }
 
 		// Quality row
 		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
@@ -104,6 +112,9 @@ TSharedRef<SWidget> USettingsMenuWidget::RebuildWidget()
 		DevUnlockButton = MakeLabeledButton(WidgetTree, TEXT("DEV: Unlock All - Off"), Tmp, 13);
 		if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(DevUnlockButton)) { S->SetPadding(FMargin(24.f, 4.f)); S->SetHorizontalAlignment(HAlign_Fill); }
 
+		DevWinButton = MakeLabeledButton(WidgetTree, TEXT("DEV: Force Win"), Tmp, 13);
+		if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(DevWinButton)) { S->SetPadding(FMargin(24.f, 4.f)); S->SetHorizontalAlignment(HAlign_Fill); }
+
 		BackButton = MakeLabeledButton(WidgetTree, TEXT("Back"), Tmp);
 		if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(BackButton)) { S->SetPadding(FMargin(24.f, 10.f)); S->SetHorizontalAlignment(HAlign_Fill); }
 	}
@@ -127,6 +138,7 @@ void USettingsMenuWidget::NativeConstruct()
 	if (WhiteColorSlider) WhiteColorSlider->OnValueChanged.AddUniqueDynamic(this, &USettingsMenuWidget::OnWhiteColorChanged);
 	if (BlackColorSlider) BlackColorSlider->OnValueChanged.AddUniqueDynamic(this, &USettingsMenuWidget::OnBlackColorChanged);
 	if (DevUnlockButton)  DevUnlockButton->OnClicked.AddUniqueDynamic(this, &USettingsMenuWidget::OnToggleDevUnlock);
+	if (DevWinButton)     DevWinButton->OnClicked.AddUniqueDynamic(this, &USettingsMenuWidget::OnDevForceWin);
 	SetupBoardColorSliders();
 	RefreshStatus();
 
@@ -188,6 +200,21 @@ void USettingsMenuWidget::OnToggleWindowMode()
 		ApplyAndSave();
 		RefreshStatus();
 	}
+}
+
+void USettingsMenuWidget::OnDevForceWin()
+{
+	// Only meaningful mid-game; on menu maps there is no manager and this no-ops.
+	AChessManager* Manager = Cast<AChessManager>(
+		UGameplayStatics::GetActorOfClass(this, AChessManager::StaticClass()));
+	if (!Manager) return;
+
+	Manager->DevForceWin();
+
+	// Get the menus out of the way so the win screen is actually visible.
+	RemoveFromParent();
+	if (AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer()))
+		PC->ResumeGame();
 }
 
 void USettingsMenuWidget::OnToggleDevUnlock()

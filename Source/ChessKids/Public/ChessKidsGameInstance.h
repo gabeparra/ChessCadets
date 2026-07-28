@@ -157,6 +157,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chess|Camera")
 	void SetBoardZoom(float Zoom01);
 
+	// Arcade scoring. Submit compares against the saved best, persists a new
+	// record, and returns true when this run set one.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Score")
+	bool SubmitArcadeScore(int32 Score);
+
+	UFUNCTION(BlueprintPure, Category = "Chess|Score")
+	int32 GetArcadeHighScore() const;
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Camera")
 	float GetBoardZoom() const;
 
