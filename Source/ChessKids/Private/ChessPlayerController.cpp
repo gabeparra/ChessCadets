@@ -246,12 +246,16 @@ void AChessPlayerController::OnSelect()
 		bPieceSelected = false;
 		SetSelectedPieceActor(nullptr);   // the move (or its rejection) ends the "in hand" state
 
-		// Check promotion for both white and black
+		// Check promotion for both white and black. Must also confirm ClickedSquare is
+		// actually a legal destination for this pawn — otherwise clicking ANY square on
+		// the back rank (not just a reachable one) popped the promotion picker, which
+		// then failed silently on MakeMove once a piece was chosen.
 		FString PromoPieceStr = Manager->GetPieceOnSquare(SelectedSquare);
 		bool bIsWhitePromotion = (PromoPieceStr == TEXT("P") && ClickedSquare[1] == '8');
 		bool bIsBlackPromotion = (PromoPieceStr == TEXT("p") && ClickedSquare[1] == '1');
 
-		if (bIsWhitePromotion || bIsBlackPromotion)
+		if ((bIsWhitePromotion || bIsBlackPromotion) &&
+			Manager->GetLegalMovesFromSquare(SelectedSquare).Contains(ClickedSquare))
 		{
 			PendingMoveStr = MoveStr;
 			bAwaitingPromotion = true;
