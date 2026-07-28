@@ -61,7 +61,7 @@ void AQueenTutorial::SetupPhase3()
 	ShowGuideMessage(TEXT("Now use BOTH! Straight AND diagonal — you're unstoppable!"));
 }
 
-// Boss: Clear the Board — 10 orbs, with a par score to beat
+// Boss: Clear the Board — 10 pieces, with a par score to beat
 void AQueenTutorial::SetupBoss()
 {
 	SpawnPlayerPiece(0, 0);
@@ -81,14 +81,14 @@ void AQueenTutorial::SetupBoss()
 	PrevRank = 0;
 
 	ShowGuideMessage(FString::Printf(
-		TEXT("BOSS: Clear the board! You sweep up every orb you slide across — can you do it in %d moves?"), BossPar));
+		TEXT("BOSS: Clear the board! You sweep up every piece you slide across — can you do it in %d moves?"), BossPar));
 }
 
 void AQueenTutorial::AfterPlayerMove(int32 File, int32 Rank)
 {
 	if (CurrentPhase != ETutorialPhase::Boss) { PrevFile = File; PrevRank = Rank; return; }
 
-	// Sweep: collect every orb along the slide path (landing square is handled by the base class)
+	// Sweep: collect every piece along the slide path (landing square is handled by the base class)
 	const int32 FileStep = (File > PrevFile) ? 1 : (File < PrevFile) ? -1 : 0;
 	const int32 RankStep = (Rank > PrevRank) ? 1 : (Rank < PrevRank) ? -1 : 0;
 	int32 CF = PrevFile + FileStep, CR = PrevRank + RankStep;
@@ -114,7 +114,7 @@ void AQueenTutorial::OnTargetCollected(int32 File, int32 Rank)
 
 	if (CurrentPhase == ETutorialPhase::Boss)
 	{
-		ShowGuideMessage(FString::Printf(TEXT("%d orbs left — %d moves used!"),
+		ShowGuideMessage(FString::Printf(TEXT("%d pieces left — %d moves used!"),
 			TargetPositions.Num(), MoveCount));
 	}
 	else
@@ -131,7 +131,7 @@ void AQueenTutorial::OnPhaseComplete()
 		if (MoveCount <= BossPar)
 		{
 			ShowGuideMessage(FString::Printf(
-				TEXT("UNDER PAR! All 10 orbs in %d moves! The queen bows to no one!"), MoveCount));
+				TEXT("UNDER PAR! All 10 pieces in %d moves! The queen bows to no one!"), MoveCount));
 		}
 		else
 		{
@@ -140,6 +140,7 @@ void AQueenTutorial::OnPhaseComplete()
 		}
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
+		GrantBossVictoryRewards();
 		return;
 	}
 

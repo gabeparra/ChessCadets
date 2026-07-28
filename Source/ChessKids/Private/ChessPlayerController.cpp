@@ -2,6 +2,7 @@
 #include "ChessBoard.h"
 #include "ChessManager.h"
 #include "ChessPiece.h"
+#include "ChessKidsGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
@@ -48,6 +49,22 @@ void AChessPlayerController::BeginPlay()
 		if (HudInstance)
 			HudInstance->AddToViewport(10);
 	}
+
+	// White always moves first in chess — if the human is playing Black, the robot
+	// (White) must open. Deferred to next tick so AChessManager::BeginPlay (which
+	// resolves PlayerColor) has definitely already run this frame, regardless of
+	// actor BeginPlay order.
+	if (Manager)
+	{
+		TWeakObjectPtr<AChessPlayerController> WeakThis(this);
+		GetWorldTimerManager().SetTimerForNextTick([WeakThis]()
+		{
+			AChessPlayerController* Self = WeakThis.Get();
+			if (!Self || !IsValid(Self->Manager)) return;
+			if (!Self->Manager->IsTwoPlayerMode() && Self->Manager->PlayerColor == EChessColor::Black)
+				Self->TriggerDelayedAIMove();
+		});
+	}
 }
 
 void AChessPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -80,6 +97,8 @@ void AChessPlayerController::SetupInputComponent()
 
 	// Z = take back the last move (lets a child recover from a mistake).
 	InputComponent->BindKey(EKeys::Z, IE_Pressed, this, &AChessPlayerController::UndoMove);
+	InputComponent->BindKey(EKeys::MouseScrollUp,   IE_Pressed, this, &AChessPlayerController::ZoomIn);
+	InputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &AChessPlayerController::ZoomOut);
 
 	// H = hint (engine suggests a move and highlights it).
 	InputComponent->BindKey(EKeys::H, IE_Pressed, this, &AChessPlayerController::RequestHint);
@@ -164,6 +183,18 @@ void AChessPlayerController::HandleHintReady(FString FromSquare, FString ToSquar
 	Board->SelectSquare(ToSquare);   // make the suggested target stand out
 }
 
+void AChessPlayerController::ZoomIn()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() + 0.08f);
+}
+
+void AChessPlayerController::ZoomOut()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() - 0.08f);
+}
+
 void AChessPlayerController::UndoMove()
 {
 	if (bPaused || !Manager) return;
@@ -186,7 +217,8 @@ void AChessPlayerController::OnSelect()
 
 	const bool bTwoPlayer = Manager->IsTwoPlayerMode();
 	const bool bWhiteToMove = Manager->GetActiveColor() == TEXT("white");
-	if (!bTwoPlayer && !bWhiteToMove) return;   // vs AI the human is always White
+	const bool bHumanTurn = bTwoPlayer || (bWhiteToMove == (Manager->PlayerColor == EChessColor::White));
+	if (!bHumanTurn) return;   // vs AI, ignore clicks on the robot's turn
 
 	// The side to move may only pick up its own pieces (upper = white, lower = black).
 	auto IsOwnPiece = [bWhiteToMove](const FString& PieceStr)
@@ -229,12 +261,16 @@ void AChessPlayerController::OnSelect()
 		bPieceSelected = false;
 		SetSelectedPieceActor(nullptr);   // the move (or its rejection) ends the "in hand" state
 
-		// Check promotion for both white and black
+		// Check promotion for both white and black. Reaching the last rank only
+		// promotes when it's a LEGAL move for this pawn — any other click on the
+		// back rank falls through to MakeMove and gets the usual rejection,
+		// instead of popping the promotion picker for an impossible move.
 		FString PromoPieceStr = Manager->GetPieceOnSquare(SelectedSquare);
 		bool bIsWhitePromotion = (PromoPieceStr == TEXT("P") && ClickedSquare[1] == '8');
 		bool bIsBlackPromotion = (PromoPieceStr == TEXT("p") && ClickedSquare[1] == '1');
 
-		if (bIsWhitePromotion || bIsBlackPromotion)
+		if ((bIsWhitePromotion || bIsBlackPromotion)
+			&& Manager->GetLegalMovesFromSquare(SelectedSquare).Contains(ClickedSquare))
 		{
 			PendingMoveStr = MoveStr;
 			bAwaitingPromotion = true;
@@ -259,19 +295,29 @@ void AChessPlayerController::OnSelect()
 		bool bSuccess = Manager->MakeMove(MoveStr);
 		//bPieceSelected = false;
 
-		if (bSuccess && !bTwoPlayer)   // hot-seat: the other human just plays next
+		if (bSuccess && !bTwoPlayer)   // vs AI: the robot replies next
 		{
-			bIsAIThinking = true;
-			TWeakObjectPtr<AChessPlayerController> WeakThis(this);
-			GetWorldTimerManager().SetTimer(AITimerHandle, [WeakThis]()
-			{
-				AChessPlayerController* Self = WeakThis.Get();
-				if (!Self) return;
-				if (IsValid(Self->Manager)) Self->Manager->RequestAIMove();
-				Self->bIsAIThinking = false;
-			}, 0.5f, false);
+			TriggerDelayedAIMove();
+		}
+		else if (!bSuccess)   // clicked a square the piece can't reach — tell the player why
+		{
+			if (UChessHudWidget* Hud = Cast<UChessHudWidget>(HudInstance))
+				Hud->ShowWarning(TEXT("This is not a valid move"));
 		}
 	}
+}
+
+void AChessPlayerController::TriggerDelayedAIMove()
+{
+	bIsAIThinking = true;
+	TWeakObjectPtr<AChessPlayerController> WeakThis(this);
+	GetWorldTimerManager().SetTimer(AITimerHandle, [WeakThis]()
+	{
+		AChessPlayerController* Self = WeakThis.Get();
+		if (!Self) return;
+		if (IsValid(Self->Manager)) Self->Manager->RequestAIMove();
+		Self->bIsAIThinking = false;
+	}, 0.5f, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -371,7 +417,7 @@ void AChessPlayerController::CompletePromotion(const FString& PieceLetter)
 	// Make the move with the correct promotion piece
 	FString MoveStr = PendingMoveStr + PieceLetter; // e.g. "e7e8n"
 	bool bSuccess = Manager->MakeMove(MoveStr);
-	UE_LOG(LogTemp, Warning, TEXT("Promotion MakeMove result: %s, Move: %s"),
+	UE_LOG(LogTemp, Verbose, TEXT("Promotion MakeMove result: %s, Move: %s"),
 		bSuccess ? TEXT("SUCCESS") : TEXT("FAILED"), *MoveStr);
 
 	if (bSuccess)
@@ -379,22 +425,13 @@ void AChessPlayerController::CompletePromotion(const FString& PieceLetter)
 		Manager->RefreshBoard();
 		if (!Manager->IsTwoPlayerMode())
 		{
-			bIsAIThinking = true;
-			TWeakObjectPtr<AChessPlayerController> WeakThis(this);
-			GetWorldTimerManager().SetTimer(AITimerHandle, [WeakThis]()
-				{
-					AChessPlayerController* Self = WeakThis.Get();
-					if (!Self) return;
-					if (IsValid(Self->Manager)) Self->Manager->RequestAIMove();
-					Self->bIsAIThinking = false;
-				}, 0.5f, false);
+			TriggerDelayedAIMove();
 		}
 	}
 }
 
 void AChessPlayerController::ResetTurnState()
 {
-	UE_LOG(LogTemp, Warning, TEXT("ResetTurnState called!"));
 	bIsAIThinking = false;
 	bAwaitingPromotion = false;
 	bPieceSelected = false;

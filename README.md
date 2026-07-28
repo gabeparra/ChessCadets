@@ -23,6 +23,19 @@ computer actually searches for replies.
   [hardware & software specifications for Unreal Engine 5](https://dev.epicgames.com/documentation/en-us/unreal-engine/hardware-and-software-specifications-for-unreal-engine)
   apply.
 
+**Game specs**
+
+|                | Minimum                             | Recommended                        |
+| -------------- | ----------------------------------- | ---------------------------------- |
+| **OS**         | Windows 10 64-bit                   | Windows 11 64-bit                  |
+| **CPU**        | Quad-core (Intel i5-8400 / Ryzen 5 2600) | 6+ cores (Intel i5-12400 / Ryzen 5 5600) |
+| **RAM**        | 8 GB                                | 16 GB                              |
+| **GPU**        | NVIDIA RTX 2060 / AMD RX 6600 (DX12, hardware ray tracing) | NVIDIA RTX 3060 / AMD RX 6700 XT or better |
+| **Storage**    | ~5 GB free (SSD strongly advised)   | ~5 GB free on NVMe SSD             |
+| **Input**      | Mouse required (left-click to move, right-click piece info, wheel to zoom) | —  |
+| **Audio**      | Any Windows-compatible output (voice-over narration throughout) | —  |
+| **Target**     | 1080p / 30 FPS                      | 1080p–1440p / 60 FPS               |
+
 **To build / develop**
 
 - **Unreal Engine 5.7** (the `.uproject` is bound to engine association `5.7`).
@@ -232,5 +245,38 @@ git checkout -b <yourname>-new origin/main
   are third‑party assets used for environment/character dressing under their respective
   licenses.
 
-> Note: the Pulse source headers reference an MIT `LICENSE` file that is not yet checked
-> into this repo — it should be added to fully satisfy the MIT attribution requirement.
+---
+
+## License
+
+This project is released under the **MIT License** — see the [LICENSE](LICENSE) file
+for the full text.
+
+```
+MIT License
+
+Copyright (c) 2026 Gabriel Parra and the ChessCadets contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+The bundled Pulse chess engine (`Source/ChessKids/Engine/`) is
+© 2013–2023 Phokham Nonava, also MIT-licensed; the third-party art/audio packs
+listed above remain under their own licenses and are **not** covered by this
+project's MIT grant.

@@ -1,9 +1,14 @@
 #include "ChessHudWidget.h"
 #include "ChessManager.h"
+#include "ChessVoice.h"
 #include "ChessPlayerController.h"
 #include "ChessBoard.h"
 #include "ChessKidsGameInstance.h"
+#include "ChessPieceSkinRegistry.h"
+#include "PieceSkinsMenuWidget.h"
+#include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/Slider.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -11,9 +16,11 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
 #include "TimerManager.h"
+#include "ChessKidsUiStyle.h"
 
 TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 {
@@ -35,6 +42,27 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			TS->SetAlignment(FVector2D(0.5f, 0.f));
 			TS->SetPosition(FVector2D(0.f, 24.f));
 			TS->SetAutoSize(true);
+		}
+
+		// Arcade score — under the turn indicator, gold. Solo only (hidden in
+		// hot-seat, where "the player's" captures are ambiguous).
+		ScoreText = WidgetTree->ConstructWidget<UTextBlock>();
+		ScoreText->SetText(FText::FromString(TEXT("Score: 0")));
+		ScoreText->SetJustification(ETextJustify::Center);
+		ScoreText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+		ScoreText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.85f, 0.3f)));
+		ScoreChip = WidgetTree->ConstructWidget<UBorder>();
+		ScoreChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		ScoreChip->SetPadding(FMargin(14.f, 3.f));
+		ScoreChip->SetHorizontalAlignment(HAlign_Center);
+		ScoreChip->SetVerticalAlignment(VAlign_Center);
+		ScoreChip->AddChild(ScoreText);
+		if (UCanvasPanelSlot* ScS = Root->AddChildToCanvas(ScoreChip))
+		{
+			ScS->SetAnchors(FAnchors(0.5f, 0.f, 0.5f, 0.f));
+			ScS->SetAlignment(FVector2D(0.5f, 0.f));
+			ScS->SetPosition(FVector2D(0.f, 130.f));
+			ScS->SetAutoSize(true);
 		}
 
 		// Check warning — under the turn indicator, red, hidden by default.
@@ -66,6 +94,20 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			HRS->SetAutoSize(true);
 		}
 
+		// Invalid-move warning — center screen, red/orange, hidden until a bad click.
+		WarningText = WidgetTree->ConstructWidget<UTextBlock>();
+		WarningText->SetJustification(ETextJustify::Center);
+		WarningText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 26));
+		WarningText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.35f, 0.15f)));
+		WarningText->SetVisibility(ESlateVisibility::Hidden);
+		if (UCanvasPanelSlot* WS = Root->AddChildToCanvas(WarningText))
+		{
+			WS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			WS->SetAlignment(FVector2D(0.5f, 0.5f));
+			WS->SetPosition(FVector2D(0.f, -120.f));
+			WS->SetAutoSize(true);
+		}
+
 		// Captured-piece trays — top corners.
 		auto MakeTray = [&](UTextBlock*& OutText, float AnchorX, float AlignX, float PosX)
 		{
@@ -83,20 +125,10 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		MakeTray(WhiteCapturedText, 0.f, 0.f, 24.f);    // left: pieces YOU/P1 captured
 		MakeTray(BlackCapturedText, 1.f, 1.f, -24.f);   // right: pieces the robot/P2 captured
 
-		// Key hints — bottom left.
-		HintText = WidgetTree->ConstructWidget<UTextBlock>();
-		HintText->SetText(FText::FromString(TEXT("P — Pause    Z — Undo    H — Hint")));
-		HintText->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 12));
-		HintText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.55f)));
-		if (UCanvasPanelSlot* HS = Root->AddChildToCanvas(HintText))
-		{
-			HS->SetAnchors(FAnchors(0.f, 1.f, 0.f, 1.f));
-			HS->SetAlignment(FVector2D(0.f, 1.f));
-			HS->SetPosition(FVector2D(24.f, -18.f));
-			HS->SetAutoSize(true);
-		}
+		// (Keyboard-shortcut hint text removed — Marco's WBP_InGameHud shows the
+		// controls as buttons, and the text kept colliding with the undo button.)
 
-		// Board color sliders — bottom left, stacked above the key hints.
+		// Board color sliders — bottom left.
 		UVerticalBox* ColorBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		if (UCanvasPanelSlot* CBS = Root->AddChildToCanvas(ColorBox))
 		{
@@ -104,7 +136,24 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			CBS->SetAlignment(FVector2D(0.f, 1.f));
 			CBS->SetPosition(FVector2D(24.f, -44.f));
 			CBS->SetAutoSize(false);
-			CBS->SetSize(FVector2D(190.f, 116.f));
+			CBS->SetSize(FVector2D(190.f, 140.f));
+		}
+
+		// Zoom hint — sits on top of the color cluster so it reads as one panel.
+		// The chip must hug its text (slot HAlign_Left): a vertical-box slot
+		// defaults to Fill, which stretched the chip across the whole column.
+		UTextBlock* ZoomHint = WidgetTree->ConstructWidget<UTextBlock>();
+		ChessKidsUi::StyleButtonLabel(ZoomHint, FString(TEXT("Mouse wheel: zoom")), 12);
+		UBorder* ZoomChip = WidgetTree->ConstructWidget<UBorder>();
+		ZoomChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		ZoomChip->SetPadding(FMargin(12.f, 4.f));
+		ZoomChip->SetHorizontalAlignment(HAlign_Center);
+		ZoomChip->SetVerticalAlignment(VAlign_Center);
+		ZoomChip->AddChild(ZoomHint);
+		if (UVerticalBoxSlot* ZS = ColorBox->AddChildToVerticalBox(ZoomChip))
+		{
+			ZS->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f));
+			ZS->SetHorizontalAlignment(HAlign_Left);
 		}
 
 		auto MakeHueSlider = [&](UTextBlock*& OutLabel, USlider*& OutSlider, const TCHAR* Label)
@@ -128,8 +177,166 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		MakeHueSlider(WhiteColorLabel, WhiteColorSlider, TEXT("White squares"));
 		MakeHueSlider(BlackColorLabel, BlackColorSlider, TEXT("Black squares"));
 
-		// Game-over overlay — centered, hidden until OnGameOver.
-		GameOverPanel = WidgetTree->ConstructWidget<UVerticalBox>();
+		// Customization — bottom right, mirroring the board-color cluster on the left.
+		CustomizationButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(CustomizationButton);
+		UTextBlock* CustomizationLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		ChessKidsUi::StyleButtonLabel(CustomizationLabel, FString(TEXT("Customization")), 14);
+		CustomizationButton->AddChild(CustomizationLabel);
+		if (UCanvasPanelSlot* CustS = Root->AddChildToCanvas(CustomizationButton))
+		{
+			CustS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+			CustS->SetAlignment(FVector2D(1.f, 1.f));
+			CustS->SetPosition(FVector2D(-24.f, -18.f));
+			CustS->SetAutoSize(true);
+		}
+
+		// Hint — bottom right, just above Customization. Kids won't find the H key.
+		HintButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(HintButton);
+		UTextBlock* HintLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		ChessKidsUi::StyleButtonLabel(HintLabel, FString(TEXT("Hint")), 14);
+		HintButton->AddChild(HintLabel);
+		if (UCanvasPanelSlot* HintS = Root->AddChildToCanvas(HintButton))
+		{
+			HintS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+			HintS->SetAlignment(FVector2D(1.f, 1.f));
+			HintS->SetPosition(FVector2D(-24.f, -58.f));   // stacked above Customization
+			HintS->SetAutoSize(true);
+		}
+
+		// Safe/danger overlay toggle — third in the bottom-right stack
+		// (Customization, Hint, then this). Training wheels the player can
+		// switch on: every square the robot can attack glows red, same
+		// language as the tutorial levels.
+		DangerToggleButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(DangerToggleButton);
+		DangerToggleLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		ChessKidsUi::StyleButtonLabel(DangerToggleLabel, FString(TEXT("Danger view: OFF")), 14);
+		DangerToggleButton->AddChild(DangerToggleLabel);
+		if (UCanvasPanelSlot* DTS = Root->AddChildToCanvas(DangerToggleButton))
+		{
+			DTS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+			DTS->SetAlignment(FVector2D(1.f, 1.f));
+			DTS->SetPosition(FVector2D(-24.f, -98.f));
+			DTS->SetAutoSize(true);
+		}
+
+		// MENU + HELP — top right, same placement as the tutorial HUD so the
+		// controls feel identical across the whole game.
+		auto MakeTopRightButton = [&](const TCHAR* Text, float PosY) -> UButton*
+		{
+			UButton* Btn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(Btn);
+			UTextBlock* BtnLabel = WidgetTree->ConstructWidget<UTextBlock>();
+			ChessKidsUi::StyleButtonLabel(BtnLabel, FString(Text), 16);
+			Btn->AddChild(BtnLabel);
+			if (UCanvasPanelSlot* BtnSlot = Root->AddChildToCanvas(Btn))
+			{
+				BtnSlot->SetAnchors(FAnchors(1.f, 0.f, 1.f, 0.f));
+				BtnSlot->SetAlignment(FVector2D(1.f, 0.f));
+				BtnSlot->SetPosition(FVector2D(-24.f, PosY));
+				BtnSlot->SetAutoSize(true);
+			}
+			return Btn;
+		};
+		HudMenuButton = MakeTopRightButton(TEXT("MENU"), 60.f);
+		HudHelpButton = MakeTopRightButton(TEXT("? HELP"), 114.f);
+
+		// Quick-guide popup: the same cheat sheet as the tutorial levels
+		HudHelpPanel = WidgetTree->ConstructWidget<UBorder>();
+		HudHelpPanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
+		HudHelpPanel->SetPadding(FMargin(40.f, 28.f));
+		HudHelpPanel->SetVisibility(ESlateVisibility::Collapsed);
+		if (UCanvasPanelSlot* HHS = Root->AddChildToCanvas(HudHelpPanel))
+		{
+			HHS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			HHS->SetAlignment(FVector2D(0.5f, 0.5f));
+			HHS->SetPosition(FVector2D(0.f, 0.f));
+			HHS->SetAutoSize(true);
+		}
+		{
+			UVerticalBox* HelpColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+			HudHelpPanel->AddChild(HelpColumn);
+
+			auto AddHelpLine = [&](const TCHAR* Text, const FLinearColor& Color, int32 Size)
+			{
+				UTextBlock* Line = WidgetTree->ConstructWidget<UTextBlock>();
+				Line->SetText(FText::FromString(Text));
+				Line->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", Size));
+				Line->SetColorAndOpacity(FSlateColor(Color));
+				Line->SetWrapTextAt(560.f);
+				if (UVerticalBoxSlot* LS = HelpColumn->AddChildToVerticalBox(Line))
+					LS->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
+			};
+			AddHelpLine(TEXT("QUICK GUIDE"), FLinearColor(0.4f, 1.f, 0.8f), 26);
+			AddHelpLine(TEXT("CHECK: the king is attacked. He must escape NOW."), FLinearColor(0.5f, 0.75f, 1.f), 17);
+			AddHelpLine(TEXT("Escapes: C-P-R. Capture the attacker, Protect (block the path), or Run."), FLinearColor(0.9f, 0.95f, 1.f), 17);
+			AddHelpLine(TEXT("CHECKMATE: check with NO escape. Game over. Attacker wins!"), FLinearColor(1.f, 0.45f, 0.45f), 17);
+			AddHelpLine(TEXT("STALEMATE: NOT in check, but no moves at all. Nobody wins, it's a draw."), FLinearColor(1.f, 0.85f, 0.4f), 17);
+			AddHelpLine(TEXT("Keys: P pauses, Z undoes a move, H shows a hint."), FLinearColor(0.6f, 0.65f, 0.75f), 14);
+
+			HudHelpCloseButton = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(HudHelpCloseButton);
+			UTextBlock* CloseLabel = WidgetTree->ConstructWidget<UTextBlock>();
+			ChessKidsUi::StyleButtonLabel(CloseLabel, FString(TEXT("GOT IT")), 20);
+			HudHelpCloseButton->AddChild(CloseLabel);
+			if (UVerticalBoxSlot* CBS2 = HelpColumn->AddChildToVerticalBox(HudHelpCloseButton))
+				CBS2->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		// Final-battle intro — centered, only made visible on the Axiom map.
+		// Explains the handicap so the missing pieces read as story, not a bug.
+		// Wrapped in a dark border so it reads as a panel, not text soup over
+		// the pieces.
+		IntroPanel = WidgetTree->ConstructWidget<UBorder>();
+		IntroPanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
+		IntroPanel->SetPadding(FMargin(48.f, 36.f));
+		IntroPanel->SetVisibility(ESlateVisibility::Collapsed);
+		UVerticalBox* IntroColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		IntroPanel->AddChild(IntroColumn);
+		if (UCanvasPanelSlot* IPS = Root->AddChildToCanvas(IntroPanel))
+		{
+			IPS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			IPS->SetAlignment(FVector2D(0.5f, 0.5f));
+			IPS->SetPosition(FVector2D(0.f, 0.f));
+			IPS->SetAutoSize(true);
+		}
+		{
+			auto AddIntroLine = [this](UVerticalBox* Box, const TCHAR* Text, int32 Size, FLinearColor Color)
+			{
+				UTextBlock* Line = WidgetTree->ConstructWidget<UTextBlock>();
+				Line->SetText(FText::FromString(Text));
+				Line->SetJustification(ETextJustify::Center);
+				Line->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", Size));
+				Line->SetColorAndOpacity(FSlateColor(Color));
+				Line->SetWrapTextAt(700.f);
+				if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(Line))
+				{
+					S->SetPadding(FMargin(0.f, 0.f, 0.f, 10.f));
+					S->SetHorizontalAlignment(HAlign_Center);
+				}
+			};
+			AddIntroLine(IntroColumn, TEXT("THE FINAL BATTLE"), 32, FLinearColor(0.4f, 1.f, 0.8f));
+			AddIntroLine(IntroColumn, TEXT("AXIOM: \"So the little cadet made it to my core.\""), 18, FLinearColor(1.f, 0.5f, 0.5f));
+			AddIntroLine(IntroColumn, TEXT("Your friends already hacked his army. His QUEEN and a ROOK are gone!"), 18, FLinearColor(0.9f, 0.95f, 1.f));
+			AddIntroLine(IntroColumn, TEXT("Now finish it the only way that counts: CHECKMATE."), 18, FLinearColor(0.9f, 0.95f, 1.f));
+			AddIntroLine(IntroColumn, TEXT("(Stuck? Turn on Danger view to see his reach.)"), 14, FLinearColor(0.6f, 0.65f, 0.75f));
+
+			IntroBeginButton = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(IntroBeginButton);
+			UTextBlock* BeginLabel = WidgetTree->ConstructWidget<UTextBlock>();
+			ChessKidsUi::StyleButtonLabel(BeginLabel, FString(TEXT("BEGIN")), 20);
+			IntroBeginButton->AddChild(BeginLabel);
+			if (UVerticalBoxSlot* BS = IntroColumn->AddChildToVerticalBox(IntroBeginButton))
+				BS->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		// Game-over overlay — centered, hidden until OnGameOver. Dark backing
+		// panel so the text reads over any arena, matching the intro/help cards.
+		GameOverPanel = WidgetTree->ConstructWidget<UBorder>();
+		GameOverPanel->SetBrushColor(FLinearColor(0.f, 0.f, 0.05f, 0.92f));
+		GameOverPanel->SetPadding(FMargin(48.f, 36.f));
 		GameOverPanel->SetVisibility(ESlateVisibility::Hidden);
 		if (UCanvasPanelSlot* GS = Root->AddChildToCanvas(GameOverPanel))
 		{
@@ -137,12 +344,14 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			GS->SetAlignment(FVector2D(0.5f, 0.5f));
 			GS->SetAutoSize(true);
 		}
+		UVerticalBox* GameOverColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		GameOverPanel->AddChild(GameOverColumn);
 
 		GameOverText = WidgetTree->ConstructWidget<UTextBlock>();
 		GameOverText->SetJustification(ETextJustify::Center);
 		GameOverText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 32));
 		GameOverText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.9f, 0.3f)));
-		if (UVerticalBoxSlot* GTS = GameOverPanel->AddChildToVerticalBox(GameOverText))
+		if (UVerticalBoxSlot* GTS = GameOverColumn->AddChildToVerticalBox(GameOverText))
 		{
 			GTS->SetPadding(FMargin(24.f, 16.f));
 			GTS->SetHorizontalAlignment(HAlign_Center);
@@ -151,11 +360,11 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		auto MakeButton = [&](UButton*& OutBtn, const TCHAR* Label)
 		{
 			OutBtn = WidgetTree->ConstructWidget<UButton>();
+			ChessKidsUi::StyleButton(OutBtn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
-			T->SetText(FText::FromString(Label));
-			T->SetJustification(ETextJustify::Center);
+			ChessKidsUi::StyleButtonLabel(T, FString(Label), 24);
 			OutBtn->AddChild(T);
-			if (UVerticalBoxSlot* BS = GameOverPanel->AddChildToVerticalBox(OutBtn))
+			if (UVerticalBoxSlot* BS = GameOverColumn->AddChildToVerticalBox(OutBtn))
 			{
 				BS->SetPadding(FMargin(32.f, 8.f));
 				BS->SetHorizontalAlignment(HAlign_Fill);
@@ -163,6 +372,54 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		};
 		MakeButton(PlayAgainButton, TEXT("Play Again"));
 		MakeButton(MainMenuButton, TEXT("Main Menu"));
+
+		// "New skin unlocked!" popup — shown ahead of GameOverPanel when winning
+		// granted a skin. Gold accent to read as a reward, matching
+		// UTutorialHudWidget's SkinUnlockPanel.
+		SkinUnlockPanel = WidgetTree->ConstructWidget<UBorder>();
+		SkinUnlockPanel->SetBrushColor(FLinearColor(0.05f, 0.03f, 0.f, 0.95f));
+		SkinUnlockPanel->SetPadding(FMargin(48.f, 32.f));
+		SkinUnlockPanel->SetVisibility(ESlateVisibility::Collapsed);
+		if (UCanvasPanelSlot* SUS = Root->AddChildToCanvas(SkinUnlockPanel))
+		{
+			SUS->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+			SUS->SetAlignment(FVector2D(0.5f, 0.5f));
+			SUS->SetPosition(FVector2D(0.f, 0.f));
+			SUS->SetAutoSize(true);
+		}
+
+		UVerticalBox* SkinColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		SkinUnlockPanel->AddChild(SkinColumn);
+
+		UTextBlock* SkinHeadline = WidgetTree->ConstructWidget<UTextBlock>();
+		SkinHeadline->SetText(FText::FromString(TEXT("NEW SKIN UNLOCKED!")));
+		SkinHeadline->SetJustification(ETextJustify::Center);
+		SkinHeadline->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 26));
+		SkinHeadline->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.82f, 0.2f)));
+		if (UVerticalBoxSlot* SHS = SkinColumn->AddChildToVerticalBox(SkinHeadline))
+			SHS->SetPadding(FMargin(0.f, 0.f, 0.f, 16.f));
+
+		SkinUnlockImage = WidgetTree->ConstructWidget<UImage>();
+		if (UVerticalBoxSlot* SIS = SkinColumn->AddChildToVerticalBox(SkinUnlockImage))
+		{
+			SIS->SetHorizontalAlignment(HAlign_Center);
+			SIS->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
+		}
+
+		SkinUnlockNameText = WidgetTree->ConstructWidget<UTextBlock>();
+		SkinUnlockNameText->SetJustification(ETextJustify::Center);
+		SkinUnlockNameText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
+		SkinUnlockNameText->SetColorAndOpacity(FSlateColor(FLinearColor(0.95f, 0.98f, 1.f)));
+		if (UVerticalBoxSlot* SNS = SkinColumn->AddChildToVerticalBox(SkinUnlockNameText))
+			SNS->SetPadding(FMargin(0.f, 0.f, 0.f, 20.f));
+
+		SkinUnlockOkButton = WidgetTree->ConstructWidget<UButton>();
+		ChessKidsUi::StyleButton(SkinUnlockOkButton);
+		UTextBlock* SkinOkLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		ChessKidsUi::StyleButtonLabel(SkinOkLabel, FString(TEXT("NICE!")), 24);
+		SkinUnlockOkButton->AddChild(SkinOkLabel);
+		if (UVerticalBoxSlot* SOS = SkinColumn->AddChildToVerticalBox(SkinUnlockOkButton))
+			SOS->SetHorizontalAlignment(HAlign_Center);
 	}
 
 	return Super::RebuildWidget();
@@ -175,6 +432,22 @@ void UChessHudWidget::NativeConstruct()
 	// AddUniqueDynamic: NativeConstruct can re-fire if the HUD is ever re-added.
 	if (PlayAgainButton) PlayAgainButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnPlayAgainClicked);
 	if (MainMenuButton)  MainMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnMainMenuClicked);
+	if (CustomizationButton) CustomizationButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnCustomizationClicked);
+	if (HintButton) HintButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHintClicked);
+	if (DangerToggleButton) DangerToggleButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnDangerToggleClicked);
+	if (IntroBeginButton) IntroBeginButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnIntroBeginClicked);
+	if (HudMenuButton) HudMenuButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudMenuClicked);
+	if (HudHelpButton) HudHelpButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpClicked);
+	if (HudHelpCloseButton) HudHelpCloseButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnHudHelpCloseClicked);
+
+	// The final battle opens on the story explanation for the missing pieces.
+	// Keep VO playback in this same Axiom-only path.
+	if (IntroPanel && GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+	{
+		IntroPanel->SetVisibility(ESlateVisibility::Visible);
+		FChessVoice::PlayLine(this, TEXT("axiom_core_intro"));
+	}
+	if (SkinUnlockOkButton) SkinUnlockOkButton->OnClicked.AddUniqueDynamic(this, &UChessHudWidget::OnSkinUnlockOkClicked);
 
 	if (AChessPlayerController* PC = GetChessPC())
 		Manager = PC->Manager;
@@ -185,6 +458,39 @@ void UChessHudWidget::NativeConstruct()
 	{
 		Manager->OnGameOver.AddUniqueDynamic(this, &UChessHudWidget::HandleGameOver);
 		Manager->OnHintReady.AddUniqueDynamic(this, &UChessHudWidget::HandleHintReady);
+		Manager->OnSkinUnlocked.AddUniqueDynamic(this, &UChessHudWidget::HandleSkinUnlocked);
+	}
+
+	// Two-player hot-seat has one local save/skin selection shared by both people
+	// taking turns — ApplyPieceSkin() already refuses to skin either side in that mode
+	// (see AChessManager.cpp), so the button would just open a screen whose Equip has
+	// no visible effect. Hide the entry point in that mode and explicitly restore it
+	// otherwise — NativeConstruct can re-fire if the HUD is ever re-added, so this has
+	// to actively set the right state each time rather than only ever collapsing it.
+	// Reads GI->bTwoPlayerMode directly rather than Manager->IsTwoPlayerMode(): the
+	// latter only becomes accurate once AChessManager::BeginPlay() has copied it from
+	// the GameInstance, and that isn't guaranteed to happen before this widget's own
+	// NativeConstruct — GI's copy is set from the mode-select screen, well before any
+	// level/actor BeginPlay runs, so it's always already correct here.
+	if (CustomizationButton)
+	{
+		const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+		const bool bTwoPlayer = GI && GI->bTwoPlayerMode;
+		CustomizationButton->SetVisibility(bTwoPlayer ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+
+	// Hint only makes sense once the lesson is "read the board" (king safety,
+	// checkmate patterns) rather than "how does this piece move" — restricted to
+	// King/Checkmate/AXIOM rather than shown on every arena. NativeConstruct can
+	// re-fire, so this actively sets both states each time rather than only ever
+	// collapsing it.
+	if (HintButton)
+	{
+		const FString MapName = GetWorld() ? GetWorld()->GetMapName() : FString();
+		const bool bAdvancedMap = MapName.Contains(TEXT("King"))
+			|| MapName.Contains(TEXT("Checkmate"))
+			|| MapName.Contains(TEXT("Axiom"));
+		HintButton->SetVisibility(bAdvancedMap ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 
 	if (WhiteColorSlider) WhiteColorSlider->OnValueChanged.AddUniqueDynamic(this, &UChessHudWidget::OnWhiteColorChanged);
@@ -196,6 +502,55 @@ void UChessHudWidget::NativeConstruct()
 		if (WhiteColorSlider) WhiteColorSlider->SetValue(GI->LightSquareHue);
 		if (BlackColorSlider) BlackColorSlider->SetValue(GI->DarkSquareHue);
 	}
+}
+
+void UChessHudWidget::OnHudMenuClicked()
+{
+	if (AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer()))
+		PC->TogglePause();
+}
+
+void UChessHudWidget::OnHudHelpClicked()
+{
+	if (HudHelpPanel)
+		HudHelpPanel->SetVisibility(HudHelpPanel->GetVisibility() == ESlateVisibility::Collapsed
+			? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+}
+
+void UChessHudWidget::OnHudHelpCloseClicked()
+{
+	if (HudHelpPanel)
+		HudHelpPanel->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UChessHudWidget::OnIntroBeginClicked()
+{
+	if (IntroPanel)
+		IntroPanel->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UChessHudWidget::OnDangerToggleClicked()
+{
+	bShowDanger = !bShowDanger;
+	if (DangerToggleLabel)
+		DangerToggleLabel->SetText(FText::FromString(
+			bShowDanger ? TEXT("Danger view: ON") : TEXT("Danger view: OFF")));
+
+	LastDangerVersion = -1; // force a refresh on the next tick when enabling
+	if (!bShowDanger)
+		RefreshDangerOverlay(); // clears immediately
+}
+
+void UChessHudWidget::RefreshDangerOverlay()
+{
+	AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer());
+	AChessBoard* Board = PC ? PC->Board : nullptr;
+	if (!Board) return;
+
+	if (bShowDanger && Manager)
+		Board->SetDangerOverlay(Manager->GetSquaresAttackedByOpponent());
+	else
+		Board->ClearDangerOverlay();
 }
 
 void UChessHudWidget::ApplyBoardColors()
@@ -218,9 +573,48 @@ void UChessHudWidget::ApplyBoardColors()
 void UChessHudWidget::OnWhiteColorChanged(float Value) { ApplyBoardColors(); }
 void UChessHudWidget::OnBlackColorChanged(float Value) { ApplyBoardColors(); }
 
+void UChessHudWidget::OnHintClicked()
+{
+	// Route through the controller so its guards apply (no hint on the robot's turn,
+	// while paused, or after the game is over).
+	if (AChessPlayerController* PC = Cast<AChessPlayerController>(GetOwningPlayer()))
+		PC->RequestHint();
+}
+
+void UChessHudWidget::OnCustomizationClicked()
+{
+	UClass* Cls = SkinsWidgetClass ? SkinsWidgetClass.Get() : UPieceSkinsMenuWidget::StaticClass();
+	if (!Cls) return;
+	if (!SkinsInstance)
+		SkinsInstance = CreateWidget<UUserWidget>(GetOwningPlayer(), Cls);
+	if (SkinsInstance && !SkinsInstance->IsInViewport())
+		SkinsInstance->AddToViewport(100);
+}
+
 void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// Runs even once the game is over (below this point is frozen then) — the skin
+	// popup's pop-in animation plays exactly when that's true. Eased scale/opacity
+	// tween, same manual-Tick idiom as UTutorialHudWidget's SkinUnlockPanel.
+	if (bSkinPopupAnimating && SkinUnlockPanel)
+	{
+		SkinPopupAnimElapsed += InDeltaTime;
+		constexpr float PopDuration = 0.45f;
+		const float Alpha = FMath::Clamp(SkinPopupAnimElapsed / PopDuration, 0.f, 1.f);
+
+		const float Eased = FMath::InterpEaseOut(0.f, 1.f, Alpha, 3.f);
+		const float Overshoot = 1.f + FMath::Sin(Alpha * PI) * 0.12f * (1.f - Alpha);
+		const float Scale = FMath::Lerp(0.6f, 1.f, Eased) * Overshoot;
+
+		SkinUnlockPanel->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+		SkinUnlockPanel->SetRenderScale(FVector2D(Scale, Scale));
+		SkinUnlockPanel->SetRenderOpacity(FMath::Clamp(SkinPopupAnimElapsed / 0.2f, 0.f, 1.f));
+
+		if (Alpha >= 1.f)
+			bSkinPopupAnimating = false;
+	}
 
 	if (!Manager) return;
 	if (Manager->IsGameOver()) return;   // frozen once the overlay is up
@@ -232,11 +626,17 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		GameOverPanel->SetVisibility(ESlateVisibility::Hidden);
 		if (TurnText) TurnText->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
+	if (SkinUnlockPanel && SkinUnlockPanel->GetVisibility() == ESlateVisibility::Visible)
+	{
+		SkinUnlockPanel->SetVisibility(ESlateVisibility::Collapsed);
+		bSkinPopupAnimating = false;
+	}
 
 	AChessPlayerController* PC = GetChessPC();
 	const bool bTwoPlayer = Manager->IsTwoPlayerMode();
 	const bool bWhiteToMove = Manager->GetActiveColor() == TEXT("white");
-	const bool bThinking = !bTwoPlayer && ((PC && PC->IsAIThinking()) || !bWhiteToMove);
+	const bool bPlayerIsWhite = Manager->PlayerColor == EChessColor::White;
+	const bool bThinking = !bTwoPlayer && ((PC && PC->IsAIThinking()) || (bWhiteToMove != bPlayerIsWhite));
 
 	if (TurnText)
 	{
@@ -269,12 +669,31 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	// Captured trays: the 64-square scan runs only when a move/undo actually
 	// happened (version bump), not every frame.
+	// Danger overlay follows the position while enabled
+	if (bShowDanger && Manager->GetPositionVersion() != LastDangerVersion)
+	{
+		LastDangerVersion = Manager->GetPositionVersion();
+		RefreshDangerOverlay();
+	}
+
 	const int32 Version = Manager->GetPositionVersion();
 	if (Version != LastPositionVersion)
 	{
 		LastPositionVersion = Version;
 		const FString BlackLost = Manager->GetCapturedPieces(false);   // black pieces lost = captured by White/P1
 		const FString WhiteLost = Manager->GetCapturedPieces(true);    // white pieces lost = captured by Black/P2
+		if (ScoreText)
+		{
+			UWidget* ToToggle = ScoreChip ? static_cast<UWidget*>(ScoreChip) : ScoreText;
+			if (bTwoPlayer)
+				ToToggle->SetVisibility(ESlateVisibility::Hidden);
+			else
+			{
+				ToToggle->SetVisibility(ESlateVisibility::HitTestInvisible);
+				ScoreText->SetText(FText::FromString(
+					FString::Printf(TEXT("Score: %d"), Manager->GetPlayerScore())));
+			}
+		}
 		if (WhiteCapturedText)
 		{
 			const FString Who = bTwoPlayer ? TEXT("P1 took") : TEXT("You took");
@@ -305,19 +724,166 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UChessHudWidget::HandleGameOver(FString Result)
 {
+	// OnSkinUnlocked/OnGameOver both broadcast synchronously from the same checkmate
+	// handling in AChessManager, so PendingUnlockedSkinId (if any) is already set by
+	// the time this runs — show that popup first, GameOverPanel once it's dismissed.
+	if (!PendingUnlockedSkinId.IsNone())
+	{
+		PendingGameOverResult = Result;
+		ShowSkinUnlockPopup();
+	}
+	else
+	{
+		ShowGameOverPanel(Result);
+	}
+}
+
+void UChessHudWidget::ShowGameOverPanel(FString Result)
+{
+	// Game over trumps any narration in flight (and lets finale_victory start clean).
+	FChessVoice::Interrupt(this);
+
 	if (GameOverText)
 	{
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();
+		const bool bAxiomFinale = !bTwoPlayer && GetWorld()
+			&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
+		// Win/lose is decided by whether the side the PLAYER chose won — not by
+		// assuming the player is always white (arcade lets you pick black).
+		const FString PlayerSide = (Manager && Manager->PlayerColor == EChessColor::Black)
+			? TEXT("black") : TEXT("white");
+
 		FString Msg;
-		if (Result == TEXT("white"))      Msg = bTwoPlayer ? TEXT("P1 wins! Great game!") : TEXT("You win! Amazing game!");
-		else if (Result == TEXT("black")) Msg = bTwoPlayer ? TEXT("P2 wins! Great game!") : TEXT("Good try! You'll get the robot next time!");
-		else                              Msg = TEXT("It's a draw — what a battle!");
+		if (Result == TEXT("draw"))
+			Msg = TEXT("It's a draw — what a battle!");
+		else if (bTwoPlayer)
+			Msg = (Result == TEXT("white")) ? TEXT("P1 wins! Great game!") : TEXT("P2 wins! Great game!");
+		else if (Result == PlayerSide)
+			// The story's final beat: beating AXIOM earns the title.
+			Msg = bAxiomFinale ? TEXT("CHECKMATE! AXIOM is defeated and Neo City is free.\nYou are a CHESS CADET! Thank you for playing!")
+			                   : TEXT("You win! Amazing game!");
+		else
+			Msg = TEXT("Good try! You'll get the robot next time!");
+
+		// Arcade scoring (solo only): captures + a win bonus, checked against
+		// the device-wide best. Undo games still count — the score is whatever
+		// the final position says.
+		if (!bTwoPlayer && Manager)
+		{
+			const bool bWon = (Result == PlayerSide);
+			const int32 FinalScore = Manager->GetPlayerScore() + (bWon ? 1000 : 0);
+			bool bNewBest = false;
+			if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+			{
+				bNewBest = GI->SubmitArcadeScore(FinalScore);
+				Msg += FString::Printf(TEXT("\nScore: %d    Best: %d"),
+					FinalScore, GI->GetArcadeHighScore());
+			}
+			if (bNewBest)
+				Msg += TEXT("\nNEW HIGH SCORE!");
+		}
 		GameOverText->SetText(FText::FromString(Msg));
+		if (bAxiomFinale && Result == PlayerSide)
+		{
+			FChessVoice::PlayLine(this, TEXT("finale_victory"));
+		}
 	}
 	if (TurnText)  TurnText->SetVisibility(ESlateVisibility::Hidden);
 	if (CheckText) CheckText->SetVisibility(ESlateVisibility::Hidden);
 	if (HintResultText) HintResultText->SetVisibility(ESlateVisibility::Hidden);
 	if (GameOverPanel) GameOverPanel->SetVisibility(ESlateVisibility::Visible);
+
+	// The arena level blueprints still spawn the legacy WBP_GameOver menu off the
+	// same OnGameOver broadcast — sweep it next tick (works regardless of which
+	// binding fired first) so only this overlay is on screen.
+	if (UWorld* World = GetWorld())
+	{
+		TWeakObjectPtr<UChessHudWidget> WeakThis(this);
+		World->GetTimerManager().SetTimerForNextTick([WeakThis]()
+		{
+			UChessHudWidget* Self = WeakThis.Get();
+			if (!Self) return;
+			TArray<UUserWidget*> TopLevel;
+			UWidgetBlueprintLibrary::GetAllWidgetsOfClass(Self, TopLevel, UUserWidget::StaticClass(), true);
+			for (UUserWidget* W : TopLevel)
+				if (W != Self && W->GetClass()->GetName().StartsWith(TEXT("WBP_GameOver")))
+					W->RemoveFromParent();
+		});
+	}
+}
+
+void UChessHudWidget::ShowWarning(const FString& Message)
+{
+	if (!WarningText) return;
+	WarningText->SetText(FText::FromString(Message));
+	WarningText->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (UWorld* World = GetWorld())
+	{
+		TWeakObjectPtr<UChessHudWidget> WeakThis(this);
+		World->GetTimerManager().SetTimer(WarningHideTimer, [WeakThis]()
+		{
+			if (UChessHudWidget* Self = WeakThis.Get())
+				if (Self->WarningText)
+					Self->WarningText->SetVisibility(ESlateVisibility::Hidden);
+		}, 1.6f, false);
+	}
+}
+
+void UChessHudWidget::HandleSkinUnlocked(FName SkinId)
+{
+	PendingUnlockedSkinId = SkinId;
+}
+
+void UChessHudWidget::ShowSkinUnlockPopup()
+{
+	if (!SkinUnlockPanel)
+	{
+		ShowGameOverPanel(PendingGameOverResult);
+		return;
+	}
+
+	FChessPieceSkinEntry Entry;
+	bool bFound = false;
+	if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+	{
+		if (UChessPieceSkinRegistry* Registry = GI->PieceSkinRegistry.LoadSynchronous())
+			bFound = Registry->FindSkin(PendingUnlockedSkinId, Entry);
+	}
+
+	if (SkinUnlockNameText)
+		SkinUnlockNameText->SetText(bFound ? Entry.DisplayName : FText::FromName(PendingUnlockedSkinId));
+
+	if (SkinUnlockImage)
+	{
+		if (bFound && Entry.Thumbnail)
+		{
+			SkinUnlockImage->SetBrushFromTexture(Entry.Thumbnail, false);
+			SkinUnlockImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			SkinUnlockImage->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if (TurnText)  TurnText->SetVisibility(ESlateVisibility::Hidden);
+	if (CheckText) CheckText->SetVisibility(ESlateVisibility::Hidden);
+	if (HintResultText) HintResultText->SetVisibility(ESlateVisibility::Hidden);
+
+	SkinPopupAnimElapsed = 0.f;
+	bSkinPopupAnimating = true;
+	SkinUnlockPanel->SetRenderOpacity(0.f);
+	SkinUnlockPanel->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UChessHudWidget::OnSkinUnlockOkClicked()
+{
+	if (SkinUnlockPanel)
+		SkinUnlockPanel->SetVisibility(ESlateVisibility::Collapsed);
+	bSkinPopupAnimating = false;
+	PendingUnlockedSkinId = NAME_None;
+	ShowGameOverPanel(PendingGameOverResult);
 }
 
 void UChessHudWidget::HandleHintReady(FString FromSquare, FString ToSquare)
