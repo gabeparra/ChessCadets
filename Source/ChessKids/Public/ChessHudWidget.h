@@ -28,8 +28,10 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* TurnText;
+	// Unused since the persistent score readout was removed (score shows only at
+	// game over). Kept so the class layout is stable for Live Coding; delete
+	// both on the next full rebuild.
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* ScoreText;
-	// Purple chip behind ScoreText (C++ fallback UI only); toggled with it.
 	UPROPERTY() class UBorder* ScoreChip = nullptr;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* CheckText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* HintResultText;   // "Hint: e2 → e4"
