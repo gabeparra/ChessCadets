@@ -1,6 +1,8 @@
 #include "TutorialPlayerController.h"
 #include "TutorialBoard.h"
 #include "TutorialManager.h"
+#include "ChessKidsGameInstance.h"
+#include "Components/InputComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Camera/CameraActor.h"
@@ -50,7 +52,7 @@ void ATutorialPlayerController::BeginPlay()
 	{
 		const float Extent = FMath::Max(Board->NumFiles, Board->NumRanks) * Board->SquareSize;
 		const FVector Center = Board->GetActorLocation();
-		const FVector CamLoc = Center + FVector(0.f, -Extent * 0.85f, Extent * 1.25f);
+		const FVector CamLoc = Center + FVector(0.f, Extent * 0.85f, Extent * 1.25f);
 
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -69,6 +71,20 @@ void ATutorialPlayerController::BeginPlay()
 void ATutorialPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+	InputComponent->BindKey(EKeys::MouseScrollUp,   IE_Pressed, this, &ATutorialPlayerController::ZoomIn);
+	InputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &ATutorialPlayerController::ZoomOut);
+}
+
+void ATutorialPlayerController::ZoomIn()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() + 0.08f);
+}
+
+void ATutorialPlayerController::ZoomOut()
+{
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(GI->GetBoardZoom() - 0.08f);
 }
 
 void ATutorialPlayerController::Tick(float DeltaTime)

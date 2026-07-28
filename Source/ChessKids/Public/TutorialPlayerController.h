@@ -26,6 +26,9 @@ public:
 
 private:
 	void OnClick();
+	// Mouse-wheel board zoom, shared with the settings slider's persisted value.
+	void ZoomIn();
+	void ZoomOut();
 	void HandleHover();
 
 	FString HoveredSquare;

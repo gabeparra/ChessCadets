@@ -24,9 +24,17 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* chessModeButton;
 	UPROPERTY(meta = (BindWidgetOptional)) UButton* quitButton;
 
+	// Piece Skins entry point, duplicated from quitButton in the WBP so it already
+	// matches its font/style — sits between the mode buttons and Quit.
+	UPROPERTY(meta = (BindWidgetOptional)) UButton* skinsButton;
+
 	// Optional styled settings panel; falls back to the C++ USettingsMenuWidget.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
 	TSubclassOf<UUserWidget> SettingsWidgetClass;
+
+	// Optional styled skins panel; falls back to the C++ UPieceSkinsMenuWidget.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
+	TSubclassOf<UUserWidget> SkinsWidgetClass;
 
 	// Optional styled mode picker; falls back to the C++ UModeSelectWidget.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
@@ -36,7 +44,9 @@ protected:
 	UFUNCTION() void OnChessMode();
 	UFUNCTION() void OnQuit();
 	UFUNCTION() void OnSettings();
+	UFUNCTION() void OnSkins();
 	UFUNCTION() void OnLearn();
+	UFUNCTION() void ToggleDevMenu();   // bound to the K key on the player controller
 
 	// First tutorial level (isabella's Street Dash); the chain continues from there.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu")
@@ -44,11 +54,23 @@ protected:
 
 private:
 	UPROPERTY() UUserWidget* SettingsInstance = nullptr;
+	UPROPERTY() UUserWidget* SkinsInstance = nullptr;
 	UPROPERTY() UUserWidget* ModeSelectInstance = nullptr;
 	UPROPERTY() UButton* InjectedSettingsButton = nullptr;
+	UPROPERTY() UButton* InjectedSkinsButton = nullptr;
 	UPROPERTY() UButton* InjectedLearnButton = nullptr;
 
 	void SetTwoPlayerMode(bool bTwoPlayer);
 	void InjectSettingsButton();
+	void InjectSkinsButton();
 	void InjectLearnButton();
+
+	// The injected buttons are a dev overlay on top of the styled WBP menu; hidden
+	// by default, toggled with the K key so normal play only sees the polished menu.
+	void SetDevMenuVisible(bool bVisible);
+	// Binds K on the player controller (focus-independent); retries next tick if the
+	// controller/input isn't ready when the menu first constructs.
+	void SetupDevInput();
+	bool bDevMenuShown = false;
+	bool bDevInputBound = false;
 };

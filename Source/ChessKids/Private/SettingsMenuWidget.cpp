@@ -17,15 +17,14 @@
 #include "Kismet/GameplayStatics.h"
 #include "Styling/CoreStyle.h"
 #include "InputCoreTypes.h"
+#include "ChessKidsUiStyle.h"
 
 static UButton* MakeLabeledButton(UWidgetTree* Tree, const TCHAR* Label, UTextBlock*& OutText, int32 FontSize = 18)
 {
 	UButton* Btn = Tree->ConstructWidget<UButton>();
+	ChessKidsUi::StyleButton(Btn);
 	OutText = Tree->ConstructWidget<UTextBlock>();
-	OutText->SetText(FText::FromString(Label));
-	OutText->SetJustification(ETextJustify::Center);
-	OutText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", FontSize));
-	OutText->SetColorAndOpacity(FSlateColor(FLinearColor(0.05f, 0.05f, 0.08f)));
+	ChessKidsUi::StyleButtonLabel(OutText, FString(Label), FontSize);
 	Btn->AddChild(OutText);
 	return Btn;
 }
@@ -102,6 +101,9 @@ TSharedRef<SWidget> USettingsMenuWidget::RebuildWidget()
 		StatusText->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 15));
 		if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(StatusText)) { S->SetPadding(FMargin(8.f, 10.f)); S->SetHorizontalAlignment(HAlign_Center); }
 
+		DevUnlockButton = MakeLabeledButton(WidgetTree, TEXT("DEV: Unlock All - Off"), Tmp, 13);
+		if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(DevUnlockButton)) { S->SetPadding(FMargin(24.f, 4.f)); S->SetHorizontalAlignment(HAlign_Fill); }
+
 		BackButton = MakeLabeledButton(WidgetTree, TEXT("Back"), Tmp);
 		if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(BackButton)) { S->SetPadding(FMargin(24.f, 10.f)); S->SetHorizontalAlignment(HAlign_Fill); }
 	}
@@ -124,6 +126,7 @@ void USettingsMenuWidget::NativeConstruct()
 	if (BackButton)       BackButton->OnClicked.AddUniqueDynamic(this, &USettingsMenuWidget::OnBack);
 	if (WhiteColorSlider) WhiteColorSlider->OnValueChanged.AddUniqueDynamic(this, &USettingsMenuWidget::OnWhiteColorChanged);
 	if (BlackColorSlider) BlackColorSlider->OnValueChanged.AddUniqueDynamic(this, &USettingsMenuWidget::OnBlackColorChanged);
+	if (DevUnlockButton)  DevUnlockButton->OnClicked.AddUniqueDynamic(this, &USettingsMenuWidget::OnToggleDevUnlock);
 	SetupBoardColorSliders();
 	RefreshStatus();
 
@@ -185,6 +188,17 @@ void USettingsMenuWidget::OnToggleWindowMode()
 		ApplyAndSave();
 		RefreshStatus();
 	}
+}
+
+void USettingsMenuWidget::OnToggleDevUnlock()
+{
+	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+	if (!GI) return;
+	GI->bDevUnlockAll = !GI->bDevUnlockAll;
+	if (DevUnlockButton)
+		if (UTextBlock* T = Cast<UTextBlock>(DevUnlockButton->GetChildAt(0)))
+			T->SetText(FText::FromString(GI->bDevUnlockAll
+				? TEXT("DEV: Unlock All - ON") : TEXT("DEV: Unlock All - Off")));
 }
 
 void USettingsMenuWidget::OnBack()

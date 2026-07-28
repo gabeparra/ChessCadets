@@ -117,7 +117,7 @@ public:
 	FLinearColor EdgeLightColor = FLinearColor(0.f, 0.7f, 1.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Lights")
-	float EdgeLightIntensity = 800.f;
+	float EdgeLightIntensity = 500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Lights",
 	          meta = (ClampMin = "0.1", ClampMax = "2.0"))
@@ -175,6 +175,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chess|Board")
 	void ClearHighlights();
 
+	// Safe/danger overlay: paints the given squares red until cleared. Survives
+	// ClearHighlights (selection churn) — it's a standing layer, not a flash.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Board")
+	void SetDangerOverlay(const TArray<FString>& Squares);
+
+	UFUNCTION(BlueprintCallable, Category = "Chess|Board")
+	void ClearDangerOverlay();
+
 	UFUNCTION(BlueprintCallable, Category = "Chess|Board")  
 	void HoverSquare(const FString& SquareStr);             
 
@@ -215,12 +223,21 @@ public:
 private:
 	UPROPERTY() TArray<UStaticMeshComponent*> SquareMeshes;
 	UPROPERTY() TArray<UStaticMeshComponent*> HighlightMeshes;
+
+	// Danger overlay state (see SetDangerOverlay)
+	UPROPERTY(EditAnywhere, Category = "Chess|Board")
+	FLinearColor DangerOverlayColor = FLinearColor(0.85f, 0.08f, 0.08f);
+	UPROPERTY() UMaterialInstanceDynamic* DangerDMI = nullptr;
+	TSet<int32> DangerOverlaySquares; // File * 8 + Rank
+	void ApplyDangerOverlay();
 	UPROPERTY() UStaticMeshComponent* GridOverlayMesh = nullptr;
 	UPROPERTY() UStaticMeshComponent* ScanPlaneMesh = nullptr;
 	UPROPERTY() TArray<UPointLightComponent*> EdgeLights;
 	UPROPERTY() TArray<UMaterialInstanceDynamic*> NeonDynMaterials;
 	UPROPERTY() UMaterialInstanceDynamic* LightTintDMI = nullptr;
 	UPROPERTY() UMaterialInstanceDynamic* DarkTintDMI = nullptr;
+	UPROPERTY() UMaterialInstanceDynamic* LegalMoveDMI = nullptr;
+	UPROPERTY() UMaterialInstanceDynamic* SelectionDMI = nullptr;
 
 	FString HoveredSquare;  
 
@@ -231,6 +248,7 @@ private:
 	void BuildHolographicFrame();
 	void RebuildNeonDMIs();
 	void EnsureTintDMIs();
+	void UpdateHighlightContrastColor();
 	//void SnapModelToBoard();
 
 	UStaticMeshComponent* GetHighlightMesh(int32 File, int32 Rank) const;
