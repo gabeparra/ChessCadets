@@ -159,7 +159,7 @@ void UMainMenuWidget::InjectLearnButton()
 	if (!Canvas) return;
 
 	InjectedLearnButton = WidgetTree->ConstructWidget<UButton>();
-	ChessKidsUi::StyleButton(InjectedLearnButton);
+	ChessKidsUi::StyleMenuButton(InjectedLearnButton);
 	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
 	ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("LEARN CHESS")), 16);
 	InjectedLearnButton->AddChild(Label);
@@ -182,7 +182,7 @@ void UMainMenuWidget::InjectSettingsButton()
 	if (!Canvas) return;
 
 	InjectedSettingsButton = WidgetTree->ConstructWidget<UButton>();
-	ChessKidsUi::StyleButton(InjectedSettingsButton);
+	ChessKidsUi::StyleMenuButton(InjectedSettingsButton);
 	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
 	ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("Settings")), 24);
 	InjectedSettingsButton->AddChild(Label);
@@ -205,7 +205,7 @@ void UMainMenuWidget::InjectSkinsButton()
 	if (!Canvas) return;
 
 	InjectedSkinsButton = WidgetTree->ConstructWidget<UButton>();
-	ChessKidsUi::StyleButton(InjectedSkinsButton);
+	ChessKidsUi::StyleMenuButton(InjectedSkinsButton);
 	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
 	ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("Piece Skins")), 24);
 	InjectedSkinsButton->AddChild(Label);

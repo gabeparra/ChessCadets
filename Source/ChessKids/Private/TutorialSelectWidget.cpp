@@ -49,7 +49,13 @@ TSharedRef<SWidget> UTutorialSelectWidget::RebuildWidget()
 		Title->SetText(FText::FromString(TEXT("LEARN CHESS")));
 		Title->SetJustification(ETextJustify::Center);
 		Title->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 42));
-		if (UVerticalBoxSlot* TS = Box->AddChildToVerticalBox(Title))
+		UBorder* TitleChip = WidgetTree->ConstructWidget<UBorder>();
+		TitleChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		TitleChip->SetPadding(FMargin(22.f, 6.f));
+		TitleChip->SetHorizontalAlignment(HAlign_Center);
+		TitleChip->SetVerticalAlignment(VAlign_Center);
+		TitleChip->AddChild(Title);
+		if (UVerticalBoxSlot* TS = Box->AddChildToVerticalBox(TitleChip))
 		{
 			TS->SetPadding(FMargin(24.f, 8.f, 24.f, 16.f));
 			TS->SetHorizontalAlignment(HAlign_Center);
@@ -62,7 +68,7 @@ TSharedRef<SWidget> UTutorialSelectWidget::RebuildWidget()
 		{
 			UButton*& Btn = *Buttons[i];
 			Btn = WidgetTree->ConstructWidget<UButton>();
-			ChessKidsUi::StyleButton(Btn);
+			ChessKidsUi::StyleMenuButton(Btn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
 			const bool bDone = GI && GI->IsTutorialComplete(i);
 			ChessKidsUi::StyleButtonLabel(T, FString::Printf(TEXT("%s%s"),
@@ -76,7 +82,7 @@ TSharedRef<SWidget> UTutorialSelectWidget::RebuildWidget()
 		}
 
 		BackButton = WidgetTree->ConstructWidget<UButton>();
-		ChessKidsUi::StyleButton(BackButton);
+		ChessKidsUi::StyleMenuButton(BackButton);
 		UTextBlock* BT = WidgetTree->ConstructWidget<UTextBlock>();
 		ChessKidsUi::StyleButtonLabel(BT, FString(TEXT("BACK")), 16);
 		BackButton->AddChild(BT);

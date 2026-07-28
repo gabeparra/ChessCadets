@@ -39,6 +39,9 @@ void ATutorialManager::BeginPlay()
 
 	if (Board)
 	{
+		// Voice Marco's WBP_TutorialIntro welcome popup. Played first so the
+		// phase-1 intro line queues politely behind it instead of colliding.
+		FChessVoice::PlayLine(this, TEXT("tutorial_welcome"));
 		SetupPhase(ETutorialPhase::Phase1);
 	}
 }
