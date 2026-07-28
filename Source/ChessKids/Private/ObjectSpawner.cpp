@@ -1,31 +1,43 @@
-// VegetationSpawner.cpp
+// ObjectSpawner.cpp
 
-#include "VegetationSpawner.h"
+#include "ObjectSpawner.h"
 #include "Engine/World.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "EngineUtils.h"
 
-AVegetationSpawner::AVegetationSpawner()
+AObjectSpawner::AObjectSpawner()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void AVegetationSpawner::BeginPlay()
+void AObjectSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnMeshes();
+	SpawnObjects();
 }
 
-void AVegetationSpawner::SpawnMeshes()
+AActor* AObjectSpawner::FindBoard() const
+{
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			if (It->GetClass()->GetName().Contains(TEXT("Board")))
+				return *It;
+		}
+	}
+	return nullptr;
+}
+
+void AObjectSpawner::SpawnObjects()
 {
 	UWorld* World = GetWorld();
 	if (!World) return;
 
-	// Clear any previously spawned meshes first
-	ClearSpawnedMeshes();
+	ClearSpawnedObjects();
 
-	// Make sure there's a root to attach instanced-mesh components to.
 	USceneComponent* Root = GetRootComponent();
 	if (!Root)
 	{
@@ -35,23 +47,26 @@ void AVegetationSpawner::SpawnMeshes()
 	}
 
 	const FVector ActorOrigin = GetActorLocation();
-	const FVector BoardCentre = FVector::ZeroVector; // chess board is at world origin
 
-	for (const FVegetationEntry& Entry : SpawnEntries)
+	// The rule: nothing ever spawns on/over the board. Use the board's REAL position
+	// (not an assumed world origin) for the exclusion zone, keep it out of the ground
+	// trace so meshes can't land on its surface, and place actor-spawns (traffic)
+	// a fixed clearance under it.
+	AActor* Board = FindBoard();
+	const FVector BoardCentre = Board ? Board->GetActorLocation() : FVector::ZeroVector;
+	const bool bBoardRelative = (SpawnActorClassOverride != nullptr);
+	const float ObjectZ = BoardCentre.Z - ClearanceBelowBoard;
+
+	for (const FObjectSpawnEntry& Entry : SpawnEntries)
 	{
 		UStaticMesh* LoadedMesh = Entry.Mesh.LoadSynchronous();
 		if (!LoadedMesh) continue;
 
-		// Static vegetation is batched into one HISM per entry (a single draw call
-		// instead of up to 500 individual actors). An actor override (e.g. a moving
-		// hover-car BP) still spawns real actors so they can keep moving.
 		UHierarchicalInstancedStaticMeshComponent* HISM = nullptr;
 		if (!SpawnActorClassOverride)
 		{
 			HISM = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
 			HISM->SetStaticMesh(LoadedMesh);
-			// Must match the root's mobility — a Static child can't attach to a
-			// Movable root (the "AttachTo ... Aborting" PIE errors).
 			HISM->SetMobility(Root->Mobility);
 			HISM->SetupAttachment(Root);
 			HISM->RegisterComponent();
@@ -68,11 +83,10 @@ void AVegetationSpawner::SpawnMeshes()
 
 			FVector SpawnLocation;
 			FRotator SpawnRotation;
-
-			if (!TryGetGroundLocation(ActorOrigin, SpawnRadius, SpawnLocation, SpawnRotation))
+			if (!TryGetGroundLocation(ActorOrigin, SpawnRadius, Board, SpawnLocation, SpawnRotation))
 				continue;
 
-			// Skip if inside the chess board exclusion zone
+			// Never spawn on the board footprint.
 			if (FVector::Dist2D(SpawnLocation, BoardCentre) < ExclusionRadius)
 				continue;
 
@@ -80,11 +94,15 @@ void AVegetationSpawner::SpawnMeshes()
 				SpawnRotation.Yaw = FMath::RandRange(0.f, 360.f);
 
 			const float Scale = FMath::RandRange(Entry.ScaleMin, Entry.ScaleMax);
-			const FVector FinalLocation = SpawnLocation + FVector(0.f, 0.f, ZOffset);
+
+			// Objects: fixed height a set clearance UNDER the board (surface never obstructed).
+			// Vegetation: on the ground plus its ZOffset.
+			const FVector FinalLocation = bBoardRelative
+				? FVector(SpawnLocation.X, SpawnLocation.Y, ObjectZ)
+				: SpawnLocation + FVector(0.f, 0.f, ZOffset);
 
 			if (HISM)
 			{
-				// World-space instance — fast, batched, no per-mesh actor overhead.
 				HISM->AddInstance(FTransform(SpawnRotation, FinalLocation, FVector(Scale)), /*bWorldSpace=*/true);
 				Placed++;
 			}
@@ -106,7 +124,7 @@ void AVegetationSpawner::SpawnMeshes()
 	}
 }
 
-void AVegetationSpawner::ClearSpawnedMeshes()
+void AObjectSpawner::ClearSpawnedObjects()
 {
 	for (AActor* Actor : SpawnedActors)
 	{
@@ -126,12 +144,12 @@ void AVegetationSpawner::ClearSpawnedMeshes()
 	SpawnedHISMs.Empty();
 }
 
-bool AVegetationSpawner::TryGetGroundLocation(const FVector& Origin, float Radius, FVector& OutLocation, FRotator& OutRotation) const
+bool AObjectSpawner::TryGetGroundLocation(const FVector& Origin, float Radius, AActor* IgnoreActor,
+                                          FVector& OutLocation, FRotator& OutRotation) const
 {
 	UWorld* World = GetWorld();
 	if (!World) return false;
 
-	// Pick a random point within the spawn radius
 	const float Angle = FMath::RandRange(0.f, 360.f) * (PI / 180.f);
 	const float Dist  = FMath::RandRange(0.f, Radius);
 	const FVector RandomOffset(FMath::Cos(Angle) * Dist, FMath::Sin(Angle) * Dist, 0.f);
@@ -141,18 +159,21 @@ bool AVegetationSpawner::TryGetGroundLocation(const FVector& Origin, float Radiu
 	FHitResult Hit;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
+	// Never treat the chess board as "ground" — a trace that lands on the board's
+	// surface would otherwise scatter props on top of it.
+	if (IgnoreActor)
+		QueryParams.AddIgnoredActor(IgnoreActor);
 
 	if (World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
 	{
 		OutLocation = Hit.ImpactPoint;
-
-		if (bAlignToSurface)
-			OutRotation = FRotationMatrix::MakeFromZ(Hit.ImpactNormal).Rotator();
-		else
-			OutRotation = FRotator::ZeroRotator;
-
+		OutRotation = bAlignToSurface ? FRotationMatrix::MakeFromZ(Hit.ImpactNormal).Rotator() : FRotator::ZeroRotator;
 		return true;
 	}
 
-	return false;
+	// No ground hit — fall back to the random XY at the spawner's height so object spawns
+	// (which override Z anyway) still populate on levels with no ground under the ring.
+	OutLocation = Origin + RandomOffset;
+	OutRotation = FRotator::ZeroRotator;
+	return true;
 }

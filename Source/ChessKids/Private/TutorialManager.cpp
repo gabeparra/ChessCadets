@@ -1,14 +1,17 @@
 #include "TutorialManager.h"
 #include "TutorialBoard.h"
 #include "ChessPiece.h"
+#include "ChessVoice.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "ChessKidsGameInstance.h"
 #include "EngineUtils.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInterface.h"
 
 ATutorialManager::ATutorialManager()
 {
@@ -47,7 +50,9 @@ void ATutorialManager::Tick(float DeltaTime)
 
 void ATutorialManager::ShowGuideMessage(const FString& Message)
 {
+	LastGuideMessage = Message;          // cached for late-binding HUDs
 	OnGuideMessage.Broadcast(Message);   // rendered by UTutorialHudWidget
+	FChessVoice::PlayForMessage(this, Message);
 
 	if (false)   // debug fallback retired — the guide panel owns messaging now
 	{
@@ -117,7 +122,7 @@ void ATutorialManager::SpawnTargetAt(int32 File, int32 Rank)
 	AChessPiece* Target = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Target)
 	{
-		Target->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, nullptr);
+		Target->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, &MarkerMeshConfig);
 		Target->SetActorScale3D(FVector(0.6f));
 		TargetActors.Add(Key, Target);
 		TargetPositions.Add(FIntPoint(File, Rank));
@@ -150,7 +155,7 @@ void ATutorialManager::SpawnEnemyAt(int32 File, int32 Rank)
 	AChessPiece* Enemy = GetWorld()->SpawnActor<AChessPiece>(AChessPiece::StaticClass(), Location, FRotator::ZeroRotator, Params);
 	if (Enemy)
 	{
-		Enemy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, nullptr);
+		Enemy->Init(EChessPieceType::Pawn, EChessColor::Black, File, Rank, &MarkerMeshConfig);
 		EnemyActors.Add(Key, Enemy);
 		EnemyPositions.Add(FIntPoint(File, Rank));
 	}
@@ -194,8 +199,33 @@ void ATutorialManager::SpawnWallAt(int32 File, int32 Rank)
 
 bool ATutorialManager::IsSquareBlocked(int32 File, int32 Rank) const
 {
+	// Targets block too, same as enemies/walls — a slide has to stop at the nearest
+	// uncollected one rather than sweeping past it to a farther square. Harmless for
+	// the destination square itself: IsMoveAllowed's path-clearing loops never call
+	// this for the final square, only squares strictly in between, so landing
+	// directly on a target to collect it still works.
 	const int32 Key = PackPos(File, Rank);
-	return EnemyActors.Contains(Key) || WallActors.Contains(Key);
+	return EnemyActors.Contains(Key) || WallActors.Contains(Key) || TargetActors.Contains(Key);
+}
+
+const FPieceMeshConfig& ATutorialManager::GetBlackRivalMeshConfig()
+{
+	if (!BlackRivalMeshConfig.MaterialOverride)
+	{
+		BlackRivalMeshConfig.MaterialOverride = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Materials/Pieces/BlackPiece.BlackPiece"));
+	}
+	return BlackRivalMeshConfig;
+}
+
+const FPieceMeshConfig& ATutorialManager::GetWhitePieceMeshConfig()
+{
+	if (!WhitePieceMeshConfig.MaterialOverride)
+	{
+		WhitePieceMeshConfig.MaterialOverride = LoadObject<UMaterialInterface>(
+			nullptr, TEXT("/Game/Materials/Pieces/WhitePiece.WhitePiece"));
+	}
+	return WhitePieceMeshConfig;
 }
 
 TArray<FIntPoint> ATutorialManager::GetLegalMoves() const
@@ -396,9 +426,47 @@ void ATutorialManager::ResetPhase()
 	SetupPhase(CurrentPhase);
 }
 
+void ATutorialManager::ShowGuideSequence(TArray<FString> Lines)
+{
+	GetWorldTimerManager().ClearTimer(GuideTimer);
+	if (Lines.Num() >= 2)
+		LastInstructionLines = Lines;
+	GuideQueue = MoveTemp(Lines);
+	ShowNextGuideLine();
+}
+
+void ATutorialManager::ReplayInstructions()
+{
+	if (LastInstructionLines.Num() > 0)
+	{
+		TArray<FString> Copy = LastInstructionLines;
+		ShowGuideSequence(MoveTemp(Copy));
+	}
+	else if (!LastGuideMessage.IsEmpty())
+	{
+		ShowGuideMessage(LastGuideMessage);
+	}
+}
+
+void ATutorialManager::ShowNextGuideLine()
+{
+	if (GuideQueue.Num() == 0) return;
+
+	ShowGuideMessage(GuideQueue[0]);
+	GuideQueue.RemoveAt(0);
+
+	if (GuideQueue.Num() > 0)
+		GetWorldTimerManager().SetTimer(GuideTimer,
+			FTimerDelegate::CreateUObject(this, &ATutorialManager::ShowNextGuideLine),
+			GuideLineSeconds, false);
+}
+
 void ATutorialManager::SetupPhase(ETutorialPhase Phase)
 {
 	// Clear existing state
+	GetWorldTimerManager().ClearTimer(GuideTimer);
+	GuideQueue.Empty();
+
 	for (auto& Pair : TargetActors)
 		if (IsValid(Pair.Value)) Pair.Value->Destroy();
 	TargetActors.Empty();
@@ -437,18 +505,10 @@ void ATutorialManager::OnPhaseComplete()
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
 		ShowGuideMessage(TEXT("Amazing! You've mastered this piece!"));
+		GrantBossVictoryRewards();
 
-		// Chain to the next lesson after the celebration has a moment on screen.
-		if (NextLevelName != NAME_None)
-		{
-			TWeakObjectPtr<ATutorialManager> WeakThis(this);
-			FTimerHandle TravelHandle;
-			GetWorldTimerManager().SetTimer(TravelHandle, [WeakThis]()
-			{
-				if (ATutorialManager* Self = WeakThis.Get())
-					UGameplayStatics::OpenLevel(Self, Self->NextLevelName);
-			}, 3.5f, false);
-		}
+		// No auto-travel: the HUD listens to OnLevelComplete and offers the
+		// player a choice — continue to NextLevelName or back to the main menu.
 	}
 	else
 	{
@@ -457,5 +517,57 @@ void ATutorialManager::OnPhaseComplete()
 		bPhaseTransitionPending = true;
 		FTimerHandle TimerHandle;
 		GetWorldTimerManager().SetTimer(TimerHandle, this, &ATutorialManager::AdvancePhase, 2.0f, false);
+	}
+}
+
+FName ATutorialManager::GetNextLevelName() const
+{
+	if (NextLevelName != NAME_None)
+		return NextLevelName;
+
+	// Fall back to the story ladder so every lesson chains into the next
+	// without per-map editor wiring.
+	const int32 Chapter = UChessKidsGameInstance::StoryChapterForMap(GetWorld()->GetMapName());
+	return (Chapter > 0) ? UChessKidsGameInstance::MapForChapter(Chapter + 1) : NAME_None;
+}
+
+void ATutorialManager::GrantBossVictoryRewards()
+{
+	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+	if (!GI)
+	{
+		return;
+	}
+
+	// Persist lesson completion (Pawn=0 Rook=1 Bishop=2 Knight=3 Queen=4 King=5;
+	// concept lessons set LessonIndexOverride, e.g. checkmate=6).
+	int32 Lesson = LessonIndexOverride;
+	if (Lesson < 0)
+	switch (TaughtPiece)
+	{
+	case EChessPieceType::Pawn:   Lesson = 0; break;
+	case EChessPieceType::Rook:   Lesson = 1; break;
+	case EChessPieceType::Bishop: Lesson = 2; break;
+	case EChessPieceType::Knight: Lesson = 3; break;
+	case EChessPieceType::Queen:  Lesson = 4; break;
+	case EChessPieceType::King:   Lesson = 5; break;
+	default: break;
+	}
+	if (Lesson >= 0)
+	{
+		GI->MarkTutorialComplete(Lesson);
+	}
+
+	// Unlock the next story chapter on the level-select screen.
+	GI->NotifyStoryVictory(GetWorld()->GetMapName());
+
+	// Grant this tutorial's configured skin reward, if any (and it isn't already
+	// owned from a previous playthrough) — the HUD shows a popup. Same Lesson index
+	// as the completion tracking above, so any tutorial (piece-focused or a concept
+	// lesson like Checkmate) can have a skin tied to it without a code change.
+	const FName UnlockedSkin = GI->UnlockSkinForTutorial(Lesson);
+	if (!UnlockedSkin.IsNone())
+	{
+		OnSkinUnlocked.Broadcast(UnlockedSkin);
 	}
 }

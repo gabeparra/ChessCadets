@@ -2,9 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "ChessPiece.h"
 #include "ChessKidsGameInstance.generated.h"
 
 class UChessMapRegistry;
+class UChessPieceSkinRegistry;
+class UMaterialInterface;
 
 // Game instance that owns the arena list and performs level travel for the
 // map picker. Set as GameInstanceClass in DefaultEngine.ini.
@@ -48,10 +51,43 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	bool bTwoPlayerMode = false;
 
+	// Side chosen on the mode-select screen. Only consulted by arenas whose
+	// AChessManager::PlayerColorMode == ChooseAtStart; Random/Fixed arenas ignore this.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
+	EChessColor PlayerColor = EChessColor::White;
+
 	// Board color theme chosen via the settings slider. Applied by
 	// AChessBoard::BeginPlay so the choice follows the player between arenas.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game", meta = (ClampMin = "0"))
 	int32 BoardThemeIndex = 0;
+
+	// --- Progression (persisted via UChessKidsSaveGame, slot "ChessKidsProgress") ---
+
+	// Dev/testing override: everything unlocked. Session-only, toggled in Settings.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Dev")
+	bool bDevUnlockAll = false;
+
+	// Story chapter numbers are 1 = L_Pawn .. 5 = L_Royalty.
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Progress")
+	bool IsStoryChapterUnlocked(int32 Chapter) const;
+
+	// Called on a story victory; unlocks the next chapter and saves.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Progress")
+	void NotifyStoryVictory(const FString& MapName);
+
+	UFUNCTION(BlueprintCallable, Category = "Chess|Progress")
+	void MarkTutorialComplete(int32 LessonIndex);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Progress")
+	bool IsTutorialComplete(int32 LessonIndex) const;
+
+	// Chapter for a story map name (0 if not a story map).
+	static int32 StoryChapterForMap(const FString& MapName);
+
+	// The level a story chapter opens (NAME_None if out of range). Single
+	// source of truth for the 8-chapter ladder — used by the level select
+	// menu and by tutorials to chain into the next lesson.
+	static FName MapForChapter(int32 Chapter);
 
 	// Free board recoloring via the settings hue sliders (overrides themes when set).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
@@ -75,10 +111,76 @@ public:
 		return FLinearColor::MakeFromHSV8((uint8)(FMath::Clamp(Hue01, 0.f, 1.f) * 255.f), 205, 42);
 	}
 
+	// Collectible piece skins. Registry of everything that exists; unlock/selection
+	// state below persists to disk across game launches (unlike UnlockedMaps).
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chess|Skins")
+	TSoftObjectPtr<UChessPieceSkinRegistry> PieceSkinRegistry;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Skins")
+	bool IsPieceSkinUnlocked(FName SkinId) const;
+
+	// Generic hook for a future store/achievement system to grant a skin. Nothing in
+	// the game calls this yet.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Skins")
+	void UnlockPieceSkin(FName SkinId);
+
+	// Unlocks whichever skin (if any) has bUnlockedByTutorial set with
+	// TutorialUnlockLessonIndex == LessonIndex. Returns that skin's id, or NAME_None
+	// if there's no such skin or it was already unlocked before this call — callers
+	// use that to decide whether to show a "new skin!" popup.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Skins")
+	FName UnlockSkinForTutorial(int32 LessonIndex);
+
+	// Equips SkinId (NAME_None = revert to the piece's default look). Fails (returns
+	// false, no state change) if SkinId is set but not unlocked.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Skins")
+	bool SelectPieceSkin(FName SkinId);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Skins")
+	FName GetSelectedPieceSkinId() const { return SelectedPieceSkinId; }
+
+	// Resolves the equipped skin through PieceSkinRegistry; null if none equipped/found.
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Skins")
+	UMaterialInterface* GetSelectedPieceMaterial() const;
+
+	// Master game volume (0..1), persisted across sessions and applied to the audio
+	// device. The pause-menu slider calls SetMasterVolume.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Audio")
+	void SetMasterVolume(float Volume);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Audio")
+	float GetMasterVolume() const;
+
+	// Board zoom (0 = level default framing, 1 = as close as allowed). Persisted; the
+	// ChessCamera reads GetBoardZoom() to shorten its arm. The settings slider calls
+	// SetBoardZoom.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Camera")
+	void SetBoardZoom(float Zoom01);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Camera")
+	float GetBoardZoom() const;
+
 private:
+	void ApplyMasterVolume() const;
+
 	UChessMapRegistry* LoadRegistry() const;
+	void LoadProgress();
+	void SaveProgress();
 
 	// Maps unlocked this session. Seeded from entries flagged bUnlockedByDefault.
 	UPROPERTY()
 	TSet<FName> UnlockedMaps;
+
+	UPROPERTY()
+	class UChessKidsSaveGame* Progress = nullptr;
+
+	UChessPieceSkinRegistry* LoadSkinRegistry() const;
+	void LoadOrInitSkinSave();
+	void SaveSkinState() const;
+
+	UPROPERTY()
+	TSet<FName> UnlockedPieceSkins;
+
+	UPROPERTY()
+	FName SelectedPieceSkinId = NAME_None;
 };

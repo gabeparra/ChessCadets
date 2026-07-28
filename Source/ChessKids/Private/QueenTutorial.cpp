@@ -140,6 +140,7 @@ void AQueenTutorial::OnPhaseComplete()
 		}
 		CurrentPhase = ETutorialPhase::Complete;
 		OnLevelComplete.Broadcast();
+		GrantBossVictoryRewards();
 		return;
 	}
 
