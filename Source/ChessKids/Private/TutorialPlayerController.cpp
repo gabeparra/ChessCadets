@@ -2,6 +2,7 @@
 #include "TutorialBoard.h"
 #include "TutorialManager.h"
 #include "ChessKidsGameInstance.h"
+#include "Components/InputComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Camera/CameraActor.h"
