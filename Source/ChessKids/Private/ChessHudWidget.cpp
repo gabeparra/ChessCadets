@@ -690,6 +690,9 @@ void UChessHudWidget::HandleGameOver(FString Result)
 
 void UChessHudWidget::ShowGameOverPanel(FString Result)
 {
+	// Game over trumps any narration in flight (and lets finale_victory start clean).
+	FChessVoice::Interrupt(this);
+
 	if (GameOverText)
 	{
 		const bool bTwoPlayer = Manager && Manager->IsTwoPlayerMode();

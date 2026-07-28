@@ -1,5 +1,6 @@
 #include "ChessManager.h"
 #include "ChessBoard.h"
+#include "ChessVoice.h"
 #include "FireworkShow.h"
 #include "ChessPiece.h"
 #include "ChessKidsGameInstance.h"
@@ -274,6 +275,7 @@ void AChessManager::BeginDestroy()
 
 void AChessManager::NewGame()
 {
+	FChessVoice::Interrupt(this);   // fresh game, fresh narration
 	bGameOver = false;
 	if (Engine)
 	{
@@ -485,6 +487,8 @@ void AChessManager::UndoLastMove()
 	StopSearch();   // stops the engine and disarms any pending AI/hint reply
 
 	if (FENHistory.Num() == 0) return;
+
+	FChessVoice::Interrupt(this);   // the position is being rewound — drop stale narration
 
 	FString RestoredFEN = FENHistory.Pop();
 	if (!bTwoPlayerMode)

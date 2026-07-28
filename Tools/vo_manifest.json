@@ -82,8 +82,9 @@
     {
       "id": "rook_intro",
       "character": "Guide",
-      "text": "Rooks slide in straight lines! Slide across to grab the orbs!",
-      "source": "RookTutorial.cpp:51"
+      "text": "Rooks slide in straight lines! Slide across to grab the pieces!",
+      "source": "RookTutorial.cpp:51",
+      "match": "Rooks slide in straight lines! Slide across to grab the pieces!"
     },
     {
       "id": "rook_directions",
@@ -121,15 +122,16 @@
     {
       "id": "bishop_intro",
       "character": "Guide",
-      "text": "Bishops only move diagonally! Stay on your color and grab the orbs!",
-      "source": "BishopTutorial.cpp:66"
+      "text": "Bishops only move diagonally! Stay on your color and grab the pieces!",
+      "source": "BishopTutorial.cpp:66",
+      "match": "Bishops only move diagonally! Stay on your color and grab the pieces!"
     },
     {
       "id": "bishop_color",
       "character": "Guide",
-      "text": "Some orbs are on purple squares. I can't reach those, they're not my color!",
+      "text": "Some pieces are on purple squares. I can't reach those, they're not my color!",
       "source": "BishopTutorial.cpp:82",
-      "match": "Some orbs are on purple squares — I can't reach those, they're not my color!"
+      "match": "Some pieces are on purple squares — I can't reach those, they're not my color!"
     },
     {
       "id": "bishop_wall",

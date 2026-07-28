@@ -416,18 +416,23 @@ void ATutorialManager::AdvancePhase()
 	default: return;
 	}
 
+	FChessVoice::Interrupt(this);   // new phase: stale coaching stops mid-word
 	OnPhaseChanged.Broadcast(CurrentPhase);
 	SetupPhase(CurrentPhase);
 }
 
 void ATutorialManager::ResetPhase()
 {
+	FChessVoice::Interrupt(this);   // retry restarts the beat, not the backlog
 	OnTryAgain.Broadcast();
 	SetupPhase(CurrentPhase);
 }
 
 void ATutorialManager::ShowGuideSequence(TArray<FString> Lines)
 {
+	// A sequence REPLACES whatever guidance was queued (text and voice alike),
+	// so its first line speaks immediately instead of waiting out old lines.
+	FChessVoice::Interrupt(this);
 	GetWorldTimerManager().ClearTimer(GuideTimer);
 	if (Lines.Num() >= 2)
 		LastInstructionLines = Lines;
