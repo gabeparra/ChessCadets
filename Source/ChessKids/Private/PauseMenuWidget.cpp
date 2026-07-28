@@ -8,6 +8,8 @@
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/TextBlock.h"
+#include "Components/Slider.h"
+#include "ChessKidsGameInstance.h"
 #include "Blueprint/WidgetTree.h"
 #include "ChessPlayerController.h"
 #include "ChessManager.h"
@@ -108,6 +110,46 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 		MakeDifficultyButton(EasyButton, TEXT("Easy"));
 		MakeDifficultyButton(MediumButton, TEXT("Medium"));
 		MakeDifficultyButton(HardButton, TEXT("Hard"));
+
+		// Volume: label + slider (0..1). Persisted through the GameInstance.
+		VolumeLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		VolumeLabel->SetText(FText::FromString(TEXT("Volume")));
+		VolumeLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+		VolumeLabel->SetJustification(ETextJustify::Center);
+		if (UVerticalBoxSlot* VLS = Box->AddChildToVerticalBox(VolumeLabel))
+		{
+			VLS->SetPadding(FMargin(16.f, 14.f, 16.f, 4.f));
+			VLS->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		VolumeSlider = WidgetTree->ConstructWidget<USlider>();
+		VolumeSlider->SetMinValue(0.f);
+		VolumeSlider->SetMaxValue(1.f);
+		if (UVerticalBoxSlot* VSS = Box->AddChildToVerticalBox(VolumeSlider))
+		{
+			VSS->SetPadding(FMargin(36.f, 2.f, 36.f, 10.f));
+			VSS->SetHorizontalAlignment(HAlign_Fill);
+		}
+
+		// Board zoom: label + slider (0 = default distance, 1 = closest). Persisted.
+		ZoomLabel = WidgetTree->ConstructWidget<UTextBlock>();
+		ZoomLabel->SetText(FText::FromString(TEXT("Board Zoom")));
+		ZoomLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+		ZoomLabel->SetJustification(ETextJustify::Center);
+		if (UVerticalBoxSlot* ZLS = Box->AddChildToVerticalBox(ZoomLabel))
+		{
+			ZLS->SetPadding(FMargin(16.f, 6.f, 16.f, 4.f));
+			ZLS->SetHorizontalAlignment(HAlign_Center);
+		}
+
+		ZoomSlider = WidgetTree->ConstructWidget<USlider>();
+		ZoomSlider->SetMinValue(0.f);
+		ZoomSlider->SetMaxValue(1.f);
+		if (UVerticalBoxSlot* ZSS = Box->AddChildToVerticalBox(ZoomSlider))
+		{
+			ZSS->SetPadding(FMargin(36.f, 2.f, 36.f, 10.f));
+			ZSS->SetHorizontalAlignment(HAlign_Fill);
+		}
 	}
 
 	return Super::RebuildWidget();
@@ -128,6 +170,21 @@ void UPauseMenuWidget::NativeConstruct()
 	if (MediumButton)   MediumButton->OnClicked.AddUniqueDynamic(this, &UPauseMenuWidget::OnMediumClicked);
 	if (HardButton)     HardButton->OnClicked.AddUniqueDynamic(this, &UPauseMenuWidget::OnHardClicked);
 	if (TwoPlayerButton) TwoPlayerButton->OnClicked.AddUniqueDynamic(this, &UPauseMenuWidget::OnTwoPlayerClicked);
+
+	if (VolumeSlider)
+	{
+		VolumeSlider->OnValueChanged.AddUniqueDynamic(this, &UPauseMenuWidget::OnVolumeChanged);
+		// Show the saved level without firing OnValueChanged.
+		if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+			VolumeSlider->SetValue(GI->GetMasterVolume());
+	}
+
+	if (ZoomSlider)
+	{
+		ZoomSlider->OnValueChanged.AddUniqueDynamic(this, &UPauseMenuWidget::OnZoomChanged);
+		if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+			ZoomSlider->SetValue(GI->GetBoardZoom());
+	}
 
 	RefreshDifficultyLabel();
 	RefreshTwoPlayerButton();
@@ -288,6 +345,20 @@ void UPauseMenuWidget::OnTwoPlayerClicked()
 	// (AChessManager::BeginPlay picks the flag up on load).
 	GI->bTwoPlayerMode = !GI->bTwoPlayerMode;
 	PC->RestartArena();
+}
+
+void UPauseMenuWidget::OnVolumeChanged(float Value)
+{
+	// Applies to the audio device live and persists it — survives level changes and restarts.
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetMasterVolume(Value);
+}
+
+void UPauseMenuWidget::OnZoomChanged(float Value)
+{
+	// Re-frames the live camera closer/farther and persists the choice.
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->SetBoardZoom(Value);
 }
 
 void UPauseMenuWidget::RefreshTwoPlayerButton()

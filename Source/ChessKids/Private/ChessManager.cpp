@@ -1,5 +1,6 @@
 #include "ChessManager.h"
 #include "ChessBoard.h"
+#include "FireworkShow.h"
 #include "ChessPiece.h"
 #include "ChessKidsGameInstance.h"
 #include "Async/Async.h"
@@ -9,6 +10,7 @@
 #include "TimerManager.h"
 #include "Sound/SoundBase.h"
 #include "Components/AudioComponent.h"
+#include "Materials/MaterialInterface.h"
 
 THIRD_PARTY_INCLUDES_START
 #include "position.h"
@@ -135,19 +137,52 @@ void AChessManager::BeginPlay()
 	const FString LessonFEN = StartingFEN.TrimStartAndEnd();
 	if (!LessonFEN.IsEmpty())
 		SetPositionFromFEN(LessonFEN);
+	else if (GetWorld()->GetMapName().Contains(TEXT("Axiom")) && !AxiomAdvantageFEN.TrimStartAndEnd().IsEmpty())
+		// Final battle: the kid starts a queen and a rook up (see AxiomAdvantageFEN)
+		SetPositionFromFEN(AxiomAdvantageFEN.TrimStartAndEnd());
 
 	// Difficulty + mode are the player's persisted choices (GameInstance survives level travel).
 	int32 Level = 1;
-	if (const UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+	if (GI)
 	{
 		Level = GI->Difficulty;
 		bTwoPlayerMode = GI->bTwoPlayerMode;
 	}
+
+	// The final battle enforces its own rules regardless of how the map was
+	// entered (level select, PIE, console): the kid plays White, solo, vs an
+	// Easy AXIOM. The handicap FEN and danger overlay both assume White.
+	if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+	{
+		Level = 1;
+		bTwoPlayerMode = false;
+		PlayerColorMode = EPlayerColorMode::Fixed;
+		PlayerColor = EChessColor::White;
+	}
+
 	SetDifficulty(Level);
+
+	// Resolve which side the human plays for this arena.
+	switch (PlayerColorMode)
+	{
+	case EPlayerColorMode::Fixed:
+		// PlayerColor is already set as configured on this level's ChessManager.
+		break;
+	case EPlayerColorMode::Random:
+		PlayerColor = FMath::RandBool() ? EChessColor::White : EChessColor::Black;
+		break;
+	case EPlayerColorMode::ChooseAtStart:
+	default:
+		if (GI) PlayerColor = GI->PlayerColor;
+		break;
+	}
 
 	if (!Board)
 		Board = Cast<AChessBoard>(UGameplayStatics::GetActorOfClass(this, AChessBoard::StaticClass()));
 	SpawnAllPieces();
+	if (GI)
+		ApplyPieceSkin(GI->GetSelectedPieceMaterial());
 
 	OnMoveMade.AddDynamic(this, &AChessManager::HandleMoveMade);
 
@@ -170,12 +205,12 @@ void AChessManager::ResolveDefaultSounds()
 		if (!Slot)
 			Slot = Cast<USoundBase>(FSoftObjectPath(Path).TryLoad());
 	};
-	Resolve(MoveSound,       TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIClick_Select_001_VZ_GN_Cue.UIClick_Select_001_VZ_GN_Cue"));
-	Resolve(CaptureSound,    TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIAlert_Cancel_001_VZ_GN_Cue.UIAlert_Cancel_001_VZ_GN_Cue"));
-	Resolve(CheckSound,      TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIAlert_Warning_001_VZ_GN_Cue.UIAlert_Warning_001_VZ_GN_Cue"));
-	Resolve(WinSound,        TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIData_Processing_Complete_001_VZ_GN_Cue.UIData_Processing_Complete_001_VZ_GN_Cue"));
-	Resolve(LoseSound,       TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIMvmt_Transition_001_VZ_GN_Cue.UIMvmt_Transition_001_VZ_GN_Cue"));
-	Resolve(DrawSound,       TEXT("/Game/GlitchNoises/Sounds/SoundCues/UserInterface/UIAlert_Notification_001_VZ_GN_Cue.UIAlert_Notification_001_VZ_GN_Cue"));
+	Resolve(MoveSound,       TEXT("/Game/Audio/SFX/UIClick_Select_001_VZ_GN_Cue.UIClick_Select_001_VZ_GN_Cue"));
+	Resolve(CaptureSound,    TEXT("/Game/Audio/SFX/UIAlert_Cancel_001_VZ_GN_Cue.UIAlert_Cancel_001_VZ_GN_Cue"));
+	Resolve(CheckSound,      TEXT("/Game/Audio/SFX/UIAlert_Warning_001_VZ_GN_Cue.UIAlert_Warning_001_VZ_GN_Cue"));
+	Resolve(WinSound,        TEXT("/Game/Audio/SFX/UIData_Processing_Complete_001_VZ_GN_Cue.UIData_Processing_Complete_001_VZ_GN_Cue"));
+	Resolve(LoseSound,       TEXT("/Game/Audio/SFX/UIMvmt_Transition_001_VZ_GN_Cue.UIMvmt_Transition_001_VZ_GN_Cue"));
+	Resolve(DrawSound,       TEXT("/Game/Audio/SFX/UIAlert_Notification_001_VZ_GN_Cue.UIAlert_Notification_001_VZ_GN_Cue"));
 	// BackgroundMusic gets NO default: arena music is owned by Marco's BP_MusicManager
 	// (Content/Music, per-arena tracks). Set this property only to override it.
 }
@@ -219,7 +254,7 @@ void AChessManager::BeginDestroy()
 
 void AChessManager::NewGame()
 {
-	bGameOver = false;  
+	bGameOver = false;
 	if (Engine)
 	{
 		Engine->Search.quit();
@@ -264,7 +299,7 @@ void AChessManager::SetPositionFromFEN(const FString& FEN)
 
 bool AChessManager::MakeMove(const FString& MoveStr)
 {
-	
+
 	if (!Engine) return false;
 	if (bGameOver) return false;   // finished games accept no more moves (undo re-opens)
 	if (MoveStr.Len() < 4) return false;
@@ -328,7 +363,7 @@ void AChessManager::RequestAIMove()
 	if (!Engine) return;
 	if (bTwoPlayerMode) return;   // hot-seat: no AI ever moves
 	bExpectingAIMove = true;   // arm OnBestMoveFound; Undo/NewGame clear this to drop a stale reply
-	UE_LOG(LogTemp, Warning, TEXT("AI thinking at depth %d"), AISearchDepth);
+	UE_LOG(LogTemp, Verbose, TEXT("AI thinking at depth %d"), AISearchDepth);
 	// At Easy difficulty, 50% chance of playing a random legal move
 	if (AISearchDepth == 1)
 	{
@@ -345,7 +380,7 @@ void AChessManager::RequestAIMove()
 			// 50% chance use random move, 50% use engine
 			if (FMath::RandBool())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Easy mode: playing random move!"));
+				UE_LOG(LogTemp, Verbose, TEXT("Easy mode: playing random move!"));
 				OnBestMoveFound(RandomMove);
 				return;
 			}
@@ -512,6 +547,26 @@ void AChessManager::SwapPromotedPiece(const FString& Square, const FString& Piec
 		Board->SnapActorToSquare(NewPiece, File, Rank, ZOff);
 		PieceActors.Add(Square, NewPiece);
 	}
+
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		ApplyPieceSkin(GI->GetSelectedPieceMaterial());
+}
+
+void AChessManager::ApplyPieceSkin(UMaterialInterface* SkinMaterial)
+{
+	for (const TPair<FString, AChessPiece*>& Pair : PieceActors)
+	{
+		AChessPiece* Piece = Pair.Value;
+		if (!Piece) continue;
+
+		// Only skin the piece color the player actually plays as, and only outside
+		// hot-seat mode. In two-player hot-seat there's a single local save/skin
+		// selection shared by both people taking turns on one device, so no one side
+		// is "the player" — applying it to both made them visually indistinguishable,
+		// so neither side gets it instead.
+		const bool bShouldSkin = !bTwoPlayerMode && (Piece->PieceColor == PlayerColor);
+		Piece->ApplyPieceSkin(bShouldSkin ? SkinMaterial : nullptr);
+	}
 }
 
 void AChessManager::SetDifficulty(int32 Level)
@@ -528,7 +583,7 @@ void AChessManager::SetDifficulty(int32 Level)
 	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
 		GI->Difficulty = CurrentDifficulty;
 
-	UE_LOG(LogTemp, Warning, TEXT("Difficulty set! AISearchDepth = %d"), AISearchDepth);
+	UE_LOG(LogTemp, Verbose, TEXT("Difficulty set! AISearchDepth = %d"), AISearchDepth);
 }
 
 FString AChessManager::GetFEN() const
@@ -577,6 +632,95 @@ FString AChessManager::GetPieceOnSquare(const FString& SquareStr) const
 	const int Sq = SquareFromString(SquareStr);
 	if (Sq < 0) return TEXT("");
 	return PieceToChar(Engine->Position.board[Sq]);
+}
+
+TArray<FString> AChessManager::GetSquaresAttackedByBlack() const
+{
+	return ComputeAttackedSquares(true);
+}
+
+TArray<FString> AChessManager::GetSquaresAttackedByOpponent() const
+{
+	return ComputeAttackedSquares(PlayerColor == EChessColor::White);
+}
+
+TArray<FString> AChessManager::ComputeAttackedSquares(bool bByBlack) const
+{
+	TArray<FString> Result;
+	if (!Engine) return Result;
+
+	// Snapshot the board as FEN letters (lowercase = black)
+	TCHAR Grid[8][8];
+	for (int32 F = 0; F < 8; ++F)
+	{
+		for (int32 R = 0; R < 8; ++R)
+		{
+			const FString Sq = FString::Printf(TEXT("%c%d"), 'a' + F, R + 1);
+			const FString P = GetPieceOnSquare(Sq);
+			Grid[F][R] = P.IsEmpty() ? TEXT('\0') : P[0];
+		}
+	}
+
+	TSet<int32> Attacked;
+	auto Add = [&Attacked](int32 F, int32 R)
+	{
+		if (F >= 0 && F < 8 && R >= 0 && R < 8) Attacked.Add(F * 8 + R);
+	};
+	auto Ray = [&](int32 F, int32 R, int32 FS, int32 RS)
+	{
+		F += FS; R += RS;
+		while (F >= 0 && F < 8 && R >= 0 && R < 8)
+		{
+			Attacked.Add(F * 8 + R);
+			if (Grid[F][R] != TEXT('\0')) break; // attacks include the blocker, not past it
+			F += FS; R += RS;
+		}
+	};
+
+	// Black pawns capture toward rank 1, white pawns toward rank 8
+	const int32 PawnDir = bByBlack ? -1 : 1;
+
+	for (int32 F = 0; F < 8; ++F)
+	{
+		for (int32 R = 0; R < 8; ++R)
+		{
+			const TCHAR C = Grid[F][R];
+			if (C == TEXT('\0')) continue;
+			if (FChar::IsLower(C) != bByBlack) continue; // FEN: lowercase = black
+
+			switch (FChar::ToLower(C))
+			{
+			case TEXT('p'):
+				Add(F - 1, R + PawnDir); Add(F + 1, R + PawnDir);
+				break;
+			case TEXT('n'):
+				Add(F + 2, R + 1); Add(F + 2, R - 1); Add(F - 2, R + 1); Add(F - 2, R - 1);
+				Add(F + 1, R + 2); Add(F + 1, R - 2); Add(F - 1, R + 2); Add(F - 1, R - 2);
+				break;
+			case TEXT('k'):
+				for (int32 DF = -1; DF <= 1; ++DF)
+					for (int32 DR = -1; DR <= 1; ++DR)
+						if (DF != 0 || DR != 0) Add(F + DF, R + DR);
+				break;
+			case TEXT('r'):
+				Ray(F, R, 1, 0); Ray(F, R, -1, 0); Ray(F, R, 0, 1); Ray(F, R, 0, -1);
+				break;
+			case TEXT('b'):
+				Ray(F, R, 1, 1); Ray(F, R, 1, -1); Ray(F, R, -1, 1); Ray(F, R, -1, -1);
+				break;
+			case TEXT('q'):
+				Ray(F, R, 1, 0); Ray(F, R, -1, 0); Ray(F, R, 0, 1); Ray(F, R, 0, -1);
+				Ray(F, R, 1, 1); Ray(F, R, 1, -1); Ray(F, R, -1, 1); Ray(F, R, -1, -1);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	for (int32 Packed : Attacked)
+		Result.Add(FString::Printf(TEXT("%c%d"), 'a' + Packed / 8, Packed % 8 + 1));
+	return Result;
 }
 
 void AChessManager::OnBestMoveFound(int BestMove)
@@ -651,15 +795,78 @@ void AChessManager::OnBestMoveFound(int BestMove)
 	CheckGameOver();
 }
 
+bool AChessManager::SideHasOnlyKing(int Color) const
+{
+	if (!Engine) return false;
+	const auto& P = Engine->Position;
+	return pulse::bitboard::size(P.pieces[Color][pulse::piecetype::PAWN])   == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::KNIGHT]) == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::BISHOP]) == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::ROOK])   == 0
+		&& pulse::bitboard::size(P.pieces[Color][pulse::piecetype::QUEEN])  == 0;
+}
+
+void AChessManager::AwardStoryWin()
+{
+	UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance());
+	if (!GI) return;
+
+	// Advance the story ladder (no-op outside the tutorial maps).
+	GI->NotifyStoryVictory(GetWorld()->GetMapName());
+
+	// AXIOM is King's chapter reward, but it's a real chess match (this class) rather
+	// than a scripted tutorial phase, so it hooks the skin-reward system directly and
+	// fires the end-of-game firework show.
+	if (GetWorld()->GetMapName().Contains(TEXT("Axiom")))
+	{
+		// Lesson 5 = King (same numbering as MarkTutorialComplete/LessonIndexOverride
+		// — see FChessPieceSkinEntry::TutorialUnlockLessonIndex). Reassigning which
+		// lesson a skin rewards (e.g. to Checkmate's lesson 6 instead) is a registry
+		// edit now, not a code change.
+		const FName UnlockedSkin = GI->UnlockSkinForTutorial(5);
+		if (!UnlockedSkin.IsNone())
+			OnSkinUnlocked.Broadcast(UnlockedSkin);
+
+		if (Board)
+		{
+			FActorSpawnParameters FxParams;
+			FxParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			GetWorld()->SpawnActor<AFireworkShow>(AFireworkShow::StaticClass(),
+				Board->GetBoardCenter() + FVector(0.f, 0.f, 400.f), FRotator::ZeroRotator, FxParams);
+		}
+	}
+}
+
 void AChessManager::CheckGameOver()
 {
 	if (!Engine) return;
 	if (bGameOver) return;
-	
+
+	// "I know you won" mercy rule (vs AI): the moment the robot is reduced to a bare
+	// king and the player still has mating material, award the win — no grinding out
+	// the exact checkmate, no technical draw stealing a clearly-won game.
+	if (!bTwoPlayerMode)
+	{
+		const int AICol = (PlayerColor == EChessColor::White) ? pulse::color::BLACK : pulse::color::WHITE;
+		if (SideHasOnlyKing(AICol) && !Engine->Position.hasInsufficientMaterial())
+		{
+			bGameOver = true;
+			PlaySfx(WinSound);
+			AwardStoryWin();
+			OnGameOver.Broadcast(PlayerColor == EChessColor::White ? TEXT("white") : TEXT("black"));
+			return;
+		}
+	}
 
 	pulse::MoveGenerator Gen;
 	auto& LegalMoves = Gen.getLegalMoves(
 		Engine->Position, 1, Engine->Position.isCheck());
+
+	// The AXIOM finale is designed to be won — a stalemate or technical draw there
+	// still awards the kid the victory (fireworks, King skin, thank-you) rather than
+	// robbing them of the ending with a tie.
+	const bool bAxiomFinale = !bTwoPlayerMode
+		&& GetWorld()->GetMapName().Contains(TEXT("Axiom"));
 
 	if (LegalMoves.size == 0)
 	{
@@ -669,7 +876,16 @@ void AChessManager::CheckGameOver()
 				? TEXT("black") : TEXT("white");
 			bGameOver = true;
 			PlaySfx(Winner == TEXT("white") ? WinSound : LoseSound);
+			if (Winner == TEXT("white") && !bTwoPlayerMode)
+				AwardStoryWin();
 			OnGameOver.Broadcast(Winner);
+		}
+		else if (bAxiomFinale)   // stalemate on the finale — still the player's win
+		{
+			bGameOver = true;
+			PlaySfx(WinSound);
+			AwardStoryWin();
+			OnGameOver.Broadcast(TEXT("white"));
 		}
 		else
 		{
@@ -688,8 +904,17 @@ void AChessManager::CheckGameOver()
 		|| Engine->Position.hasInsufficientMaterial())
 	{
 		bGameOver = true;
-		PlaySfx(DrawSound);
-		OnGameOver.Broadcast(TEXT("draw"));
+		if (bAxiomFinale)   // technical draw on the finale — still the player's win
+		{
+			PlaySfx(WinSound);
+			AwardStoryWin();
+			OnGameOver.Broadcast(TEXT("white"));
+		}
+		else
+		{
+			PlaySfx(DrawSound);
+			OnGameOver.Broadcast(TEXT("draw"));
+		}
 		return;
 	}
 
