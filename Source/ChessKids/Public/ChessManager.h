@@ -190,6 +190,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chess")
 	FString GetCapturedPieces(bool bWhitePieces) const;
 
+	// Arcade score for the human's current game: material captured from the robot
+	// (Q 900 / R 500 / B 300 / N 300 / P 100). Derived from the position, so it
+	// tracks undo automatically. Win bonus is added by the HUD at game over.
+	UFUNCTION(BlueprintPure, Category = "Chess|Score")
+	int32 GetPlayerScore() const;
+
+	// Dev shortcut (settings menu): end the game as a player win right now, so
+	// the win screen / scoring flow can be tested without playing out a mate.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Dev")
+	void DevForceWin();
+
 	// Increments on every move and undo — cheap change-detection key for UI
 	// that derives from the position (captured trays etc.).
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess")

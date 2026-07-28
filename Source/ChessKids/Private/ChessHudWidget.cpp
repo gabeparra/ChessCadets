@@ -44,6 +44,27 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			TS->SetAutoSize(true);
 		}
 
+		// Arcade score — under the turn indicator, gold. Solo only (hidden in
+		// hot-seat, where "the player's" captures are ambiguous).
+		ScoreText = WidgetTree->ConstructWidget<UTextBlock>();
+		ScoreText->SetText(FText::FromString(TEXT("Score: 0")));
+		ScoreText->SetJustification(ETextJustify::Center);
+		ScoreText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
+		ScoreText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.85f, 0.3f)));
+		ScoreChip = WidgetTree->ConstructWidget<UBorder>();
+		ScoreChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		ScoreChip->SetPadding(FMargin(14.f, 3.f));
+		ScoreChip->SetHorizontalAlignment(HAlign_Center);
+		ScoreChip->SetVerticalAlignment(VAlign_Center);
+		ScoreChip->AddChild(ScoreText);
+		if (UCanvasPanelSlot* ScS = Root->AddChildToCanvas(ScoreChip))
+		{
+			ScS->SetAnchors(FAnchors(0.5f, 0.f, 0.5f, 0.f));
+			ScS->SetAlignment(FVector2D(0.5f, 0.f));
+			ScS->SetPosition(FVector2D(0.f, 130.f));
+			ScS->SetAutoSize(true);
+		}
+
 		// Check warning — under the turn indicator, red, hidden by default.
 		CheckText = WidgetTree->ConstructWidget<UTextBlock>();
 		CheckText->SetText(FText::FromString(TEXT("Check!")));
@@ -115,7 +136,24 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			CBS->SetAlignment(FVector2D(0.f, 1.f));
 			CBS->SetPosition(FVector2D(24.f, -44.f));
 			CBS->SetAutoSize(false);
-			CBS->SetSize(FVector2D(190.f, 116.f));
+			CBS->SetSize(FVector2D(190.f, 140.f));
+		}
+
+		// Zoom hint — sits on top of the color cluster so it reads as one panel.
+		// The chip must hug its text (slot HAlign_Left): a vertical-box slot
+		// defaults to Fill, which stretched the chip across the whole column.
+		UTextBlock* ZoomHint = WidgetTree->ConstructWidget<UTextBlock>();
+		ChessKidsUi::StyleButtonLabel(ZoomHint, FString(TEXT("Mouse wheel: zoom")), 12);
+		UBorder* ZoomChip = WidgetTree->ConstructWidget<UBorder>();
+		ZoomChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		ZoomChip->SetPadding(FMargin(12.f, 4.f));
+		ZoomChip->SetHorizontalAlignment(HAlign_Center);
+		ZoomChip->SetVerticalAlignment(VAlign_Center);
+		ZoomChip->AddChild(ZoomHint);
+		if (UVerticalBoxSlot* ZS = ColorBox->AddChildToVerticalBox(ZoomChip))
+		{
+			ZS->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f));
+			ZS->SetHorizontalAlignment(HAlign_Left);
 		}
 
 		auto MakeHueSlider = [&](UTextBlock*& OutLabel, USlider*& OutSlider, const TCHAR* Label)
@@ -644,6 +682,18 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		LastPositionVersion = Version;
 		const FString BlackLost = Manager->GetCapturedPieces(false);   // black pieces lost = captured by White/P1
 		const FString WhiteLost = Manager->GetCapturedPieces(true);    // white pieces lost = captured by Black/P2
+		if (ScoreText)
+		{
+			UWidget* ToToggle = ScoreChip ? static_cast<UWidget*>(ScoreChip) : ScoreText;
+			if (bTwoPlayer)
+				ToToggle->SetVisibility(ESlateVisibility::Hidden);
+			else
+			{
+				ToToggle->SetVisibility(ESlateVisibility::HitTestInvisible);
+				ScoreText->SetText(FText::FromString(
+					FString::Printf(TEXT("Score: %d"), Manager->GetPlayerScore())));
+			}
+		}
 		if (WhiteCapturedText)
 		{
 			const FString Who = bTwoPlayer ? TEXT("P1 took") : TEXT("You took");
@@ -714,6 +764,24 @@ void UChessHudWidget::ShowGameOverPanel(FString Result)
 			                   : TEXT("You win! Amazing game!");
 		else
 			Msg = TEXT("Good try! You'll get the robot next time!");
+
+		// Arcade scoring (solo only): captures + a win bonus, checked against
+		// the device-wide best. Undo games still count — the score is whatever
+		// the final position says.
+		if (!bTwoPlayer && Manager)
+		{
+			const bool bWon = (Result == PlayerSide);
+			const int32 FinalScore = Manager->GetPlayerScore() + (bWon ? 1000 : 0);
+			bool bNewBest = false;
+			if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+			{
+				bNewBest = GI->SubmitArcadeScore(FinalScore);
+				Msg += FString::Printf(TEXT("\nScore: %d    Best: %d"),
+					FinalScore, GI->GetArcadeHighScore());
+			}
+			if (bNewBest)
+				Msg += TEXT("\nNEW HIGH SCORE!");
+		}
 		GameOverText->SetText(FText::FromString(Msg));
 		if (bAxiomFinale && Result == PlayerSide)
 		{

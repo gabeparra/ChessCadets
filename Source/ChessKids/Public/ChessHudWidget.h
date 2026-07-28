@@ -28,6 +28,9 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* TurnText;
+	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* ScoreText;
+	// Purple chip behind ScoreText (C++ fallback UI only); toggled with it.
+	UPROPERTY() class UBorder* ScoreChip = nullptr;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* CheckText;
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* HintResultText;   // "Hint: e2 → e4"
 	UPROPERTY(meta = (BindWidgetOptional)) UTextBlock* WarningText;      // "This is not a valid move"

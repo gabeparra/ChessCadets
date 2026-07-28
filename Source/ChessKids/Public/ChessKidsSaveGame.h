@@ -29,6 +29,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<int32> CompletedTutorials;
 
+	// Best arcade (solo vs robot) score ever reached on this device.
+	UPROPERTY(BlueprintReadOnly)
+	int32 ArcadeHighScore = 0;
+
 	// Master game volume, 0..1. Applied to the audio device on startup and
 	// whenever the pause-menu slider changes it.
 	UPROPERTY()

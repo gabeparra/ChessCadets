@@ -29,11 +29,34 @@ namespace
 		return T;
 	}
 
+	// Page headings sit inside a rounded purple chip so they share the button
+	// language instead of floating bare over the scrim.
+	UTextBlock* MakeTitle(UWidgetTree* Tree, UVerticalBox* Box, const TCHAR* Text,
+	                      int32 Size, const TCHAR* Style, const FMargin& Pad)
+	{
+		UTextBlock* T = Tree->ConstructWidget<UTextBlock>();
+		T->SetText(FText::FromString(Text));
+		T->SetJustification(ETextJustify::Center);
+		T->SetFont(FCoreStyle::GetDefaultFontStyle(Style, Size));
+		UBorder* TitleChip = Tree->ConstructWidget<UBorder>();
+		TitleChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		TitleChip->SetPadding(FMargin(22.f, 6.f));
+		TitleChip->SetHorizontalAlignment(HAlign_Center);
+		TitleChip->SetVerticalAlignment(VAlign_Center);
+		TitleChip->AddChild(T);
+		if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(TitleChip))
+		{
+			S->SetPadding(Pad);
+			S->SetHorizontalAlignment(HAlign_Center);
+		}
+		return T;
+	}
+
 	void MakeButton(UWidgetTree* Tree, UVerticalBox* Box, UButton*& OutBtn,
 	                const TCHAR* Label, int32 FontSize)
 	{
 		OutBtn = Tree->ConstructWidget<UButton>();
-		ChessKidsUi::StyleButton(OutBtn);
+		ChessKidsUi::StyleMenuButton(OutBtn);
 		UTextBlock* T = Tree->ConstructWidget<UTextBlock>();
 		ChessKidsUi::StyleButtonLabel(T, FString(Label), FontSize);
 		OutBtn->AddChild(T);
@@ -69,22 +92,22 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 		// --- Page 1: level (arcade opens here — pick where to play first) ---
 		LevelBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		if (UCanvasPanelSlot* PS = Pages->AddChildToCanvas(LevelBox)) { PS->SetAutoSize(true); }
-		MakeText(WidgetTree, LevelBox, TEXT("ARCADE"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
+		MakeTitle(WidgetTree, LevelBox, TEXT("ARCADE"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
 		MakeText(WidgetTree, LevelBox, TEXT("Pick a level"), 20, TEXT("Regular"), FMargin(24.f, 0.f, 24.f, 14.f));
 		MakeButton(WidgetTree, LevelBox, LevelGridButton,    TEXT("THE GRID"), 24);
 		MakeButton(WidgetTree, LevelBox, LevelFieldButton,   TEXT("THE FIELD"), 24);
-		MakeButton(WidgetTree, LevelBox, LevelPawnButton,    TEXT("DEV — PAWN"), 22);
-		MakeButton(WidgetTree, LevelBox, LevelKnightButton,  TEXT("DEV — KNIGHT"), 22);
-		MakeButton(WidgetTree, LevelBox, LevelBishopButton,  TEXT("DEV — BISHOP"), 22);
-		MakeButton(WidgetTree, LevelBox, LevelRookButton,    TEXT("DEV — ROOK"), 22);
-		MakeButton(WidgetTree, LevelBox, LevelRoyaltyButton, TEXT("DEV — ROYALTY"), 22);
+		MakeButton(WidgetTree, LevelBox, LevelPawnButton,    TEXT("PAWN"), 22);
+		MakeButton(WidgetTree, LevelBox, LevelKnightButton,  TEXT("KNIGHT"), 22);
+		MakeButton(WidgetTree, LevelBox, LevelBishopButton,  TEXT("BISHOP"), 22);
+		MakeButton(WidgetTree, LevelBox, LevelRookButton,    TEXT("ROOK"), 22);
+		MakeButton(WidgetTree, LevelBox, LevelRoyaltyButton, TEXT("ROYALTY"), 22);
 		MakeButton(WidgetTree, LevelBox, LevelBackButton,    TEXT("BACK"), 18);
 
 		// --- Page 2: players ---
 		PlayersBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		PlayersBox->SetVisibility(ESlateVisibility::Collapsed);
 		if (UCanvasPanelSlot* PS = Pages->AddChildToCanvas(PlayersBox)) { PS->SetAutoSize(true); }
-		MakeText(WidgetTree, PlayersBox, TEXT("PLAYERS"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
+		MakeTitle(WidgetTree, PlayersBox, TEXT("PLAYERS"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
 		MakeText(WidgetTree, PlayersBox, TEXT("How many players?"), 20, TEXT("Regular"), FMargin(24.f, 0.f, 24.f, 18.f));
 		MakeButton(WidgetTree, PlayersBox, OnePlayerButton,   TEXT("1 PLAYER  VS  CPU"), 26);
 		MakeButton(WidgetTree, PlayersBox, TwoPlayerButton,   TEXT("2 PLAYERS"), 26);
@@ -94,7 +117,7 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 		DifficultyBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		DifficultyBox->SetVisibility(ESlateVisibility::Collapsed);
 		if (UCanvasPanelSlot* PS = Pages->AddChildToCanvas(DifficultyBox)) { PS->SetAutoSize(true); }
-		MakeText(WidgetTree, DifficultyBox, TEXT("DIFFICULTY"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
+		MakeTitle(WidgetTree, DifficultyBox, TEXT("DIFFICULTY"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
 		MakeText(WidgetTree, DifficultyBox, TEXT("How strong should the robot be?"), 20, TEXT("Regular"), FMargin(24.f, 0.f, 24.f, 18.f));
 		MakeButton(WidgetTree, DifficultyBox, EasyButton,           TEXT("EASY"), 26);
 		MakeButton(WidgetTree, DifficultyBox, MediumButton,         TEXT("MEDIUM"), 26);
@@ -105,7 +128,7 @@ TSharedRef<SWidget> UModeSelectWidget::RebuildWidget()
 		SideBox = WidgetTree->ConstructWidget<UVerticalBox>();
 		SideBox->SetVisibility(ESlateVisibility::Collapsed);
 		if (UCanvasPanelSlot* PS = Pages->AddChildToCanvas(SideBox)) { PS->SetAutoSize(true); }
-		MakeText(WidgetTree, SideBox, TEXT("YOUR SIDE"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
+		MakeTitle(WidgetTree, SideBox, TEXT("YOUR SIDE"), 42, TEXT("Bold"), FMargin(24.f, 8.f));
 		MakeText(WidgetTree, SideBox, TEXT("Which side do you play?"), 20, TEXT("Regular"), FMargin(24.f, 0.f, 24.f, 18.f));
 		MakeButton(WidgetTree, SideBox, WhiteButton,    TEXT("WHITE"), 26);
 		MakeButton(WidgetTree, SideBox, BlackButton,    TEXT("BLACK"), 26);

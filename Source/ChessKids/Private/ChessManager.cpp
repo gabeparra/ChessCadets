@@ -5,6 +5,7 @@
 #include "ChessPiece.h"
 #include "ChessKidsGameInstance.h"
 #include "Async/Async.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
@@ -189,20 +190,46 @@ void AChessManager::BeginPlay()
 	// Traffic never crosses the board plane — no exceptions. Placed OrbitCars
 	// (L_Field has dozens hand-scattered at various heights) get their orbit
 	// pushed below the board at startup, whatever height they were authored at.
+	// An OrbitCar's mesh swings on an arm around the actor pivot, so the test is
+	// against the orbit's CLOSEST APPROACH to the board (pivot distance minus
+	// arm length), not the pivot itself — a far pivot with a wide orbit can
+	// still sweep the board's airspace. Distant skyline traffic whose circle
+	// can't reach the board keeps its authored altitude.
 	if (Board)
 	{
-		const float MaxCarZ = Board->GetBoardCenter().Z - 600.f;
+		const FVector BoardCentre = Board->GetBoardCenter();
+		const float MaxCarZ = BoardCentre.Z - 600.f;
+		const float BoardReach = 900.f;   // board footprint + safety margin
 		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 		{
 			AActor* Actor = *It;
-			if (Actor && Actor->GetClass()->GetName().Contains(TEXT("OrbitCar")))
-			{
-				FVector Loc = Actor->GetActorLocation();
-				if (Loc.Z > MaxCarZ)
+			if (!Actor || !Actor->GetClass()->GetName().Contains(TEXT("OrbitCar")))
+				continue;
+
+			// Orbit arm = farthest any mesh component sits from the pivot in XY.
+			// MeshTopZ = how far the visible car reaches ABOVE the pivot (mesh
+			// offset + bounds) — clamping the pivot alone left car bodies level
+			// with the board even though the pivot obeyed.
+			float OrbitArm = 0.f;
+			float MeshTopZ = 0.f;
+			Actor->ForEachComponent<UStaticMeshComponent>(false,
+				[&](const UStaticMeshComponent* Comp)
 				{
-					Loc.Z = MaxCarZ;
-					Actor->SetActorLocation(Loc);
-				}
+					OrbitArm = FMath::Max(OrbitArm,
+						FVector::Dist2D(Comp->GetComponentLocation(), Actor->GetActorLocation()));
+					const FBoxSphereBounds B = Comp->Bounds;
+					MeshTopZ = FMath::Max(MeshTopZ,
+						(B.Origin.Z + B.BoxExtent.Z) - Actor->GetActorLocation().Z);
+				});
+
+			const float ClosestApproach =
+				FVector::Dist2D(Actor->GetActorLocation(), BoardCentre) - OrbitArm;
+			FVector Loc = Actor->GetActorLocation();
+			const float MaxPivotZ = MaxCarZ - FMath::Max(0.f, MeshTopZ);
+			if (ClosestApproach < BoardReach && Loc.Z > MaxPivotZ)
+			{
+				Loc.Z = MaxPivotZ;
+				Actor->SetActorLocation(Loc);
 			}
 		}
 	}
@@ -476,6 +503,34 @@ FString AChessManager::GetCapturedPieces(bool bWhitePieces) const
 		}
 	}
 	return Result;
+}
+
+int32 AChessManager::GetPlayerScore() const
+{
+	// Robot pieces the human has captured; letters as produced by GetCapturedPieces.
+	const FString Taken = GetCapturedPieces(PlayerColor == EChessColor::Black);
+	int32 Score = 0;
+	for (const TCHAR C : Taken)
+	{
+		switch (C)
+		{
+		case 'Q': Score += 900; break;
+		case 'R': Score += 500; break;
+		case 'B': case 'N': Score += 300; break;
+		case 'P': Score += 100; break;
+		default: break;   // spaces
+		}
+	}
+	return Score;
+}
+
+void AChessManager::DevForceWin()
+{
+	if (bGameOver) return;
+	StopSearch();
+	bGameOver = true;
+	PlaySfx(WinSound);
+	OnGameOver.Broadcast(PlayerColor == EChessColor::Black ? TEXT("black") : TEXT("white"));
 }
 
 void AChessManager::UndoLastMove()
