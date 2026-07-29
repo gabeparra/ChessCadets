@@ -249,11 +249,8 @@ private:
 	void CheckGameOver();
 
 	// Story/AXIOM victory side-effects (chapter unlock, King skin reward, fireworks).
-	// Reused by a real checkmate, the finale's draw-becomes-a-win, and the mercy rule.
+	// Reused by a real checkmate and the finale's draw-becomes-a-win.
 	void AwardStoryWin();
-
-	// True if the given pulse color has nothing left but its king (bare king).
-	bool SideHasOnlyKing(int Color) const;
 
 	UPROPERTY() TMap<FString, AChessPiece*> PieceActors;
 

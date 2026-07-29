@@ -44,26 +44,8 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 			TS->SetAutoSize(true);
 		}
 
-		// Arcade score — under the turn indicator, gold. Solo only (hidden in
-		// hot-seat, where "the player's" captures are ambiguous).
-		ScoreText = WidgetTree->ConstructWidget<UTextBlock>();
-		ScoreText->SetText(FText::FromString(TEXT("Score: 0")));
-		ScoreText->SetJustification(ETextJustify::Center);
-		ScoreText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 16));
-		ScoreText->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.85f, 0.3f)));
-		ScoreChip = WidgetTree->ConstructWidget<UBorder>();
-		ScoreChip->SetBrush(ChessKidsUi::MakeChipBrush());
-		ScoreChip->SetPadding(FMargin(14.f, 3.f));
-		ScoreChip->SetHorizontalAlignment(HAlign_Center);
-		ScoreChip->SetVerticalAlignment(VAlign_Center);
-		ScoreChip->AddChild(ScoreText);
-		if (UCanvasPanelSlot* ScS = Root->AddChildToCanvas(ScoreChip))
-		{
-			ScS->SetAnchors(FAnchors(0.5f, 0.f, 0.5f, 0.f));
-			ScS->SetAlignment(FVector2D(0.5f, 0.f));
-			ScS->SetPosition(FVector2D(0.f, 130.f));
-			ScS->SetAutoSize(true);
-		}
+		// (No persistent score readout — the score only matters at game over,
+		// where ShowGameOverPanel prints it with the high score.)
 
 		// Check warning — under the turn indicator, red, hidden by default.
 		CheckText = WidgetTree->ConstructWidget<UTextBlock>();
@@ -159,9 +141,8 @@ TSharedRef<SWidget> UChessHudWidget::RebuildWidget()
 		auto MakeHueSlider = [&](UTextBlock*& OutLabel, USlider*& OutSlider, const TCHAR* Label)
 		{
 			OutLabel = WidgetTree->ConstructWidget<UTextBlock>();
-			OutLabel->SetText(FText::FromString(Label));
-			OutLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 11));
-			OutLabel->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.6f)));
+			ChessKidsUi::StyleButtonLabel(OutLabel, FString(Label), 11);
+			OutLabel->SetColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.7f)));
 			if (UVerticalBoxSlot* S = ColorBox->AddChildToVerticalBox(OutLabel))
 				S->SetPadding(FMargin(0.f, 2.f, 0.f, 0.f));
 
@@ -682,18 +663,6 @@ void UChessHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		LastPositionVersion = Version;
 		const FString BlackLost = Manager->GetCapturedPieces(false);   // black pieces lost = captured by White/P1
 		const FString WhiteLost = Manager->GetCapturedPieces(true);    // white pieces lost = captured by Black/P2
-		if (ScoreText)
-		{
-			UWidget* ToToggle = ScoreChip ? static_cast<UWidget*>(ScoreChip) : ScoreText;
-			if (bTwoPlayer)
-				ToToggle->SetVisibility(ESlateVisibility::Hidden);
-			else
-			{
-				ToToggle->SetVisibility(ESlateVisibility::HitTestInvisible);
-				ScoreText->SetText(FText::FromString(
-					FString::Printf(TEXT("Score: %d"), Manager->GetPlayerScore())));
-			}
-		}
 		if (WhiteCapturedText)
 		{
 			const FString Who = bTwoPlayer ? TEXT("P1 took") : TEXT("You took");

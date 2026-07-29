@@ -40,30 +40,36 @@ void AChessCamera::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!TargetBoard)
-		TargetBoard = Cast<AChessBoard>(UGameplayStatics::GetActorOfClass(this, AChessBoard::StaticClass()));
-
 	ApplyView();
 
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (PC) PC->SetViewTargetWithBlend(this, 0.f);
 
-	// Orbit to the human's side once AChessManager::BeginPlay (elsewhere this frame)
-	// has resolved PlayerColor — actor BeginPlay order isn't guaranteed, so defer.
+	// Re-frame until the board exists and PlayerColor is resolved. One deferred
+	// tick isn't enough on World Partition maps (L_Field): the board can stream
+	// in well after this camera's BeginPlay, which left the camera stuck at its
+	// placed transform staring at nothing. Retry briefly, then stop.
 	TWeakObjectPtr<AChessCamera> WeakThis(this);
-	GetWorld()->GetTimerManager().SetTimerForNextTick([WeakThis]()
-	{
-		AChessCamera* Self = WeakThis.Get();
-		if (!Self) return;
+	TSharedRef<FTimerHandle> Retry = MakeShared<FTimerHandle>();
+	TSharedRef<int32> TriesLeft = MakeShared<int32>(24);   // 24 * 0.25s = 6s cap
+	GetWorld()->GetTimerManager().SetTimer(*Retry,
+		FTimerDelegate::CreateLambda([WeakThis, Retry, TriesLeft]()
+		{
+			AChessCamera* Self = WeakThis.Get();
+			if (!Self) return;
 
-		// ApplyView is side-aware and idempotent, so re-running it here lands on
-		// the correct (possibly Black) view once PlayerColor is known.
-		Self->ApplyView();
-	});
+			// ApplyView re-resolves the board and is side-aware + idempotent.
+			Self->ApplyView();
+			if (IsValid(Self->TargetBoard) || --(*TriesLeft) <= 0)
+				Self->GetWorldTimerManager().ClearTimer(*Retry);
+		}),
+		0.25f, /*bLoop=*/true, /*FirstDelay=*/0.f);
 }
 
 void AChessCamera::ApplyView()
 {
+	if (!TargetBoard)
+		TargetBoard = Cast<AChessBoard>(UGameplayStatics::GetActorOfClass(this, AChessBoard::StaticClass()));
 	if (IsValid(TargetBoard))
 		SetActorLocation(TargetBoard->GetBoardCenter());
 
