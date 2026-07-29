@@ -51,6 +51,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	bool bTwoPlayerMode = false;
 
+	// Which puzzle to load in the puzzle arena. Set by the puzzle menu before
+	// level travel; read by APuzzleManager::BeginPlay to pick the FEN from DT_Puzzles.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
+	FName PuzzleID = NAME_None;
+
+ 
+	// Fired when the player plays the correct solution move. Implemented in
+	// the PuzzleManager Blueprint to show the completion widget.
+	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
+	void OnPuzzleSolved();
+
+ 
 	// Side chosen on the mode-select screen. Only consulted by arenas whose
 	// AChessManager::PlayerColorMode == ChooseAtStart; Random/Fixed arenas ignore this.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
