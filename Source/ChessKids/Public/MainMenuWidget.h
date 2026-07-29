@@ -45,6 +45,7 @@ protected:
 	UFUNCTION() void OnQuit();
 	UFUNCTION() void OnSettings();
 	UFUNCTION() void OnSkins();
+	UFUNCTION() void OnPuzzles();
 	UFUNCTION() void OnLearn();
 	UFUNCTION() void ToggleDevMenu();   // bound to the K key on the player controller
 
@@ -58,11 +59,15 @@ private:
 	UPROPERTY() UUserWidget* ModeSelectInstance = nullptr;
 	UPROPERTY() UButton* InjectedSettingsButton = nullptr;
 	UPROPERTY() UButton* InjectedSkinsButton = nullptr;
+	// Interim puzzle-mode entry: Marco's WBP_MainMenu button was lost to the
+	// corrupted asset commit — remove this once the WBP has its own button.
+	UPROPERTY() UButton* InjectedPuzzlesButton = nullptr;
 	UPROPERTY() UButton* InjectedLearnButton = nullptr;
 
 	void SetTwoPlayerMode(bool bTwoPlayer);
 	void InjectSettingsButton();
 	void InjectSkinsButton();
+	void InjectPuzzlesButton();
 	void InjectLearnButton();
 
 	// The injected buttons are a dev overlay on top of the styled WBP menu; hidden

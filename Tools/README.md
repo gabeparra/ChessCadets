@@ -36,6 +36,15 @@ terminal.
 | `build_chess_maps.py` | Recipe for building an arena map skeleton. | **No on existing maps** — creates/overwrites actors |
 | `decorate_maps.py` | Procedural decoration pass for arena maps. | **No on existing maps** — spawns many actors |
 
+## Voice-over pipeline (no editor needed — plain Python)
+
+| Script | What it does | Safe to run? |
+|---|---|---|
+| `vo_manifest.json` | The dialogue database: one entry per voiced line (`id`, `character`, spoken `text`, optional `match` = exact in-game string). | n/a — data |
+| `generate_vo.py` | Synthesizes missing clips via ElevenLabs into `Content/Audio/VO/` (`ELEVENLABS_API_KEY` in `.env`). `--dry-run` previews, `--force`/`--only id` regenerate, `--emit-cpp` rebuilds `VoiceLineMap.gen.h` (recompile after). | Yes — skips existing clips; spends API credits only on new lines |
+| `normalize_vo.py` | Levels every clip to a common loudness (different ElevenLabs voices render at very different volumes). Run after generating. | Yes — idempotent |
+| `vo_audit.py` | Lists guide strings with **no matching clip** — run after editing tutorial dialogue to catch lines that went silent. | Yes — read-only |
+
 ## Rules of thumb
 
 - **Read-only diags: run freely.** Anything else: read the script first — several passes

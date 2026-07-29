@@ -7,6 +7,8 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/PanelWidget.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -46,6 +48,7 @@ void UMainMenuWidget::NativeConstruct()
 	InjectSettingsButton();
 	InjectSkinsButton();
 	InjectLearnButton();
+	InjectPuzzlesButton();
 
 	// Isabella's WBP menu is the real menu; keep these dev buttons hidden until K.
 	SetDevMenuVisible(false);
@@ -172,6 +175,99 @@ void UMainMenuWidget::InjectLearnButton()
 		CS->SetPosition(FVector2D(24.f, -24.f));
 		CS->SetAutoSize(true);
 	}
+}
+
+void UMainMenuWidget::InjectPuzzlesButton()
+{
+	if (InjectedPuzzlesButton) return;   // once per widget lifetime
+
+	// Slot into Isabella's own button column, right after STORY MODE, wearing
+	// STORY MODE's exact style/slot so it reads as one of hers.
+	UPanelWidget* Column = StoryModeButton ? StoryModeButton->GetParent() : nullptr;
+	if (Column)
+	{
+		InjectedPuzzlesButton = WidgetTree->ConstructWidget<UButton>();
+		InjectedPuzzlesButton->SetStyle(StoryModeButton->GetStyle());
+
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
+		Label->SetText(FText::FromString(TEXT("PUZZLE MODE")));
+		Label->SetJustification(ETextJustify::Center);
+		// Her label may be nested (overlay/sizebox inside the button) — find it.
+		TFunction<UTextBlock*(UWidget*)> FindText = [&](UWidget* W) -> UTextBlock*
+		{
+			if (UTextBlock* T = Cast<UTextBlock>(W)) return T;
+			if (UPanelWidget* P = Cast<UPanelWidget>(W))
+				for (int32 i = 0; i < P->GetChildrenCount(); ++i)
+					if (UTextBlock* T = FindText(P->GetChildAt(i))) return T;
+			return nullptr;
+		};
+		if (UTextBlock* Sibling = FindText(StoryModeButton))
+		{
+			Label->SetFont(Sibling->GetFont());
+			Label->SetColorAndOpacity(Sibling->GetColorAndOpacity());
+		}
+		InjectedPuzzlesButton->AddChild(Label);
+		InjectedPuzzlesButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnPuzzles);
+
+		// Ordering: live Slate only ever APPENDS, so "insert after STORY" =
+		// append ours, then re-append everything that followed STORY. Slot
+		// layout survives via InsertChildAt's slot-template overload, which
+		// clones the child's ORIGINAL slot (whatever panel type this is) —
+		// the old slot objects stay referenced until we're done.
+		const int32 StoryIdx = Column->GetChildIndex(StoryModeButton);
+		TArray<UWidget*> Tail;
+		TArray<UPanelSlot*> TailSlots;
+		for (int32 i = StoryIdx + 1; i < Column->GetChildrenCount(); ++i)
+		{
+			Tail.Add(Column->GetChildAt(i));
+			TailSlots.Add(Column->GetChildAt(i)->Slot);
+		}
+		for (int32 i = Tail.Num() - 1; i >= 0; --i)
+			Column->RemoveChild(Tail[i]);
+
+		Column->InsertChildAt(Column->GetChildrenCount(), InjectedPuzzlesButton,
+			StoryModeButton->Slot);
+		for (int32 i = 0; i < Tail.Num(); ++i)
+			Column->InsertChildAt(Column->GetChildrenCount(), Tail[i], TailSlots[i]);
+		return;
+	}
+
+	// Fallback (WBP layout changed): bottom-right corner stack.
+	UCanvasPanel* Canvas = WidgetTree ? Cast<UCanvasPanel>(WidgetTree->RootWidget) : nullptr;
+	if (!Canvas) return;
+
+	InjectedPuzzlesButton = WidgetTree->ConstructWidget<UButton>();
+	ChessKidsUi::StyleMenuButton(InjectedPuzzlesButton);
+	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
+	ChessKidsUi::StyleButtonLabel(Label, FString(TEXT("Puzzle Mode")), 24);
+	InjectedPuzzlesButton->AddChild(Label);
+	InjectedPuzzlesButton->OnClicked.AddUniqueDynamic(this, &UMainMenuWidget::OnPuzzles);
+
+	if (UCanvasPanelSlot* CS = Canvas->AddChildToCanvas(InjectedPuzzlesButton))
+	{
+		CS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+		CS->SetAlignment(FVector2D(1.f, 1.f));
+		CS->SetPosition(FVector2D(-24.f, -108.f));
+		CS->SetAutoSize(true);
+	}
+}
+
+void UMainMenuWidget::OnPuzzles()
+{
+	// Prefer Marco's select screen; if its class can't load, jump straight into
+	// the one existing puzzle so the mode is reachable either way.
+	if (UClass* SelectCls = LoadClass<UUserWidget>(nullptr,
+			TEXT("/Game/UI/WBP_PuzzleSelect1.WBP_PuzzleSelect1_C")))
+	{
+		if (UUserWidget* W = CreateWidget<UUserWidget>(GetOwningPlayer(), SelectCls))
+		{
+			W->AddToViewport(50);
+			return;
+		}
+	}
+	if (UChessKidsGameInstance* GI = Cast<UChessKidsGameInstance>(GetGameInstance()))
+		GI->PuzzleID = TEXT("Castling1");
+	UGameplayStatics::OpenLevel(this, TEXT("L_PuzzleGrid"));
 }
 
 void UMainMenuWidget::InjectSettingsButton()
