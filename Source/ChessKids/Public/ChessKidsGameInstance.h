@@ -56,11 +56,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	FName PuzzleID = NAME_None;
 
+ 
 	// Fired when the player plays the correct solution move. Implemented in
 	// the PuzzleManager Blueprint to show the completion widget.
 	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
 	void OnPuzzleSolved();
 
+ 
 	// Side chosen on the mode-select screen. Only consulted by arenas whose
 	// AChessManager::PlayerColorMode == ChooseAtStart; Random/Fixed arenas ignore this.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
@@ -166,6 +168,14 @@ public:
 	// SetBoardZoom.
 	UFUNCTION(BlueprintCallable, Category = "Chess|Camera")
 	void SetBoardZoom(float Zoom01);
+
+	// Arcade scoring. Submit compares against the saved best, persists a new
+	// record, and returns true when this run set one.
+	UFUNCTION(BlueprintCallable, Category = "Chess|Score")
+	bool SubmitArcadeScore(int32 Score);
+
+	UFUNCTION(BlueprintPure, Category = "Chess|Score")
+	int32 GetArcadeHighScore() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Chess|Camera")
 	float GetBoardZoom() const;

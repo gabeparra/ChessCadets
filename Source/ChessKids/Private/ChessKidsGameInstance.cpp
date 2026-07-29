@@ -188,6 +188,20 @@ void UChessKidsGameInstance::SetBoardZoom(float Zoom01)
 		Cam->RefreshFraming();
 }
 
+bool UChessKidsGameInstance::SubmitArcadeScore(int32 Score)
+{
+	if (!Progress || Score <= Progress->ArcadeHighScore)
+		return false;
+	Progress->ArcadeHighScore = Score;
+	SaveProgress();
+	return true;
+}
+
+int32 UChessKidsGameInstance::GetArcadeHighScore() const
+{
+	return Progress ? Progress->ArcadeHighScore : 0;
+}
+
 void UChessKidsGameInstance::ApplyMasterVolume() const
 {
 	const float V = GetMasterVolume();

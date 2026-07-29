@@ -46,7 +46,13 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 		Title->SetText(FText::FromString(TEXT("PAUSED")));
 		Title->SetJustification(ETextJustify::Center);
 		Title->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 34));
-		if (UVerticalBoxSlot* TS = Box->AddChildToVerticalBox(Title))
+		UBorder* TitleChip = WidgetTree->ConstructWidget<UBorder>();
+		TitleChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		TitleChip->SetPadding(FMargin(22.f, 6.f));
+		TitleChip->SetHorizontalAlignment(HAlign_Center);
+		TitleChip->SetVerticalAlignment(VAlign_Center);
+		TitleChip->AddChild(Title);
+		if (UVerticalBoxSlot* TS = Box->AddChildToVerticalBox(TitleChip))
 		{
 			TS->SetPadding(FMargin(16.f, 12.f));
 			TS->SetHorizontalAlignment(HAlign_Center);
@@ -55,7 +61,7 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 		auto MakeButton = [&](UButton*& OutBtn, const TCHAR* Label)
 		{
 			OutBtn = WidgetTree->ConstructWidget<UButton>();
-			ChessKidsUi::StyleButton(OutBtn);
+			ChessKidsUi::StyleMenuButton(OutBtn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
 			ChessKidsUi::StyleButtonLabel(T, FString(Label), 18);
 			OutBtn->AddChild(T);
@@ -94,7 +100,7 @@ TSharedRef<SWidget> UPauseMenuWidget::RebuildWidget()
 		auto MakeDifficultyButton = [&](UButton*& OutBtn, const TCHAR* Label)
 		{
 			OutBtn = WidgetTree->ConstructWidget<UButton>();
-			ChessKidsUi::StyleButton(OutBtn);
+			ChessKidsUi::StyleMenuButton(OutBtn);
 			UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
 			ChessKidsUi::StyleButtonLabel(T, FString(Label), 16);
 			OutBtn->AddChild(T);

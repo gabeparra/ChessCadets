@@ -55,7 +55,13 @@ TSharedRef<SWidget> UPieceSkinsMenuWidget::RebuildWidget()
 		TitleText->SetText(FText::FromString(TEXT("PIECE SKINS")));
 		TitleText->SetJustification(ETextJustify::Center);
 		TitleText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 22));
-		if (UVerticalBoxSlot* TS = MainBox->AddChildToVerticalBox(TitleText))
+		UBorder* TitleChip = WidgetTree->ConstructWidget<UBorder>();
+		TitleChip->SetBrush(ChessKidsUi::MakeChipBrush());
+		TitleChip->SetPadding(FMargin(22.f, 6.f));
+		TitleChip->SetHorizontalAlignment(HAlign_Center);
+		TitleChip->SetVerticalAlignment(VAlign_Center);
+		TitleChip->AddChild(TitleText);
+		if (UVerticalBoxSlot* TS = MainBox->AddChildToVerticalBox(TitleChip))
 		{
 			TS->SetPadding(FMargin(8.f, 0.f, 8.f, 12.f));
 			TS->SetHorizontalAlignment(HAlign_Center);
@@ -102,7 +108,7 @@ TSharedRef<SWidget> UPieceSkinsMenuWidget::RebuildWidget()
 		}
 
 		EquipButton = WidgetTree->ConstructWidget<UButton>();
-		ChessKidsUi::StyleButton(EquipButton);
+		ChessKidsUi::StyleMenuButton(EquipButton);
 		UTextBlock* EquipLabel = WidgetTree->ConstructWidget<UTextBlock>();
 		ChessKidsUi::StyleButtonLabel(EquipLabel, FString(TEXT("Equip")), 15);
 		EquipButton->AddChild(EquipLabel);
@@ -153,7 +159,7 @@ TSharedRef<SWidget> UPieceSkinsMenuWidget::RebuildWidget()
 		LockedSizeBox->AddChild(LockedListBox);
 
 		BackButton = WidgetTree->ConstructWidget<UButton>();
-		ChessKidsUi::StyleButton(BackButton);
+		ChessKidsUi::StyleMenuButton(BackButton);
 		UTextBlock* BackLabel = WidgetTree->ConstructWidget<UTextBlock>();
 		ChessKidsUi::StyleButtonLabel(BackLabel, FString(TEXT("Back")), 14);
 		BackButton->AddChild(BackLabel);
