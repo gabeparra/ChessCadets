@@ -1,37 +1,4 @@
 {
-<<<<<<< HEAD
-	"FileVersion": 3,
-	"EngineAssociation": "5.7",
-	"Category": "",
-	"Description": "",
-	"Modules": [
-		{
-			"Name": "ChessKids",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				"Engine"
-			]
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true
-		},
-		{
-			"Name": "VisualStudioTools",
-			"Enabled": false,
-			"SupportedTargetPlatforms": [
-				"Win64"
-			]
-		},
-		{
-			"Name": "HDRIBackdrop",
-			"Enabled": true
-		}
-	]
-=======
   "FileVersion": 3,
   "EngineAssociation": "5.7",
   "Category": "",
@@ -65,5 +32,4 @@
   "AdditionalRootDirectories": [],
   "AdditionalPluginDirectories": [],
   "EpicSampleNameHash": ""
->>>>>>> main
 }

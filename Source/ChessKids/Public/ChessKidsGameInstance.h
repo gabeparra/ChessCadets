@@ -55,12 +55,16 @@ public:
 	// level travel; read by APuzzleManager::BeginPlay to pick the FEN from DT_Puzzles.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	FName PuzzleID = NAME_None;
-	
+
+	// Fired when the player plays the correct solution move. Implemented in
+	// the PuzzleManager Blueprint to show the completion widget.
+	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
+	void OnPuzzleSolved();
+
 	// Side chosen on the mode-select screen. Only consulted by arenas whose
 	// AChessManager::PlayerColorMode == ChooseAtStart; Random/Fixed arenas ignore this.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chess|Game")
 	EChessColor PlayerColor = EChessColor::White;
-
 
 	// Board color theme chosen via the settings slider. Applied by
 	// AChessBoard::BeginPlay so the choice follows the player between arenas.

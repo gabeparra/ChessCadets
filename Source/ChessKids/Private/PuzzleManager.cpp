@@ -88,6 +88,8 @@ void APuzzleManager::HandleMoveMade(FString FromSquare, FString ToSquare)
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
 				TEXT("Correct! Puzzle solved!"));
+
+		OnPuzzleSolved();    
 	}
 	else
 	{

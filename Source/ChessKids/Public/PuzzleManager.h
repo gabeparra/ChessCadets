@@ -49,6 +49,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Puzzle")
 	UDataTable* PuzzleTable = nullptr;
 
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
+	void OnPuzzleSolved();
+
 	UFUNCTION()
 	void HandleMoveMade(FString FromSquare, FString ToSquare);
 
