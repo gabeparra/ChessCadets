@@ -259,9 +259,28 @@ void UMainMenuWidget::OnPuzzles()
 	if (UClass* SelectCls = LoadClass<UUserWidget>(nullptr,
 			TEXT("/Game/UI/WBP_PuzzleSelect1.WBP_PuzzleSelect1_C")))
 	{
-		if (UUserWidget* W = CreateWidget<UUserWidget>(GetOwningPlayer(), SelectCls))
+		if (!PuzzleSelectInstance)
+			PuzzleSelectInstance = CreateWidget<UUserWidget>(GetOwningPlayer(), SelectCls);
+		if (PuzzleSelectInstance && !PuzzleSelectInstance->IsInViewport())
 		{
-			W->AddToViewport(50);
+			PuzzleSelectInstance->AddToViewport(50);
+
+			// His screen has no scrim, so the main menu bleeds through — hide
+			// ourselves and poll for his Back (RemoveFromParent) to restore.
+			SetVisibility(ESlateVisibility::Collapsed);
+			TWeakObjectPtr<UMainMenuWidget> WeakThis(this);
+			GetWorld()->GetTimerManager().SetTimer(PuzzleWatchTimer,
+				FTimerDelegate::CreateLambda([WeakThis]()
+				{
+					UMainMenuWidget* Self = WeakThis.Get();
+					if (!Self) return;
+					if (!Self->PuzzleSelectInstance || !Self->PuzzleSelectInstance->IsInViewport())
+					{
+						Self->SetVisibility(ESlateVisibility::Visible);
+						Self->GetWorld()->GetTimerManager().ClearTimer(Self->PuzzleWatchTimer);
+					}
+				}),
+				0.2f, /*bLoop=*/true);
 			return;
 		}
 	}

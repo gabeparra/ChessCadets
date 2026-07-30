@@ -62,6 +62,10 @@ private:
 	// Interim puzzle-mode entry: Marco's WBP_MainMenu button was lost to the
 	// corrupted asset commit — remove this once the WBP has its own button.
 	UPROPERTY() UButton* InjectedPuzzlesButton = nullptr;
+	UPROPERTY() UUserWidget* PuzzleSelectInstance = nullptr;
+	// Watches for the puzzle select screen closing (its Back button just
+	// RemoveFromParent's itself) so the hidden main menu can come back.
+	FTimerHandle PuzzleWatchTimer;
 	UPROPERTY() UButton* InjectedLearnButton = nullptr;
 
 	void SetTwoPlayerMode(bool bTwoPlayer);
