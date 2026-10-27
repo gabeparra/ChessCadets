@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="480" viewBox="0 0 1600 480">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#05060f"/>
+      <stop offset="100%" stop-color="#0b0a1a"/>
+    </linearGradient>
+    <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#37e6ff"/>
+      <stop offset="55%" stop-color="#8f7bff"/>
+      <stop offset="100%" stop-color="#ff4fd8"/>
+    </linearGradient>
+    <linearGradient id="gridLine" gradientUnits="userSpaceOnUse" x1="1000" y1="84" x2="1560" y2="468">
+      <stop offset="0%" stop-color="#2be8ff"/>
+      <stop offset="100%" stop-color="#1a6b8f"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="480" fill="url(#bg)"/>
+
+  <!-- faint scanline / vignette texture -->
+  <rect width="1600" height="480" fill="#000000" opacity="0.15"/>
+  <g opacity="0.5">
+    <rect x="0" y="0" width="1600" height="1" fill="#1c2a44"/>
+    <rect x="0" y="479" width="1600" height="1" fill="#1c2a44"/>
+  </g>
+
+  <!-- perspective chessboard, right side -->
+  <g filter="url(#softGlow)" stroke="url(#gridLine)" stroke-width="2" fill="none" opacity="0.9">
+    <!-- horizontal lines (converging toward a vanishing point above) -->
+    <path d="M1000 468 L1560 468"/>
+    <path d="M1015 420 L1548 420"/>
+    <path d="M1032 372 L1534 372"/>
+    <path d="M1050 324 L1518 324"/>
+    <path d="M1070 276 L1500 276"/>
+    <path d="M1092 228 L1480 228"/>
+    <path d="M1116 180 L1458 180"/>
+    <path d="M1142 132 L1432 132"/>
+    <path d="M1170 84 L1404 84"/>
+    <!-- vertical/radiating lines -->
+    <path d="M1000 468 L1170 84"/>
+    <path d="M1063 468 L1206 84"/>
+    <path d="M1126 468 L1242 84"/>
+    <path d="M1189 468 L1278 84"/>
+    <path d="M1252 468 L1314 84"/>
+    <path d="M1315 468 L1350 84"/>
+    <path d="M1378 468 L1386 84"/>
+    <path d="M1441 468 L1422 84"/>
+    <path d="M1504 468 L1458 84"/>
+    <path d="M1560 468 L1490 84"/>
+  </g>
+
+  <!-- a couple of glowing tiles for depth -->
+  <g opacity="0.35">
+    <polygon points="1015,420 1092,420 1070,372 1000,372" fill="#a33bd8"/>
+    <polygon points="1189,276 1252,276 1242,228 1170,228" fill="#37e6ff"/>
+    <polygon points="1063,468 1126,468 1116,420 1050,420" fill="#a33bd8"/>
+  </g>
+
+  <!-- pawn/king glyph emblem, glowing outline -->
+  <g filter="url(#glow)" stroke="#ff4fd8" stroke-width="6" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M1290 200 l0 -22 M1279 189 l22 0"/>
+    <path d="M1265 235 c0 -22 50 -22 50 0 l-10 20 -30 0 z"/>
+    <path d="M1250 300 c5 -35 15 -45 65 -45 s60 10 65 45 z"/>
+    <path d="M1235 330 l100 0 -8 -30 -84 0 z"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="90" y="185" font-family="Montserrat, sans-serif" font-weight="700" font-size="88" letter-spacing="2" fill="url(#wordmark)" filter="url(#glow)">CHESS</text>
+  <text x="90" y="285" font-family="Montserrat, sans-serif" font-weight="700" font-size="88" letter-spacing="2" fill="url(#wordmark)" filter="url(#glow)">CADETS</text>
+
+  <rect x="92" y="320" width="440" height="3" fill="#37e6ff" opacity="0.8"/>
+
+  <text x="90" y="365" font-family="Montserrat, sans-serif" font-weight="600" font-size="27" letter-spacing="3" fill="#eaf3ff">LEARN CHESS. FIGHT FOR THE BOARD.</text>
+  <text x="90" y="400" font-family="Montserrat, sans-serif" font-weight="400" font-size="21" letter-spacing="1" fill="#8ea3c9">Unreal Engine 5 chess: story tutorials, puzzles, and an AI opponent</text>
+</svg>

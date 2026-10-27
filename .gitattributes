@@ -28,3 +28,8 @@
 # Font files
 *.ttf filter=lfs diff=lfs merge=lfs -text
 *.otf filter=lfs diff=lfs merge=lfs -text
+
+# README images live in plain git, not LFS
+Docs/*.png -filter -diff -merge
+Docs/*.svg -filter -diff -merge
+Docs/screenshots/** -filter -diff -merge
