@@ -1,4 +1,4 @@
-<img src="Docs/banner.png" width="100%" alt="Chess Cadets banner">
+<img src="Docs/banner.png" width="100%" alt="ChessCadets banner">
 
 ![Unreal Engine 5.7](https://img.shields.io/badge/Unreal%20Engine-5.7-0e1128?logo=unrealengine&logoColor=white)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
@@ -7,7 +7,7 @@
 
 A chess game for kids, set in neon arenas, with a real search-based AI opponent behind the tutorials.
 
-Chess Cadets (working title ChessKids) was our UCF senior design capstone. This is my copy of the
+ChessCadets was our UCF senior design capstone. This is my copy of the
 [team repository](https://github.com/LeineckerGames/ChessCadets), kept up to date with its final code, with
 screenshots of the finished game and a write-up of how it works.
 
@@ -28,7 +28,7 @@ screenshots of the finished game and a write-up of how it works.
 
 ## What it does
 
-Chess Cadets teaches a kid to play real chess. There's a tutorial for every piece, a puzzle mode, and five
+ChessCadets teaches a kid to play real chess. There's a tutorial for every piece, a puzzle mode, and five
 holographic arenas to play full games in, against a friend or the built-in AI.
 
 - **Full chess rules.** Castling on both sides, en passant, promotion, check, checkmate, stalemate, the 50-move
@@ -117,6 +117,8 @@ It's an Unreal Engine 5.7 project, built with Visual Studio 2022 on Windows.
 2. Clone the repository with Git LFS installed. The Unreal assets in `Content/` are stored in LFS.
 3. Right-click `ChessKids.uproject` and choose "Generate Visual Studio project files".
 4. Open the solution and build the `ChessKidsEditor` target, or open `ChessKids.uproject` and let the editor build it.
+
+The Unreal project file and the C++ code still use the name ChessKids from early in development.
 
 The third-party marketplace packs (CyberpunkIndustries, Fab and NaturePack) and the two display fonts aren't in this
 copy, because their licenses don't allow it, so the arenas will be missing the scenery that came from them.

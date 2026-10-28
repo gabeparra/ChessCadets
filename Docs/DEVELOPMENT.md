@@ -1,4 +1,4 @@
-# ChessKids developer guide
+# ChessCadets developer guide
 
 A kids' chess game built in **Unreal Engine 5.7**. You play White against a built‑in
 chess AI on a holographic board, set inside neon, cyberpunk‑styled arenas. Each chess

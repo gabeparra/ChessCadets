@@ -2,6 +2,9 @@
 
 Changes in this copy (gabeparra/ChessCadets) on top of the team repository.
 
+## 2026-10-28
+- The README calls the game ChessCadets throughout, its final name.
+
 ## 2026-10-27
 - Brought this copy up to the team's final code (LeineckerGames/ChessCadets main, 2026-07-31). The earlier
   July 8 state is kept as the tag `snapshot-2026-07-08`.
